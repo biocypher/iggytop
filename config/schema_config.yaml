@@ -1,7 +1,7 @@
 # add your desired knowledge graph components here
 
 t cell receptor sequence:
-  is_a: nucleic acid sequence motif
+  is_a: polypeptide  # TODO probably not semantically correct
 
 tra sequence:
   is_a: t cell receptor sequence
