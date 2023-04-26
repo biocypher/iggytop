@@ -1,33 +1,12 @@
-# BioCypher project template
-A quick way to set up a BioCypher-driven knowledge graph pipeline.
+# TCR Epitope pipeline
 
-## Using the GitHub Template functionality
-You can use this template in GitHub directly. Just select 
-`biocypher/project-template` as your template when creating a new repository
-on GitHub.
-
-## ⚙️ Installation (local, for docker see below)
-1. Clone this repository and rename to your project name.
-```{bash}
-git clone https://github.com/biocypher/project-template.git
-mv project-template my-project
-cd my-project
-```
-2. Make the repository your own.
-```{bash}
-rm -rf .git
-git init
-git add .
-git commit -m "Initial commit"
-# (you can add your remote repository here)
-```
-3. Install the dependencies using [Poetry](https://python-poetry.org/). (Or feel
+1. Install the dependencies using [Poetry](https://python-poetry.org/). (Or feel
 free to use your own dependency management system. We provide a `pyproject.toml`
 to define dependencies.)
 ```{bash}
 poetry install
 ```
-4. You are ready to go!
+2. You are ready to go!
 ```{bash}
 poetry shell
 python create_knowledge_graph.py
