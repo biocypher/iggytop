@@ -14,7 +14,7 @@ trb sequence:
   input_label: TRB
 
 epitope:
-  is_a: protein sequence motif
+  is_a: polypeptide  # TODO probably not semantically correct
   represented_as: node
   input_label: Epitope
 
