@@ -1,0 +1,16 @@
+# add your settings here (overriding the defaults)
+
+biocypher:
+  offline: true
+  debug: false
+  schema_config_path: config/schema_config.yaml
+  output_directory: biocypher-out/docker
+
+neo4j:
+  database_name: docker
+  wipe: true
+  delimiter: '\t'
+  array_delimiter: '|'
+  skip_duplicate_nodes: true
+  skip_bad_relationships: true
+  import_call_file_prefix: import/docker/

@@ -1,0 +1,20 @@
+version: '3.3'
+
+services:
+  neo4j:
+    build:
+      context: .
+      args:
+        - "BIOCYPHER_CONFIG=config/biocypher_docker_config.yaml"
+    container_name: biocypher-project-template-container
+    env_file:
+      - docker-variables.env
+    ports:
+      - 7474:7474
+      - 7687:7687
+    volumes:
+      - biocypher_neo4j_volume:/data
+ #   restart: always
+
+volumes:
+  biocypher_neo4j_volume:

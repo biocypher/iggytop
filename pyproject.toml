@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "biocypher-project-template"
+version = "0.1.0"
+description = "Template for creating a BioCypher-driven knowledge graph"
+authors = [
+    "Sebastian Lobentanzer <sebastian.lobentanzer@gmail.com>",
+    "Andreas Maier <andreas.maier-1@uni-hamburg.de>",
+]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+biocypher = "^0.5.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
