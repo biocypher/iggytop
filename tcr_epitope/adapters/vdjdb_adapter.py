@@ -6,8 +6,8 @@
 import pandas as pd
 
 class VDJDBAdapter:
-    def __init__(self) -> None:
-        self.vdjdb = pd.read_csv('data/SearchTable-2023-04-26 14_23_16.112.tsv', sep='\t')
+    def __init__(self, file_path: str = None) -> None:
+        self.vdjdb = pd.read_csv(file_path, sep='\t')
 
         # new table with only unique Gene and CDR3 columns (nodes)
         self.vdjdb_sequence = self.vdjdb[['Gene', 'CDR3']].drop_duplicates()
