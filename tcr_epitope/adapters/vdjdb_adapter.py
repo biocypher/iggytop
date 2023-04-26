@@ -7,7 +7,7 @@ import pandas as pd
 
 class VDJDBAdapter:
     def __init__(self) -> None:
-        self.vdjdb = pd.read_csv('data/vdjdb_test.tsv', sep='\t')
+        self.vdjdb = pd.read_csv('data/SearchTable-2023-04-26 14_23_16.112.tsv', sep='\t')
 
         # new table with only unique Gene and CDR3 columns (nodes)
         self.vdjdb_sequence = self.vdjdb[['Gene', 'CDR3']].drop_duplicates()
@@ -20,7 +20,7 @@ class VDJDBAdapter:
 
     def get_nodes(self):
         for row in self.vdjdb_sequence.itertuples():
-            _id = row.CDR3
+            _id = "_".join([row.Gene, row.CDR3])
             _type = row.Gene
             _props = {}
             
@@ -35,7 +35,7 @@ class VDJDBAdapter:
 
     def get_edges(self):
         for row in self.vdjdb_edge.itertuples():
-            _from = row.CDR3
+            _from = "_".join([row.Gene, row.CDR3])
             _to = row.Epitope
             _type = 'TCR_Sequence_To_Epitope'
             _props = {}
