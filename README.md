@@ -1,4 +1,4 @@
-# TCR Epitope pipeline
+# Immune Receptor Epitope pipeline
 
 1. Install the dependencies using [Poetry](https://python-poetry.org/). (Or feel
 free to use your own dependency management system. We provide a `pyproject.toml`

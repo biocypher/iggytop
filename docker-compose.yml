@@ -14,7 +14,7 @@ services:
       - 7687:7687
     volumes:
       - biocypher_neo4j_volume:/data
- #   restart: always
+#    restart: always
 
 volumes:
   biocypher_neo4j_volume:

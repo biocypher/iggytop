@@ -14,7 +14,7 @@ class MCPASAdapter:
                 "http://friedmanlab.weizmann.ac.il/McPAS-TCR/ and save as "
                 "`mcpas_full.csv` in the `data/` directory."
             )
-        table = pd.read_csv(self.DB_PATH)
+        table = pd.read_csv(self.DB_PATH, encoding="unicode_escape")
         if test:
             table = table.sample(frac=0.1)
 

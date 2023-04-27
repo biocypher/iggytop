@@ -7,7 +7,7 @@ bc = BioCypher()
 
 adapters = [
     VDJDBAdapter(),
-    # MCPASAdapter(),
+    MCPASAdapter(),
     IEDBAdapter(),
 ]
 
