@@ -1,21 +1,32 @@
+import os
+
 import pandas as pd
 
 
 class MCPASAdapter:
 
-    URL = "http://friedmanlab.weizmann.ac.il/McPAS-TCR/session/59ca1e2ae928627a163fef1ed83ae3c2/download/downloadDB?w="
+    DB_PATH = "data/mcpas_full.csv"
 
-    def __init__(self):
-        table = pd.read_csv("data/mcpas_test.csv")
+    def __init__(self, test: bool = False):
+        if not os.path.exists(self.DB_PATH):
+            raise FileNotFoundError(
+                "MCPAS database not found. Please download from "
+                "http://friedmanlab.weizmann.ac.il/McPAS-TCR/ and save as "
+                "`mcpas_full.csv` in the `data/` directory."
+            )
+        table = pd.read_csv(self.DB_PATH)
+        if test:
+            table = table.sample(frac=0.1)
+
         self.cdr3_alpha = table[["CDR3.alpha.aa"]].drop_duplicates().dropna()
         self.cdr3_beta = table[["CDR3.beta.aa"]].drop_duplicates().dropna()
         self.epitopes = table[["Epitope.peptide"]].drop_duplicates().dropna()
+
         self.alpha_beta_edges = table[["CDR3.alpha.aa", "CDR3.beta.aa"]].drop_duplicates().dropna()
         self.alpha_epitope_edges = table[["CDR3.alpha.aa", "Epitope.peptide"]].drop_duplicates().dropna()
         self.beta_epitope_edges = table[["CDR3.beta.aa", "Epitope.peptide"]].drop_duplicates().dropna()
 
     def get_nodes(self):
-
         for row in self.cdr3_alpha.itertuples():
             _id = "_".join(["TRA", row[1]])
             _type = "TRA"

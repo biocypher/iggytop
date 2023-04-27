@@ -1,42 +1,86 @@
-# https://vdjdb.cdr3.net/
-# complex.id	Gene	CDR3	V	J	Species	MHC A	MHC B	MHC class	Epitope	Epitope gene	Epitope species	Reference	Method	Meta	CDR3fix	Score
-# 1	TRB	CASSYLPGQGDHYSNQPQHF	TRBV13*01	TRBJ1-5*01	HomoSapiens	HLA-B*08	B2M	MHCI	FLKEKGGL	Nef	HIV-1	PMID:15596521	{"frequency": "", "identification": "tetramer-sort", "sequencing": "sanger", "singlecell": "", "verification": "antigen-loaded-targets"}	{"cell.subset": "CD8+", "clone.id": "", "donor.MHC": "HLA-A*02:01,HLA-A*24:02;HLA-B*08:01,HLA-B*5701;HLA-Cw*06:02,HLA-Cw*07:01;HLA-DRB*07:01,HLA-DRB*13:01", "donor.MHC.method": "", "epitope.id": "", "replica.id": "", "samples.found": 1, "structure.id": "", "studies.found": 1, "study.id": "", "subject.cohort": "HIV+", "subject.id": "005", "tissue": "PBMC"}	{"cdr3": "CASSYLPGQGDHYSNQPQHF", "cdr3_old": "CASSYLPGQGDHYSNQPQH", "fixNeeded": true, "good": true, "jCanonical": true, "jFixType": "Realign", "jId": "TRBJ1-5*01", "jStart": 13, "oldJFixType": "FixAdd", "oldJStart": 14, "vCanonical": true, "vEnd": 4, "vFixType": "NoFixNeeded", "vId": "TRBV13*01"}	2
-# 0	TRB	CASSFEAGQGFFSNQPQHF	TRBV13*01	TRBJ1-5*01	HomoSapiens	HLA-B*08	B2M	MHCI	FLKEKGGL	Nef	HIV-1	PMID:15596521	{"frequency": "", "identification": "tetramer-sort", "sequencing": "sanger", "singlecell": "", "verification": "antigen-loaded-targets"}	{"cell.subset": "CD8+", "clone.id": "", "donor.MHC": "HLA-A*01:01,HLA-A*02:01;HLA-B*08:01,HLA-B*57:01;HLA-Cw*06:02,HLA-Cw*07:01;HLA-DRB*08:03:2,HLA-DRB*15:01:1", "donor.MHC.method": "", "epitope.id": "", "replica.id": "", "samples.found": 1, "structure.id": "", "studies.found": 1, "study.id": "", "subject.cohort": "HIV+", "subject.id": "065", "tissue": "PBMC"}	{"cdr3": "CASSFEAGQGFFSNQPQHF", "cdr3_old": "CASSFEAGQGFFSNQPQH", "fixNeeded": true, "good": true, "jCanonical": true, "jFixType": "Realign", "jId": "TRBJ1-5*01", "jStart": 12, "oldJFixType": "FixAdd", "oldJStart": 13, "vCanonical": true, "vEnd": 4, "vFixType": "NoFixNeeded", "vId": "TRBV13*01"}	2
+import os
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import pandas as pd
+import pooch
+from github import Github
+
+from typing import Optional
+
 
 class VDJDBAdapter:
-    def __init__(self, file_path: str = None) -> None:
-        self.vdjdb = pd.read_csv(file_path, sep='\t')
 
-        # new table with only unique Gene and CDR3 columns (nodes)
-        self.vdjdb_sequence = self.vdjdb[['Gene', 'CDR3']].drop_duplicates()
+    REPO_NAME = "antigenomics/vdjdb-db"
+    DB_DIR = "vdjdb_latest"
+    DB_FNAME = "vdjdb.txt"
 
-        # new table with only unique Epitope columns (nodes)
-        self.vdjdb_epitope = self.vdjdb[['Epitope']].drop_duplicates()
+    def __init__(self, cache_dir: Optional[str] = None, test: bool = False):
+        cache_dir = cache_dir or TemporaryDirectory().name
+        db_path = self.download_latest_release(cache_dir)
 
-        # new table with only unique Gene, CDR3, Epitope columns (edges)
-        self.vdjdb_edge = self.vdjdb[['Gene', 'CDR3', 'Epitope']].drop_duplicates()
+        table = pd.read_csv(db_path, sep="\t")
+        if test:
+            table = table.sample(frac=0.1)
+
+        cdr3 = table[["gene", "cdr3"]].drop_duplicates().dropna()
+        self.cdr3_alpha = cdr3[cdr3["gene"] == "TRA"][["cdr3"]]
+        self.cdr3_beta = cdr3[cdr3["gene"] == "TRB"][["cdr3"]]
+
+        self.epitopes = table[["antigen.epitope"]].drop_duplicates().dropna()
+
+        cdr3_epitope_edges = table[["gene", "cdr3", "antigen.epitope"]].drop_duplicates().dropna()
+        self.alpha_epitope_edges = cdr3_epitope_edges[cdr3_epitope_edges["gene"] == "TRA"][["cdr3", "antigen.epitope"]]
+        self.beta_epitope_edges = cdr3_epitope_edges[cdr3_epitope_edges["gene"] == "TRB"][["cdr3", "antigen.epitope"]]
+
+    def download_latest_release(self, save_dir: str):
+        repo = Github().get_repo(self.REPO_NAME)
+        db_url = repo.get_latest_release().get_assets()[0].browser_download_url
+
+        path = Path(pooch.retrieve(
+            db_url,
+            None,
+            fname=self.DB_DIR,
+            path=save_dir,
+            processor=pooch.Unzip(),
+        )[0]).parent
+
+        return os.path.join(path, self.DB_FNAME)
 
     def get_nodes(self):
-        for row in self.vdjdb_sequence.itertuples():
-            _id = "_".join([row.Gene, row.CDR3])
-            _type = row.Gene
+        for row in self.cdr3_alpha.itertuples():
+            _id = "_".join(["TRA", row[1]])
+            _type = 'TRA'
             _props = {}
             
             yield (_id, _type, _props)
 
-        for row in self.vdjdb_epitope.itertuples():
-            _id = row.Epitope
+        for row in self.cdr3_beta.itertuples():
+            _id = "_".join(["TRB", row[1]])
+            _type = 'TRB'
+            _props = {}
+            
+            yield (_id, _type, _props)
+
+        for row in self.epitopes.itertuples():
+            _id = row[1]
             _type = 'Epitope'
             _props = {}
             
             yield (_id, _type, _props)
 
     def get_edges(self):
-        for row in self.vdjdb_edge.itertuples():
-            _from = "_".join([row.Gene, row.CDR3])
-            _to = row.Epitope
+        for row in self.alpha_epitope_edges.itertuples():
+            _from = "_".join(["TRA", row[1]])
+            _to = row[2]
+            _type = 'TCR_Sequence_To_Epitope'
+            _props = {}
+            
+            yield (None, _from, _to, _type, _props)
+
+        for row in self.beta_epitope_edges.itertuples():
+            _from = "_".join(["TRB", row[1]])
+            _to = row[2]
             _type = 'TCR_Sequence_To_Epitope'
             _props = {}
             

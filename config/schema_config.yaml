@@ -1,7 +1,22 @@
 # add your desired knowledge graph components here
 
+immune receptor sequence:
+  is_a: polypeptide
+
 t cell receptor sequence:
-  is_a: polypeptide  # TODO probably not semantically correct
+    is_a: immune receptor sequence
+    properties:
+        v_call : str
+        j_call : str
+        CDR1 : str
+        CDR2 : str
+        species : str
+  
+b cell receptor sequence:
+  is_a: immune receptor sequence  
+
+b cell receptor sequence:
+  is_a: polypeptide
 
 tra sequence:
   is_a: t cell receptor sequence
@@ -13,17 +28,43 @@ trb sequence:
   represented_as: node
   input_label: TRB
 
-epitope:
-  is_a: polypeptide  # TODO probably not semantically correct
+igh sequence:
+  is_a: b cell receptor sequence
   represented_as: node
-  input_label: Epitope
+  input_label: IGH
+
+igl sequence:
+  is_a: b cell receptor sequence
+  represented_as: node
+  input_label: IGL
+
+epitope:
+    is_a: polypeptide
+    represented_as: node
+    input_label: Epitope
+    properties:
+        protein : str
+        MHC_class : str
+        MHC_gene_1 : str
+        MHC_gene_2 : str
+        species : str
 
 t cell receptor sequence to epitope association:
   is_a: association
   represented_as: edge
   input_label: TCR_Sequence_To_Epitope
 
+b cell receptor sequence to epitope association:
+  is_a: association
+  represented_as: edge
+  input_label: BCR_Sequence_To_Epitope
+
 alpha sequence to beta sequence association:
   is_a: association
   represented_as: edge
   input_label: TRA_To_TRB
+
+heavy sequence to light sequence association:
+  is_a: association
+  represented_as: edge
+  input_label: IGH_To_IGL
