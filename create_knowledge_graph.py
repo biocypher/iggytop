@@ -18,5 +18,5 @@ bc.write_edges(vdjdb_adapter.get_edges())
 bc.write_nodes(mcpas_adapter.get_nodes())
 bc.write_edges(mcpas_adapter.get_edges())
 
-
+bc.write_import_call()
 bc.summary()
