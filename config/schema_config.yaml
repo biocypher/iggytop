@@ -22,3 +22,8 @@ t cell receptor sequence to epitope association:
   is_a: association
   represented_as: edge
   input_label: TCR_Sequence_To_Epitope
+
+alpha sequence to beta sequence association:
+  is_a: association
+  represented_as: edge
+  input_label: TRA_To_TRB
