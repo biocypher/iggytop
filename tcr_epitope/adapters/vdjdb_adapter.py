@@ -6,6 +6,7 @@ import pandas as pd
 import pooch
 from github import Github
 
+
 class VDJDBAdapter:
 
     REPO_NAME = "antigenomics/vdjdb-db"

@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Optional
 
 import pandas as pd
 import pooch
@@ -11,7 +12,7 @@ class IEDBAdapter:
     TCR_FNAME = "tcr_full_v3.csv"
     BCR_FNAME = "bcr_full_v3.csv"
 
-    def __init__(self):
+    def __init__(self, save_dir: Optional[str] = None):
         save_dir = TemporaryDirectory()
         tcr_path, bcr_path = self.download_latest_release(save_dir)
         tcr_table = pd.read_csv(tcr_path, header=[0,1], index_col=0)
