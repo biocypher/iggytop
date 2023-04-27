@@ -10,6 +10,7 @@ class IEDBAdapter:
     def __init__(self, file_path: str = None) -> None:
         iedb = pd.read_csv(file_path, header=[0,1], index_col=0)
         iedb.columns = iedb.columns.map(' '.join)
+        self.iedb = iedb
         self.cdr3_alpha = iedb[['Chain 1 Type','Chain 1 CDR3 Calculated']].dropna().drop_duplicates()
         self.cdr3_beta = iedb[['Chain 2 Type','Chain 2 CDR3 Calculated']].dropna().drop_duplicates()
         self.epitopes = iedb[['Epitope Name']]
@@ -24,21 +25,36 @@ class IEDBAdapter:
         for row in self.cdr3_alpha.itertuples():
             _id = "_".join(["TRA", row[1]])
             _type = "TRA"
-            _props = {}
+            _props = {
+                'v_call' : self.iedb['Chain 1 Calculated V Gene'],
+                'j_call' : self.iedb['Chain 1 Calculated J Gene'],
+                'CDR1' : self.iedb['Chain 1 CDR1 Calculated'],
+                'CDR2' : self.iedb['Chain 1 CDR2 Calculated'],
+                'species' : self.iedb['Chain 1 Organism IRI']
+            }
 
             yield (_id, _type, _props)
 
         for row in self.cdr3_beta.itertuples():
             _id = "_".join(["TRB", row[1]])
             _type = "TRB"
-            _props = {}
+            _props = {
+                'v_call' : self.iedb['Chain 2 Calculated V Gene'],
+                'j_call' : self.iedb['Chain 2 Calculated J Gene'],
+                'CDR1' : self.iedb['Chain 2 CDR1 Calculated'],
+                'CDR2' : self.iedb['Chain 2 CDR2 Calculated'],
+                'species' : self.iedb['Chain 2 Organism IRI']
+            }
 
             yield (_id, _type, _props)
 
         for row in self.epitopes.itertuples():
             _id = row[1]
             _type = "Epitope"
-            _props = {}
+            _props = {
+                'protein' : self.iedb['Epitope Source Molecule'],
+                'species' : self.iedb['Epitope Source Organism'],
+            }
 
             yield (_id, _type, _props)
 
