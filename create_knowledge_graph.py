@@ -6,14 +6,16 @@ from tcr_epitope.adapters.mcpas_adapter import MCPASAdapter
 bc = BioCypher()
 
 adapters = [
-    VDJDBAdapter(),
-    MCPASAdapter(),
-    IEDBAdapter(),
+    VDJDBAdapter(test=True),
+    MCPASAdapter(test=True),
+    IEDBAdapter(test=True),
 ]
 
 for adapter in adapters:
-    bc.write_nodes(adapter.get_nodes())
-    bc.write_edges(adapter.get_edges())
+    bc.add(adapter.get_nodes())
+    bc.add(adapter.get_edges())
 
-bc.write_import_call()
-bc.summary()
+print(bc.to_df())
+
+entities = bc.to_df()
+bc.show_ontology_structure()
