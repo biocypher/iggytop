@@ -79,10 +79,10 @@ class IEDBAdapter:
             _type = "TRA"
             _props = {
                 'v_call' : self.tcr_table.loc[row.Index, 'Chain 1 Calculated V Gene'],
-                'j_call' : self.tcr_table['Chain 1 Calculated J Gene'],
-                'CDR1' : self.tcr_table['Chain 1 CDR1 Calculated'],
-                'CDR2' : self.tcr_table['Chain 1 CDR2 Calculated'],
-                'species' : self.tcr_table['Chain 1 Organism IRI']
+                'j_call' : self.tcr_table.loc[row.Index, 'Chain 1 Calculated J Gene'],
+                'CDR1' : self.tcr_table.loc[row.Index, 'Chain 1 CDR1 Calculated'],
+                'CDR2' : self.tcr_table.loc[row.Index, 'Chain 1 CDR2 Calculated'],
+                'species' : self.tcr_table.loc[row.Index, 'Chain 1 Organism IRI']
             }
 
             yield (_id, _type, _props)
@@ -91,11 +91,11 @@ class IEDBAdapter:
             _id = "_".join(["TRB", row[1]])
             _type = "TRB"
             _props = {
-                'v_call' : self.tcr_table['Chain 2 Calculated V Gene'],
-                'j_call' : self.tcr_table['Chain 2 Calculated J Gene'],
-                'CDR1' : self.tcr_table['Chain 2 CDR1 Calculated'],
-                'CDR2' : self.tcr_table['Chain 2 CDR2 Calculated'],
-                'species' : self.tcr_table['Chain 2 Organism IRI']
+                'v_call' : self.tcr_table.loc[row.Index, 'Chain 2 Calculated V Gene'],
+                'j_call' : self.tcr_table.loc[row.Index, 'Chain 2 Calculated J Gene'],
+                'CDR1' : self.tcr_table.loc[row.Index, 'Chain 2 CDR1 Calculated'],
+                'CDR2' : self.tcr_table.loc[row.Index, 'Chain 2 CDR2 Calculated'],
+                'species' : self.tcr_table.loc[row.Index, 'Chain 2 Organism IRI']
             }
 
             yield (_id, _type, _props)
@@ -104,8 +104,8 @@ class IEDBAdapter:
             _id = "_".join(["Epitope", row[1]])
             _type = "Epitope"
             _props = {
-                'protein' : self.tcr_table['Epitope Source Molecule'],
-                'species' : self.tcr_table['Epitope Source Organism'],
+                'protein' : self.tcr_table.loc[row.Index, 'Epitope Source Molecule'],
+                'species' : self.tcr_table.loc[row.Index, 'Epitope Source Organism'],
             }
 
             yield (_id, _type, _props)

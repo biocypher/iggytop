@@ -32,9 +32,9 @@ class MCPASAdapter:
             _id = "_".join(["TRA", row[1]])
             _type = "TRA"
             _props = {
-                'v_call' : self.tcr_table['TRAV'],
-                'j_call' : self.tcr_table['TRAJ'],
-                'species' : self.tcr_table['Species']
+                'v_call' : self.tcr_table.loc[row.Index, 'TRAV'],
+                'j_call' : self.tcr_table.loc[row.Index, 'TRAJ'],
+                'species' : self.tcr_table.loc[row.Index, 'Species']
             }
 
             yield (_id, _type, _props)
@@ -43,9 +43,9 @@ class MCPASAdapter:
             _id = "_".join(["TRB", row[1]])
             _type = "TRB"
             _props = {
-                'v_call' : self.tcr_table['TRBV'],
-                'j_call' : self.tcr_table['TRBJ'],
-                'species' : self.tcr_table['Species']
+                'v_call' : self.tcr_table.loc[row.Index, 'TRBV'],
+                'j_call' : self.tcr_table.loc[row.Index, 'TRBJ'],
+                'species' : self.tcr_table.loc[row.Index, 'Species']
             }
 
             yield (_id, _type, _props)
@@ -54,9 +54,9 @@ class MCPASAdapter:
             _id = "_".join(["Epitope", row[1]])
             _type = "Epitope"
             _props = {
-                'protein' : self.tcr_table['Antigen.protein'],
-                'MHC_gene_1' : self.tcr_table['MHC'],
-                'species' : self.tcr_table['Pathology'],
+                'protein' : self.tcr_table.loc[row.Index, 'Antigen.protein'],
+                'MHC_gene_1' : self.tcr_table.loc[row.Index, 'MHC'],
+                'species' : self.tcr_table.loc[row.Index, 'Pathology'],
             }
 
             yield (_id, _type, _props)

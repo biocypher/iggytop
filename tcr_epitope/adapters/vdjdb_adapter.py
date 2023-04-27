@@ -53,9 +53,9 @@ class VDJDBAdapter:
             _id = "_".join(["TRA", row[1]])
             _type = 'TRA'
             _props = {
-                'v_call' : self.tcr_table['v.segm'],
-                'j_call' : self.tcr_table['j.segm'],
-                'species' : self.tcr_table['species']
+                'v_call' : self.tcr_table.loc[row.Index, 'v.segm'],
+                'j_call' : self.tcr_table.loc[row.Index, 'j.segm'],
+                'species' : self.tcr_table.loc[row.Index, 'species']
             }
             
             yield (_id, _type, _props)
@@ -64,9 +64,9 @@ class VDJDBAdapter:
             _id = "_".join(["TRB", row[1]])
             _type = 'TRB'
             _props = {
-                'v_call' : self.tcr_table['v.segm'],
-                'j_call' : self.tcr_table['j.segm'],
-                'species' : self.tcr_table['species']
+                'v_call' : self.tcr_table.loc[row.Index, 'v.segm'],
+                'j_call' : self.tcr_table.loc[row.Index, 'j.segm'],
+                'species' : self.tcr_table.loc[row.Index, 'species']
             }
             
             yield (_id, _type, _props)
@@ -75,11 +75,11 @@ class VDJDBAdapter:
             _id = "_".join(["Epitope", row[1]])
             _type = 'Epitope'
             _props = {
-                'protein' : self.tcr_table['antigen.gene'],
-                'MHC_class' : self.tcr_table['mhc.class'],
-                'MHC_gene_1' : self.tcr_table['mhc.a'],
-                'MHC_gene_2' : self.tcr_table['mhc.b'],
-                'species' : self.tcr_table['antigen.species'],
+                'protein' : self.tcr_table.loc[row.Index, 'antigen.gene'],
+                'MHC_class' : self.tcr_table.loc[row.Index, 'mhc.class'],
+                'MHC_gene_1' : self.tcr_table.loc[row.Index, 'mhc.a'],
+                'MHC_gene_2' : self.tcr_table.loc[row.Index, 'mhc.b'],
+                'species' : self.tcr_table.loc[row.Index, 'antigen.species'],
             }
             
             yield (_id, _type, _props)
