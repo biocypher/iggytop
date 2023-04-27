@@ -75,7 +75,7 @@ class VDJDBAdapter:
             _id = row[1]
             _type = 'Epitope'
             _props = {
-                'protein' : self.tcr_table['anigen.gene'],
+                'protein' : self.tcr_table['antigen.gene'],
                 'MHC_class' : self.tcr_table['mhc.class'],
                 'MHC_gene_1' : self.tcr_table['mhc.a'],
                 'MHC_gene_2' : self.tcr_table['mhc.b'],
