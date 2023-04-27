@@ -16,7 +16,7 @@ class IEDBAdapter:
         cache_dir = cache_dir or TemporaryDirectory().name
         tcr_path, bcr_path = self.download_latest_release(cache_dir)
 
-        tcr_table = pd.read_csv(tcr_path, header=[0,1], index_col=0)
+        tcr_table = pd.read_csv(tcr_path, header=[0,1])
         tcr_table.columns = tcr_table.columns.map(' '.join)
         if test:
             tcr_table = tcr_table.sample(frac=0.1)
@@ -78,7 +78,7 @@ class IEDBAdapter:
             _id = "_".join(["TRA", row[1]])
             _type = "TRA"
             _props = {
-                'v_call' : self.tcr_table['Chain 1 Calculated V Gene'],
+                'v_call' : self.tcr_table.loc[row.Index, 'Chain 1 Calculated V Gene'],
                 'j_call' : self.tcr_table['Chain 1 Calculated J Gene'],
                 'CDR1' : self.tcr_table['Chain 1 CDR1 Calculated'],
                 'CDR2' : self.tcr_table['Chain 1 CDR2 Calculated'],
@@ -101,7 +101,7 @@ class IEDBAdapter:
             yield (_id, _type, _props)
 
         for row in self.tcr["epitopes"].itertuples():
-            _id = row[1]
+            _id = "_".join(["Epitope", row[1]])
             _type = "Epitope"
             _props = {
                 'protein' : self.tcr_table['Epitope Source Molecule'],
@@ -125,7 +125,7 @@ class IEDBAdapter:
             yield (_id, _type, _props)
 
         for row in self.bcr["epitopes"].itertuples():
-            _id = row[1]
+            _id = "_".join(["Epitope", row[1]])
             _type = "Epitope"
             _props = {}
 
