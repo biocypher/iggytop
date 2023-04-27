@@ -11,9 +11,13 @@ class IEDBAdapter:
     TCR_FNAME = "tcr_full_v3.csv"
     BCR_FNAME = "bcr_full_v3.csv"
 
-    def __init__(self):
-        save_dir = TemporaryDirectory()
-        tcr_path, bcr_path = self.download_latest_release(save_dir)
+    def __init__(self, file_path=None):
+        if file_path is not None: 
+            save_dir = TemporaryDirectory()
+            tcr_path, bcr_path = self.download_latest_release(save_dir)
+        else:
+            tcr_path = file_path
+            bcr_path = file_path
         tcr_table = pd.read_csv(tcr_path, header=[0,1], index_col=0)
         tcr_table.columns = tcr_table.columns.map(' '.join)
         self.tcr_table = tcr_table
