@@ -78,7 +78,7 @@ class IEDBAdapter:
             _id = "_".join(["TRA", row[1]])
             _type = "TRA"
             _props = {
-                'v_call' : self.tcr_table.loc[row.index, 'Chain 1 Calculated V Gene'],
+                'v_call' : self.tcr_table.loc[row.Index, 'Chain 1 Calculated V Gene'],
                 'j_call' : self.tcr_table['Chain 1 Calculated J Gene'],
                 'CDR1' : self.tcr_table['Chain 1 CDR1 Calculated'],
                 'CDR2' : self.tcr_table['Chain 1 CDR2 Calculated'],
