@@ -6,8 +6,8 @@ from tcr_epitope.adapters.mcpas_adapter import MCPASAdapter
 bc = BioCypher()
 
 adapters = [
-    VDJDBAdapter(),
-    MCPASAdapter(),
+    # VDJDBAdapter(),
+    # MCPASAdapter(),
     IEDBAdapter(),
 ]
 

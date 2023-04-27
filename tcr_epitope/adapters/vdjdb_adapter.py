@@ -6,15 +6,18 @@ import pandas as pd
 import pooch
 from github import Github
 
+from typing import Optional
+
+
 class VDJDBAdapter:
 
     REPO_NAME = "antigenomics/vdjdb-db"
     DB_DIR = "vdjdb_latest"
     DB_FNAME = "vdjdb_full.txt"
 
-    def __init__(self):
-        save_dir = TemporaryDirectory()
-        db_path = self.download_latest_release(save_dir)
+    def __init__(self, cache_dir: Optional[str] = None):
+        cache_dir = cache_dir or TemporaryDirectory().name
+        db_path = self.download_latest_release(cache_dir)
         table = pd.read_csv(db_path, sep="\t")
 
         cdr3 = table[["Gene", "CDR3"]].drop_duplicates().dropna()
