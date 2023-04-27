@@ -7,7 +7,7 @@ class MCPASAdapter:
 
     DB_PATH = "data/mcpas_full.csv"
 
-    def __init__(self):
+    def __init__(self, test: bool = False):
         if not os.path.exists(self.DB_PATH):
             raise FileNotFoundError(
                 "MCPAS database not found. Please download from "
@@ -15,6 +15,8 @@ class MCPASAdapter:
                 "`mcpas_full.csv` in the `data/` directory."
             )
         table = pd.read_csv(self.DB_PATH)
+        if test:
+            table = table.sample(frac=0.1)
 
         self.cdr3_alpha = table[["CDR3.alpha.aa"]].drop_duplicates().dropna()
         self.cdr3_beta = table[["CDR3.beta.aa"]].drop_duplicates().dropna()
