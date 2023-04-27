@@ -15,9 +15,6 @@ t cell receptor sequence:
 b cell receptor sequence:
   is_a: immune receptor sequence  
 
-b cell receptor sequence:
-  is_a: polypeptide
-
 tra sequence:
   is_a: t cell receptor sequence
   represented_as: node
