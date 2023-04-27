@@ -17,6 +17,7 @@ class MCPASAdapter:
         table = pd.read_csv(self.DB_PATH, encoding="unicode_escape")
         if test:
             table = table.sample(frac=0.1)
+        self.tcr_table = table
 
         self.cdr3_alpha = table[["CDR3.alpha.aa"]].drop_duplicates().dropna()
         self.cdr3_beta = table[["CDR3.beta.aa"]].drop_duplicates().dropna()
@@ -30,21 +31,33 @@ class MCPASAdapter:
         for row in self.cdr3_alpha.itertuples():
             _id = "_".join(["TRA", row[1]])
             _type = "TRA"
-            _props = {}
+            _props = {
+                'v_call' : self.tcr_table['TRAV'],
+                'j_call' : self.tcr_table['TRAJ'],
+                'species' : self.tcr_table['Species']
+            }
 
             yield (_id, _type, _props)
 
         for row in self.cdr3_beta.itertuples():
             _id = "_".join(["TRB", row[1]])
             _type = "TRB"
-            _props = {}
+            _props = {
+                'v_call' : self.tcr_table['TRBV'],
+                'j_call' : self.tcr_table['TRBJ'],
+                'species' : self.tcr_table['Species']
+            }
 
             yield (_id, _type, _props)
 
         for row in self.epitopes.itertuples():
             _id = row[1]
             _type = "Epitope"
-            _props = {}
+            _props = {
+                'protein' : self.tcr_table['Antigen.protein'],
+                'MHC_gene_1' : self.tcr_table['MHC'],
+                'species' : self.tcr_table['Pathology'],
+            }
 
             yield (_id, _type, _props)
 
