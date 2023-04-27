@@ -13,25 +13,25 @@ class VDJDBAdapter:
 
     REPO_NAME = "antigenomics/vdjdb-db"
     DB_DIR = "vdjdb_latest"
-    DB_FNAME = "vdjdb_full.txt"
+    DB_FNAME = "vdjdb.txt"
 
     def __init__(self, cache_dir: Optional[str] = None, test: bool = False):
         cache_dir = cache_dir or TemporaryDirectory().name
         db_path = self.download_latest_release(cache_dir)
-        
+
         table = pd.read_csv(db_path, sep="\t")
         if test:
             table = table.sample(frac=0.1)
 
-        cdr3 = table[["Gene", "CDR3"]].drop_duplicates().dropna()
-        self.cdr3_alpha = cdr3[cdr3["Gene"] == "TRA"]["CDR3"]
-        self.cdr3_beta = cdr3[cdr3["Gene"] == "TRB"]["CDR3"]
+        cdr3 = table[["gene", "cdr3"]].drop_duplicates().dropna()
+        self.cdr3_alpha = cdr3[cdr3["gene"] == "TRA"][["cdr3"]]
+        self.cdr3_beta = cdr3[cdr3["gene"] == "TRB"][["cdr3"]]
 
-        self.epitopes = table[["Epitope"]].drop_duplicates().dropna()
+        self.epitopes = table[["antigen.epitope"]].drop_duplicates().dropna()
 
-        cdr3_epitope_edges = table[["Gene", "CDR3", "Epitope"]].drop_duplicates().dropna()
-        self.alpha_epitope_edges = cdr3_epitope_edges[cdr3_epitope_edges["Gene"] == "TRA"][["CDR3", "Epitope"]]
-        self.beta_epitope_edges = cdr3_epitope_edges[cdr3_epitope_edges["Gene"] == "TRB"][["CDR3", "Epitope"]]
+        cdr3_epitope_edges = table[["gene", "cdr3", "antigen.epitope"]].drop_duplicates().dropna()
+        self.alpha_epitope_edges = cdr3_epitope_edges[cdr3_epitope_edges["gene"] == "TRA"][["cdr3", "antigen.epitope"]]
+        self.beta_epitope_edges = cdr3_epitope_edges[cdr3_epitope_edges["gene"] == "TRB"][["cdr3", "antigen.epitope"]]
 
     def download_latest_release(self, save_dir: str):
         repo = Github().get_repo(self.REPO_NAME)
@@ -48,14 +48,14 @@ class VDJDBAdapter:
         return os.path.join(path, self.DB_FNAME)
 
     def get_nodes(self):
-        for row in self.cdr3_alpha.iteritems():
+        for row in self.cdr3_alpha.itertuples():
             _id = "_".join(["TRA", row[1]])
             _type = 'TRA'
             _props = {}
             
             yield (_id, _type, _props)
 
-        for row in self.cdr3_beta.iteritems():
+        for row in self.cdr3_beta.itertuples():
             _id = "_".join(["TRB", row[1]])
             _type = 'TRB'
             _props = {}
@@ -71,16 +71,16 @@ class VDJDBAdapter:
 
     def get_edges(self):
         for row in self.alpha_epitope_edges.itertuples():
-            _from = "_".join(["TRA", row.CDR3])
-            _to = row.Epitope
+            _from = "_".join(["TRA", row[1]])
+            _to = row[2]
             _type = 'TCR_Sequence_To_Epitope'
             _props = {}
             
             yield (None, _from, _to, _type, _props)
 
         for row in self.beta_epitope_edges.itertuples():
-            _from = "_".join(["TRB", row.CDR3])
-            _to = row.Epitope
+            _from = "_".join(["TRB", row[1]])
+            _to = row[2]
             _type = 'TCR_Sequence_To_Epitope'
             _props = {}
             
