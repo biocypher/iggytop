@@ -16,7 +16,7 @@ class IEDBAdapter:
         cache_dir = cache_dir or TemporaryDirectory().name
         tcr_path, bcr_path = self.download_latest_release(cache_dir)
 
-        tcr_table = pd.read_csv(tcr_path, header=[0,1], index_col=0)
+        tcr_table = pd.read_csv(tcr_path, header=[0,1])
         tcr_table.columns = tcr_table.columns.map(' '.join)
         if test:
             tcr_table = tcr_table.sample(frac=0.1)
