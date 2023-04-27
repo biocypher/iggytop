@@ -22,7 +22,8 @@ class VDJDBAdapter:
         table = pd.read_csv(db_path, sep="\t")
         if test:
             table = table.sample(frac=0.1)
-
+        self.tcr_table = table
+        
         cdr3 = table[["gene", "cdr3"]].drop_duplicates().dropna()
         self.cdr3_alpha = cdr3[cdr3["gene"] == "TRA"][["cdr3"]]
         self.cdr3_beta = cdr3[cdr3["gene"] == "TRB"][["cdr3"]]
@@ -51,21 +52,35 @@ class VDJDBAdapter:
         for row in self.cdr3_alpha.itertuples():
             _id = "_".join(["TRA", row[1]])
             _type = 'TRA'
-            _props = {}
+            _props = {
+                'v_call' : self.tcr_table['v.segm'],
+                'j_call' : self.tcr_table['j.segm'],
+                'species' : self.tcr_table['species']
+            }
             
             yield (_id, _type, _props)
 
         for row in self.cdr3_beta.itertuples():
             _id = "_".join(["TRB", row[1]])
             _type = 'TRB'
-            _props = {}
+            _props = {
+                'v_call' : self.tcr_table['v.segm'],
+                'j_call' : self.tcr_table['j.segm'],
+                'species' : self.tcr_table['species']
+            }
             
             yield (_id, _type, _props)
 
         for row in self.epitopes.itertuples():
             _id = row[1]
             _type = 'Epitope'
-            _props = {}
+            _props = {
+                'protein' : self.tcr_table['anigen.gene'],
+                'MHC_class' : self.tcr_table['mhc.class'],
+                'MHC_gene_1' : self.tcr_table['mhc.a'],
+                'MHC_gene_2' : self.tcr_table['mhc.b'],
+                'species' : self.tcr_table['antigen.species'],
+            }
             
             yield (_id, _type, _props)
 
