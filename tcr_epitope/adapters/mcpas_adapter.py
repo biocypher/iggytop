@@ -7,15 +7,16 @@ class MCPASAdapter:
 
     def __init__(self):
         table = pd.read_csv("data/mcpas_test.csv")
+
         self.cdr3_alpha = table[["CDR3.alpha.aa"]].drop_duplicates().dropna()
         self.cdr3_beta = table[["CDR3.beta.aa"]].drop_duplicates().dropna()
         self.epitopes = table[["Epitope.peptide"]].drop_duplicates().dropna()
+
         self.alpha_beta_edges = table[["CDR3.alpha.aa", "CDR3.beta.aa"]].drop_duplicates().dropna()
         self.alpha_epitope_edges = table[["CDR3.alpha.aa", "Epitope.peptide"]].drop_duplicates().dropna()
         self.beta_epitope_edges = table[["CDR3.beta.aa", "Epitope.peptide"]].drop_duplicates().dropna()
 
     def get_nodes(self):
-
         for row in self.cdr3_alpha.itertuples():
             _id = "_".join(["TRA", row[1]])
             _type = "TRA"

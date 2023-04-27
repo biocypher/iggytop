@@ -5,9 +5,7 @@ from tcr_epitope.adapters.mcpas_adapter import MCPASAdapter
 bc = BioCypher()
 
 
-vdjdb_adapter = VDJDBAdapter(
-    file_path="data/vdjdb_test.tsv"
-)
+vdjdb_adapter = VDJDBAdapter()
 mcpas_adapter = MCPASAdapter()
 
 
