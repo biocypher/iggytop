@@ -12,9 +12,9 @@ class IEDBAdapter:
     TCR_FNAME = "tcr_full_v3.csv"
     BCR_FNAME = "bcr_full_v3.csv"
 
-    def __init__(self, save_dir: Optional[str] = None):
-        save_dir = TemporaryDirectory()
-        tcr_path, bcr_path = self.download_latest_release(save_dir)
+    def __init__(self, cache_dir: Optional[str] = None):
+        cache_dir = cache_dir or TemporaryDirectory().name
+        tcr_path, bcr_path = self.download_latest_release(cache_dir)
         tcr_table = pd.read_csv(tcr_path, header=[0,1], index_col=0)
         tcr_table.columns = tcr_table.columns.map(' '.join)
         self.tcr_table = tcr_table
@@ -38,7 +38,6 @@ class IEDBAdapter:
 
         bcr_table = pd.read_csv(bcr_path, header=[0,1], index_col=0)
         bcr_table.columns = bcr_table.columns.map(' '.join)
-        print(bcr_table.head(5))
 
         heavy = bcr_table[["Chain 1 CDR3 Calculated"]].drop_duplicates().dropna()
         light = bcr_table[["Chain 2 CDR3 Calculated"]].drop_duplicates().dropna()
