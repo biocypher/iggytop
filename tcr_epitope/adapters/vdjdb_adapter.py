@@ -15,10 +15,13 @@ class VDJDBAdapter:
     DB_DIR = "vdjdb_latest"
     DB_FNAME = "vdjdb_full.txt"
 
-    def __init__(self, cache_dir: Optional[str] = None):
+    def __init__(self, cache_dir: Optional[str] = None, test: bool = False):
         cache_dir = cache_dir or TemporaryDirectory().name
         db_path = self.download_latest_release(cache_dir)
+        
         table = pd.read_csv(db_path, sep="\t")
+        if test:
+            table = table.sample(frac=0.1)
 
         cdr3 = table[["Gene", "CDR3"]].drop_duplicates().dropna()
         self.cdr3_alpha = cdr3[cdr3["Gene"] == "TRA"]["CDR3"]
