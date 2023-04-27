@@ -101,7 +101,7 @@ class IEDBAdapter:
             yield (_id, _type, _props)
 
         for row in self.tcr["epitopes"].itertuples():
-            _id = row[1]
+            _id = "_".join(["Epitope", row[1]])
             _type = "Epitope"
             _props = {
                 'protein' : self.tcr_table['Epitope Source Molecule'],
@@ -125,7 +125,7 @@ class IEDBAdapter:
             yield (_id, _type, _props)
 
         for row in self.bcr["epitopes"].itertuples():
-            _id = row[1]
+            _id = "_".join(["Epitope", row[1]])
             _type = "Epitope"
             _props = {}
 
