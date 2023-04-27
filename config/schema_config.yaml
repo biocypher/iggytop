@@ -9,6 +9,9 @@ t cell receptor sequence:
 b cell receptor sequence:
   is_a: immune receptor sequence  
 
+b cell receptor sequence:
+  is_a: polypeptide
+
 tra sequence:
   is_a: t cell receptor sequence
   represented_as: node
@@ -18,6 +21,16 @@ trb sequence:
   is_a: t cell receptor sequence
   represented_as: node
   input_label: TRB
+
+igh sequence:
+  is_a: b cell receptor sequence
+  represented_as: node
+  input_label: IGH
+
+igl sequence:
+  is_a: b cell receptor sequence
+  represented_as: node
+  input_label: IGL
 
 epitope:
   is_a: polypeptide  # TODO probably not semantically correct
@@ -29,7 +42,17 @@ t cell receptor sequence to epitope association:
   represented_as: edge
   input_label: TCR_Sequence_To_Epitope
 
+b cell receptor sequence to epitope association:
+  is_a: association
+  represented_as: edge
+  input_label: BCR_Sequence_To_Epitope
+
 alpha sequence to beta sequence association:
   is_a: association
   represented_as: edge
   input_label: TRA_To_TRB
+
+heavy sequence to light sequence association:
+  is_a: association
+  represented_as: edge
+  input_label: IGH_To_IGL
