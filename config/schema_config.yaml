@@ -1,7 +1,13 @@
 # add your desired knowledge graph components here
 
+immune receptor sequence:
+  is_a: polypeptide
+
 t cell receptor sequence:
-  is_a: polypeptide  # TODO probably not semantically correct
+  is_a: immune receptor sequence  
+  
+b cell receptor sequence:
+  is_a: immune receptor sequence  
 
 tra sequence:
   is_a: t cell receptor sequence
