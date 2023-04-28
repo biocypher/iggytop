@@ -10,6 +10,17 @@ from typing import Optional
 
 
 class VDJDBAdapter:
+    """
+    BioCypher adapter for the VDJdb database (https://vdjdb.cdr3.net/).
+    
+    Parameters
+    ----------
+    cache_dir
+        The directory to store the downloaded IEDB data in. If `None`, a temporary
+        directory will be created.
+    test
+        If `True`, only a subset of the data will be loaded for testing purposes.
+    """
 
     REPO_NAME = "antigenomics/vdjdb-db"
     DB_DIR = "vdjdb_latest"
@@ -21,7 +32,7 @@ class VDJDBAdapter:
 
         table = pd.read_csv(db_path, sep="\t")
         if test:
-            table = table.sample(frac=0.1)
+            table = table.sample(frac=0.1, random_state=123456)
         self.tcr_table = table
         
         cdr3 = table[["gene", "cdr3"]].drop_duplicates().dropna()

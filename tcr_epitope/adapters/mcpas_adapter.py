@@ -1,13 +1,30 @@
 import os
+from typing import Optional
 
 import pandas as pd
 
 
 class MCPASAdapter:
+    """
+    BioCypher adapter for the manually-curated catalogue of pathology-associated T cell 
+    receptor sequences (McPAS-TCR)[http://friedmanlab.weizmann.ac.il/McPAS-TCR/].
+
+    In order to use this adapter, please download the latest version of the database
+    from http://friedmanlab.weizmann.ac.il/McPAS-TCR/ and save it as `mcpas_full.csv`
+    in the `data/` directory.
+    
+    Parameters
+    ----------
+    cache_dir
+        The directory to store the downloaded IEDB data in. If `None`, a temporary
+        directory will be created.
+    test
+        If `True`, only a subset of the data will be loaded for testing purposes.
+    """
 
     DB_PATH = "data/mcpas_full.csv"
 
-    def __init__(self, test: bool = False):
+    def __init__(self, cache_dir: Optional[str] = None, test: bool = False):
         if not os.path.exists(self.DB_PATH):
             raise FileNotFoundError(
                 "MCPAS database not found. Please download from "
@@ -16,7 +33,7 @@ class MCPASAdapter:
             )
         table = pd.read_csv(self.DB_PATH, encoding="unicode_escape")
         if test:
-            table = table.sample(frac=0.1)
+            table = table.sample(frac=0.1, random_state=123456)
         self.tcr_table = table
 
         self.cdr3_alpha = table[["CDR3.alpha.aa"]].drop_duplicates().dropna()
