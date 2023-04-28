@@ -21,7 +21,7 @@ class VDJDBAdapter:
 
         table = pd.read_csv(db_path, sep="\t")
         if test:
-            table = table.sample(frac=0.1)
+            table = table.sample(frac=0.1, random_state=123456)
         self.tcr_table = table
         
         cdr3 = table[["gene", "cdr3"]].drop_duplicates().dropna()

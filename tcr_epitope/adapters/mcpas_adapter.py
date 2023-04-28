@@ -16,7 +16,7 @@ class MCPASAdapter:
             )
         table = pd.read_csv(self.DB_PATH, encoding="unicode_escape")
         if test:
-            table = table.sample(frac=0.1)
+            table = table.sample(frac=0.1, random_state=123456)
         self.tcr_table = table
 
         self.cdr3_alpha = table[["CDR3.alpha.aa"]].drop_duplicates().dropna()

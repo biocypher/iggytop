@@ -19,7 +19,7 @@ class IEDBAdapter:
         tcr_table = pd.read_csv(tcr_path, header=[0,1])
         tcr_table.columns = tcr_table.columns.map(' '.join)
         if test:
-            tcr_table = tcr_table.sample(frac=0.1)
+            tcr_table = tcr_table.sample(frac=0.1, random_state=123456)
         self.tcr_table = tcr_table
         
         alpha = tcr_table[["Chain 1 CDR3 Calculated"]].drop_duplicates().dropna()
