@@ -47,13 +47,13 @@ class IEDBAdapter(BaseAdapter):
 
         tcr_table = pd.read_csv(tcr_table_path, header=[0,1])
         tcr_table.columns = tcr_table.columns.map(' '.join)
-        tcr_table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = "TRA"
-        tcr_table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = "TRB"
+        tcr_table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.TRA_KEY
+        tcr_table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
 
         bcr_table = pd.read_csv(bcr_table_path, header=[0,1])
         bcr_table.columns = bcr_table.columns.map(' '.join)
-        bcr_table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = "IGH"
-        bcr_table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = "IGL"
+        bcr_table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.IGH_KEY
+        bcr_table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.IGL_KEY
 
         table = pd.concat([tcr_table, bcr_table], ignore_index=True)
         table = table.where(pd.notnull(table), None)  # replace NaN with None
@@ -115,36 +115,10 @@ class IEDBAdapter(BaseAdapter):
 
         return table
     
-    def _generate_nodes_from_table(
-        self, 
-        subset_cols: Optional[List[str]] = None, 
-        unique_cols: Optional[List[str]] = None,
-        property_cols: Optional[List[str]] = None,
-    ):
-        subset_cols = subset_cols or []
-        unique_cols = unique_cols or []
-        property_cols = property_cols or []
-
-        subset_table = self.table[subset_cols].drop_duplicates(
-            subset=unique_cols
-        )
-        for _, row in subset_table.iterrows():
-            if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in subset_cols:
-                _type = row[REGISTRY_KEYS.CHAIN_1_TYPE_KEY]
-            elif REGISTRY_KEYS.CHAIN_2_TYPE_KEY in subset_cols:
-                _type = row[REGISTRY_KEYS.CHAIN_2_TYPE_KEY]
-            else:
-                _type = "epitope"
-
-            _id = "_".join([_type] + row[unique_cols].to_list())
-            _props = {k: row[k] for k in property_cols}
-
-            yield _id, _type, _props
-    
     def get_nodes(self):
         # chain 1
         yield from self._generate_nodes_from_table(
-            subset_cols=[
+            [
                 REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_1_CDR1_KEY,
                 REGISTRY_KEYS.CHAIN_1_CDR2_KEY,
@@ -153,16 +127,7 @@ class IEDBAdapter(BaseAdapter):
                 REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
             ],
-            unique_cols=[
-                REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
-            ],
-            property_cols=[
-                REGISTRY_KEYS.CHAIN_1_CDR1_KEY,
-                REGISTRY_KEYS.CHAIN_1_CDR2_KEY,
-                REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
-                REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
-                REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
-            ],
+            unique_cols=REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
         )
 
         # chain 2
@@ -176,16 +141,7 @@ class IEDBAdapter(BaseAdapter):
                 REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY,
             ],
-            unique_cols=[
-                REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
-            ],
-            property_cols=[
-                REGISTRY_KEYS.CHAIN_2_CDR1_KEY,
-                REGISTRY_KEYS.CHAIN_2_CDR2_KEY,
-                REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
-                REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
-                REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY,
-            ],
+            unique_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
         )
 
         # epitope
@@ -195,102 +151,42 @@ class IEDBAdapter(BaseAdapter):
                 REGISTRY_KEYS.ANTIGEN_KEY,
                 REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
             ],
-            unique_cols=[
-                REGISTRY_KEYS.EPITOPE_KEY,
-            ],
-            property_cols=[
-                REGISTRY_KEYS.ANTIGEN_KEY,
-                REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
-            ], 
+            unique_cols=REGISTRY_KEYS.EPITOPE_KEY,
         )
-
-    def _generate_edges_from_table(
-        self,
-        source_subset_cols: Optional[List[str]] = None, 
-        source_unique_cols: Optional[List[str]] = None,
-        target_subset_cols: Optional[List[str]] = None,
-        target_unique_cols: Optional[List[str]] = None,
-    ):
-        source_subset_cols = source_subset_cols or []
-        source_unique_cols = source_unique_cols or []
-        target_subset_cols = target_subset_cols or []
-        target_unique_cols = target_unique_cols or []
-
-        subset_table = self.table[source_subset_cols + target_subset_cols].drop_duplicates(
-            subset=source_unique_cols + target_unique_cols
-        )
-
-        for _, row in subset_table.iterrows():
-            if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in source_subset_cols:
-                _source_type = row[REGISTRY_KEYS.CHAIN_1_TYPE_KEY]
-            elif REGISTRY_KEYS.CHAIN_2_TYPE_KEY in source_subset_cols:
-                _source_type = row[REGISTRY_KEYS.CHAIN_2_TYPE_KEY]
-            else:
-                _source_type = "epitope"
-
-            if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in target_subset_cols:
-                _target_type = row[REGISTRY_KEYS.CHAIN_1_TYPE_KEY]
-            elif REGISTRY_KEYS.CHAIN_2_TYPE_KEY in target_subset_cols:
-                _target_type = row[REGISTRY_KEYS.CHAIN_2_TYPE_KEY]
-            else:
-                _target_type = "epitope"
-
-            _source_id = "_".join([_source_type] + row[source_unique_cols].to_list())
-            _target_id = "_".join([_target_type] + row[target_unique_cols].to_list())
-            _id = "-".join([_source_id, _target_id])
-            _type = "_".join([_source_type, "to", _target_type])
-
-            yield (_id, _source_id, _target_id, _type, {})
 
     def get_edges(self):        
-        # alpha-beta
+        # chain 1 - chain 2
         yield from self._generate_edges_from_table(
-            source_subset_cols=[
+            [
                 REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
             ],
-            source_unique_cols=[
-                REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
-            ],
-            target_subset_cols=[
+            [
                 REGISTRY_KEYS.CHAIN_2_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
             ],
-            target_unique_cols=[
-                REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
-            ],
+            source_unique_cols=REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            target_unique_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
         )
 
-        # alpha-epitope
+        # chain 1 - epitope
         yield from self._generate_edges_from_table(
-            source_subset_cols=[
+            [
                 REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
             ],
-            source_unique_cols=[
-                REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
-            ],
-            target_subset_cols=[
-                REGISTRY_KEYS.EPITOPE_KEY,
-            ],
-            target_unique_cols=[
-                REGISTRY_KEYS.EPITOPE_KEY,
-            ],
+            REGISTRY_KEYS.EPITOPE_KEY,
+            source_unique_cols=REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            target_unique_cols=REGISTRY_KEYS.EPITOPE_KEY,
         )
 
-        # beta-epitope
+        # chain 2 - epitope
         yield from self._generate_edges_from_table(
-            source_subset_cols=[
+            [
                 REGISTRY_KEYS.CHAIN_2_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
             ],
-            source_unique_cols=[
-                REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
-            ],
-            target_subset_cols=[
-                REGISTRY_KEYS.EPITOPE_KEY,
-            ],
-            target_unique_cols=[
-                REGISTRY_KEYS.EPITOPE_KEY,
-            ],
+            REGISTRY_KEYS.EPITOPE_KEY,
+            source_unique_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+            target_unique_cols=REGISTRY_KEYS.EPITOPE_KEY,
         )

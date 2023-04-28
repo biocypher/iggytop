@@ -1,15 +1,16 @@
 import os
 from pathlib import Path
-from tempfile import TemporaryDirectory
 
 import pandas as pd
 import pooch
 from github import Github
 
-from typing import Optional
+from .base_adapter import BaseAdapter
+from .constants import REGISTRY_KEYS
+from .utils import validate_peptide_sequence
 
 
-class VDJDBAdapter:
+class VDJDBAdapter(BaseAdapter):
     """
     BioCypher adapter for the VDJdb database (https://vdjdb.cdr3.net/).
     
@@ -26,26 +27,7 @@ class VDJDBAdapter:
     DB_DIR = "vdjdb_latest"
     DB_FNAME = "vdjdb.txt"
 
-    def __init__(self, cache_dir: Optional[str] = None, test: bool = False):
-        cache_dir = cache_dir or TemporaryDirectory().name
-        db_path = self.download_latest_release(cache_dir)
-
-        table = pd.read_csv(db_path, sep="\t")
-        if test:
-            table = table.sample(frac=0.1)
-        self.tcr_table = table
-        
-        cdr3 = table[["gene", "cdr3"]].drop_duplicates().dropna()
-        self.cdr3_alpha = cdr3[cdr3["gene"] == "TRA"][["cdr3"]]
-        self.cdr3_beta = cdr3[cdr3["gene"] == "TRB"][["cdr3"]]
-
-        self.epitopes = table[["antigen.epitope"]].drop_duplicates().dropna()
-
-        cdr3_epitope_edges = table[["gene", "cdr3", "antigen.epitope"]].drop_duplicates().dropna()
-        self.alpha_epitope_edges = cdr3_epitope_edges[cdr3_epitope_edges["gene"] == "TRA"][["cdr3", "antigen.epitope"]]
-        self.beta_epitope_edges = cdr3_epitope_edges[cdr3_epitope_edges["gene"] == "TRB"][["cdr3", "antigen.epitope"]]
-
-    def download_latest_release(self, save_dir: str):
+    def get_latest_release(self, save_dir: str) -> str:
         repo = Github().get_repo(self.REPO_NAME)
         db_url = repo.get_latest_release().get_assets()[0].browser_download_url
 
@@ -58,56 +40,100 @@ class VDJDBAdapter:
         )[0]).parent
 
         return os.path.join(path, self.DB_FNAME)
+    
+    def read_table(self, table_path: str, test: bool = False) -> pd.DataFrame:
+        table = pd.read_csv(table_path, sep="\t")
+        if test:
+            table = table.sample(frac=0.1)
+        table = table.where(pd.notnull(table), None)  # replace NaN with None
+
+        rename_cols = {
+            "gene": REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
+            "cdr3": REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            "antigen.epitope": REGISTRY_KEYS.EPITOPE_KEY,
+            "antigen.gene": REGISTRY_KEYS.ANTIGEN_KEY,
+            "antigen.species": REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
+            "v.segm": REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
+            "j.segm": REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
+            "species": REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
+            "mhc.class": REGISTRY_KEYS.MHC_CLASS_KEY,
+            "mhc.a": REGISTRY_KEYS.MHC_GENE_1_KEY,
+            "mhc.b": REGISTRY_KEYS.MHC_GENE_2_KEY,
+        }
+        table = table.rename(columns=rename_cols)
+        table = table[list(rename_cols.values())]
+
+        # validate peptide sequences
+        sequence_cols = [
+            REGISTRY_KEYS.EPITOPE_KEY,
+            REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+        ]
+        required_valid = [
+            REGISTRY_KEYS.EPITOPE_KEY,
+            REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+        ]
+
+        for col in sequence_cols:
+            table[col] = table[col].apply(str)
+            table[col] = table[col].apply(lambda x: x.upper())
+            table[col] = table[col].apply(lambda x: "".join(x.split()))
+            table[f"{col}_valid"] = table[col].apply(validate_peptide_sequence)
+
+        for col in required_valid:
+            table = table[table[f"{col}_valid"]]
+            table = table[table[col] != "NAN"]
+
+        return table
 
     def get_nodes(self):
-        for row in self.cdr3_alpha.itertuples():
-            _id = "_".join(["TRA", row[1]])
-            _type = 'TRA'
-            _props = {
-                'v_call' : self.tcr_table.loc[row.Index, 'v.segm'],
-                'j_call' : self.tcr_table.loc[row.Index, 'j.segm'],
-                'species' : self.tcr_table.loc[row.Index, 'species']
-            }
-            
-            yield (_id, _type, _props)
+        # chain 1
+        yield from self._generate_nodes_from_table(
+            subset_cols=[
+                REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
+                REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+                REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
+                REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
+            ],
+            unique_cols=[
+                REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            ],
+            property_cols=[
+                REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
+                REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
+            ],
+        )
 
-        for row in self.cdr3_beta.itertuples():
-            _id = "_".join(["TRB", row[1]])
-            _type = 'TRB'
-            _props = {
-                'v_call' : self.tcr_table.loc[row.Index, 'v.segm'],
-                'j_call' : self.tcr_table.loc[row.Index, 'j.segm'],
-                'species' : self.tcr_table.loc[row.Index, 'species']
-            }
-            
-            yield (_id, _type, _props)
-
-        for row in self.epitopes.itertuples():
-            _id = "_".join(["Epitope", row[1]])
-            _type = 'Epitope'
-            _props = {
-                'protein' : self.tcr_table.loc[row.Index, 'antigen.gene'],
-                'MHC_class' : self.tcr_table.loc[row.Index, 'mhc.class'],
-                'MHC_gene_1' : self.tcr_table.loc[row.Index, 'mhc.a'],
-                'MHC_gene_2' : self.tcr_table.loc[row.Index, 'mhc.b'],
-                'species' : self.tcr_table.loc[row.Index, 'antigen.species'],
-            }
-            
-            yield (_id, _type, _props)
+        # epitope
+        yield from self._generate_nodes_from_table(
+            subset_cols=[
+                REGISTRY_KEYS.EPITOPE_KEY,
+                REGISTRY_KEYS.ANTIGEN_KEY,
+                REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
+                REGISTRY_KEYS.MHC_CLASS_KEY,
+                REGISTRY_KEYS.MHC_GENE_1_KEY,
+                REGISTRY_KEYS.MHC_GENE_2_KEY,
+            ],
+            unique_cols=[
+                REGISTRY_KEYS.EPITOPE_KEY,
+            ],
+            property_cols=[
+                REGISTRY_KEYS.ANTIGEN_KEY,
+                REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
+                REGISTRY_KEYS.MHC_CLASS_KEY,
+                REGISTRY_KEYS.MHC_GENE_1_KEY,
+                REGISTRY_KEYS.MHC_GENE_2_KEY,
+            ],
+        )
 
     def get_edges(self):
-        for row in self.alpha_epitope_edges.itertuples():
-            _from = "_".join(["TRA", row[1]])
-            _to = row[2]
-            _type = 'TCR_Sequence_To_Epitope'
-            _props = {}
-            
-            yield (None, _from, _to, _type, _props)
-
-        for row in self.beta_epitope_edges.itertuples():
-            _from = "_".join(["TRB", row[1]])
-            _to = row[2]
-            _type = 'TCR_Sequence_To_Epitope'
-            _props = {}
-            
-            yield (None, _from, _to, _type, _props)
+        # chain 1 - epitope
+        yield from self._generate_edges_from_table(
+            [
+                REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
+                REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            ],
+            REGISTRY_KEYS.EPITOPE_KEY,
+            source_unique_cols=REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+        )

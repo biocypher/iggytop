@@ -23,6 +23,9 @@ class _REGISTRY_KEYS_NT(NamedTuple):
     TRB_KEY: str = "trb"
     IGH_KEY: str = "igh"
     IGL_KEY: str = "igl"
-    
+    MHC_CLASS_KEY: str = "mhc_class"
+    MHC_GENE_1_KEY: str = "mhc_gene_1"
+    MHC_GENE_2_KEY: str = "mhc_gene_2"
+
 
 REGISTRY_KEYS = _REGISTRY_KEYS_NT()
