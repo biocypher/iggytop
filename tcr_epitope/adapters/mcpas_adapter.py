@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 import pandas as pd
 
@@ -23,7 +24,7 @@ class MCPASAdapter:
 
     DB_PATH = "data/mcpas_full.csv"
 
-    def __init__(self, test: bool = False):
+    def __init__(self, cache_dir: Optional[str] = None, test: bool = False):
         if not os.path.exists(self.DB_PATH):
             raise FileNotFoundError(
                 "MCPAS database not found. Please download from "
