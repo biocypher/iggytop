@@ -1,11 +1,13 @@
 import logging
 import os
 from pathlib import Path
+from typing import List, Tuple
 
 import pandas as pd
 import pooch
 
 from .base_adapter import BaseAdapter
+from .constants import REGISTRY_KEYS
 from .utils import validate_peptide_sequence
 
 logger = logging.getLogger(__name__)
@@ -45,10 +47,10 @@ class IEDBAdapter(BaseAdapter):
 
         tcr_table = pd.read_csv(tcr_table_path, header=[0,1])
         tcr_table.columns = tcr_table.columns.map(' '.join)
-        tcr_table["type"] = "TCR"
+        tcr_table[REGISTRY_KEYS.TYPE_KEY] = "TCR"
         bcr_table = pd.read_csv(bcr_table_path, header=[0,1])
         bcr_table.columns = bcr_table.columns.map(' '.join)
-        bcr_table["type"] = "BCR"
+        bcr_table[REGISTRY_KEYS.TYPE_KEY] = "BCR"
 
         table = pd.concat([tcr_table, bcr_table], ignore_index=True)
         table = table.where(pd.notnull(table), None)  # replace NaN with None
@@ -56,21 +58,21 @@ class IEDBAdapter(BaseAdapter):
             table = table.sample(frac=0.1)
 
         rename_cols = {
-            "Epitope Name": "epitope_sequence",
-            "Epitope Source Molecule": "antigen",
-            "Epitope Source Organism": "antigen_organism",
-            "Chain 1 CDR1 Calculated": "cdr1_alpha",
-            "Chain 1 CDR2 Calculated": "cdr2_alpha",
-            "Chain 1 CDR3 Calculated": "cdr3_alpha",
-            "Chain 2 CDR1 Calculated": "cdr1_beta",
-            "Chain 2 CDR2 Calculated": "cdr2_beta",
-            "Chain 2 CDR3 Calculated": "cdr3_beta",
-            "Chain 1 Calculated V Gene": "v_alpha",
-            "Chain 1 Calculated J Gene": "j_alpha",
-            "Chain 2 Calculated V Gene": "v_beta",
-            "Chain 2 Calculated J Gene": "j_beta",
-            "Chain 1 Organism IRI": "organism_alpha",
-            "Chain 2 Organism IRI": "organism_beta",
+            "Epitope Name": REGISTRY_KEYS.EPITOPE_KEY,
+            "Epitope Source Molecule": REGISTRY_KEYS.ANTIGEN_KEY,
+            "Epitope Source Organism": REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
+            "Chain 1 CDR1 Calculated": REGISTRY_KEYS.CHAIN_1_CDR1_KEY,
+            "Chain 1 CDR2 Calculated": REGISTRY_KEYS.CHAIN_1_CDR2_KEY,
+            "Chain 1 CDR3 Calculated": REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            "Chain 2 CDR1 Calculated": REGISTRY_KEYS.CHAIN_2_CDR1_KEY,
+            "Chain 2 CDR2 Calculated": REGISTRY_KEYS.CHAIN_2_CDR2_KEY,
+            "Chain 2 CDR3 Calculated": REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+            "Chain 1 Calculated V Gene": REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
+            "Chain 1 Calculated J Gene": REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
+            "Chain 2 Calculated V Gene": REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
+            "Chain 2 Calculated J Gene": REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
+            "Chain 1 Organism IRI": REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
+            "Chain 2 Organism IRI": REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY,
             "type": "type",
         }
         table = table.rename(columns=rename_cols)
@@ -78,18 +80,18 @@ class IEDBAdapter(BaseAdapter):
 
         # validate peptide sequences
         sequence_cols = [
-            "epitope_sequence", 
-            "cdr1_alpha", 
-            "cdr2_alpha",
-            "cdr3_alpha", 
-            "cdr1_beta", 
-            "cdr2_beta", 
-            "cdr3_beta"
+            REGISTRY_KEYS.EPITOPE_KEY,
+            REGISTRY_KEYS.CHAIN_1_CDR1_KEY,
+            REGISTRY_KEYS.CHAIN_1_CDR2_KEY,
+            REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            REGISTRY_KEYS.CHAIN_2_CDR1_KEY,
+            REGISTRY_KEYS.CHAIN_2_CDR2_KEY,
+            REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
         ]
         required_valid = [
-            "epitope_sequence",
-            "cdr3_alpha",
-            "cdr3_beta",
+            REGISTRY_KEYS.EPITOPE_KEY,
+            REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
         ]
 
         # some sequences are in the format `sequence + additional info`
@@ -109,19 +111,31 @@ class IEDBAdapter(BaseAdapter):
 
         return table
     
+    def _generate_from_table(
+        self, subset_cols: List[str], unique_cols: List[str]
+    ) -> List[Tuple]:
+        subset_table = self.table[subset_cols].drop_duplicates(
+            subset=unique_cols
+        )
+        for _, row in subset_table.iterrows():
+            
+    
     def get_nodes(self):
+        yield from self._generate_from_table(...)
+
+
         # chain 1 (alpha or heavy)
         chain_1_subset_cols = [
-            "type",
-            "cdr1_alpha",
-            "cdr2_alpha",
-            "cdr3_alpha",
-            "v_alpha",
-            "j_alpha",
-            "organism_alpha",
+            REGISTRY_KEYS.TYPE_KEY,
+            REGISTRY_KEYS.CHAIN_1_CDR1_KEY,
+            REGISTRY_KEYS.CHAIN_1_CDR2_KEY,
+            REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
+            REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
+            REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
         ]
         chain_1_df = self.table[chain_1_subset_cols].drop_duplicates(
-            subset=["cdr3_alpha"]
+            subset=[REGISTRY_KEYS.CHAIN_1_CDR3_KEY]
         )
         for _, row in chain_1_df.iterrows():
             _type = "TRA" if row["type"] == "TCR" else "IGH"
