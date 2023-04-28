@@ -8,5 +8,6 @@ biocypher:
 neo4j:
   delimiter: '\t'
   array_delimiter: '|'
+  quote_character: '"'
   skip_duplicate_nodes: true
   skip_bad_relationships: true
