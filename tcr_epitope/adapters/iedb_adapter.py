@@ -13,6 +13,17 @@ logger = logging.getLogger(__name__)
 
 
 class IEDBAdapter:
+    """
+    BioCypher adapter for the Immune Epitope Database (IEDB)[https://www.iedb.org/].
+    
+    Parameters
+    ----------
+    cache_dir
+        The directory to store the downloaded IEDB data in. If `None`, a temporary
+        directory will be created.
+    test
+        If `True`, only a subset of the data will be loaded for testing purposes.
+    """
     
     DB_URL = "https://www.iedb.org/downloader.php?file_name=doc/receptor_full_v3.zip"
     DB_DIR = "iedb_latest"
