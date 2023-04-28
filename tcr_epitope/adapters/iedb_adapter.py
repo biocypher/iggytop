@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -6,7 +7,24 @@ from typing import Optional
 import pandas as pd
 import pooch
 
+from .utils import validate_peptide_sequence
+
+logger = logging.getLogger(__name__)
+
+
 class IEDBAdapter:
+    """
+    BioCypher adapter for the Immune Epitope Database (IEDB)[https://www.iedb.org/].
+    
+    Parameters
+    ----------
+    cache_dir
+        The directory to store the downloaded IEDB data in. If `None`, a temporary
+        directory will be created.
+    test
+        If `True`, only a subset of the data will be loaded for testing purposes.
+    """
+    
     DB_URL = "https://www.iedb.org/downloader.php?file_name=doc/receptor_full_v3.zip"
     DB_DIR = "iedb_latest"
     TCR_FNAME = "tcr_full_v3.csv"
@@ -74,8 +92,15 @@ class IEDBAdapter:
         return os.path.join(path, self.TCR_FNAME), os.path.join(path, self.BCR_FNAME)
         
     def get_nodes(self):
+        non_sequence_entries = 0
+
         for row in self.tcr["alpha"].itertuples():
-            _id = "_".join(["TRA", row[1]])
+            seq = row[1]
+            if not validate_peptide_sequence(seq):
+                non_sequence_entries += 1
+                continue
+            
+            _id = "_".join(["TRA", seq])
             _type = "TRA"
             _props = {
                 'v_call' : self.tcr_table.loc[row.Index, 'Chain 1 Calculated V Gene'],
@@ -88,6 +113,11 @@ class IEDBAdapter:
             yield (_id, _type, _props)
 
         for row in self.tcr["beta"].itertuples():
+            seq = row[1]
+            if not validate_peptide_sequence(seq):
+                non_sequence_entries += 1
+                continue
+
             _id = "_".join(["TRB", row[1]])
             _type = "TRB"
             _props = {
@@ -101,6 +131,11 @@ class IEDBAdapter:
             yield (_id, _type, _props)
 
         for row in self.tcr["epitopes"].itertuples():
+            seq = row[1]
+            if not validate_peptide_sequence(seq):
+                non_sequence_entries += 1
+                continue
+
             _id = "_".join(["Epitope", row[1]])
             _type = "Epitope"
             _props = {
@@ -111,6 +146,11 @@ class IEDBAdapter:
             yield (_id, _type, _props)
 
         for row in self.bcr["heavy"].itertuples():
+            seq = row[1]
+            if not validate_peptide_sequence(seq):
+                non_sequence_entries += 1
+                continue
+
             _id = "_".join(["IGH", row[1]])
             _type = "IGH"
             _props = {}
@@ -118,6 +158,11 @@ class IEDBAdapter:
             yield (_id, _type, _props)
 
         for row in self.bcr["light"].itertuples():
+            seq = row[1]
+            if not validate_peptide_sequence(seq):
+                non_sequence_entries += 1
+                continue
+
             _id = "_".join(["IGL", row[1]])
             _type = "IGL"
             _props = {}
@@ -125,11 +170,18 @@ class IEDBAdapter:
             yield (_id, _type, _props)
 
         for row in self.bcr["epitopes"].itertuples():
+            seq = row[1]
+            if not validate_peptide_sequence(seq):
+                non_sequence_entries += 1
+                continue
+
             _id = "_".join(["Epitope", row[1]])
             _type = "Epitope"
             _props = {}
 
             yield (_id, _type, _props)
+        
+        logger.info(f"Number of non-sequence entries excluded: {non_sequence_entries}")
 
     def get_edges(self):
         for row in self.tcr["alpha_beta_edges"].itertuples():
