@@ -17,11 +17,12 @@ class _REGISTRY_KEYS_NT(NamedTuple):
     CHAIN_2_J_GENE_KEY: str = "chain_2_j_gene"
     CHAIN_1_ORGANISM_KEY: str = "chain_1_organism"
     CHAIN_2_ORGANISM_KEY: str = "chain_2_organism"
+    CHAIN_1_TYPE_KEY: str = "chain_1_type"
+    CHAIN_2_TYPE_KEY: str = "chain_2_type"
     TRA_KEY: str = "tra"
     TRB_KEY: str = "trb"
     IGH_KEY: str = "igh"
     IGL_KEY: str = "igl"
-    TYPE_KEY: str = "type"
-
+    
 
 REGISTRY_KEYS = _REGISTRY_KEYS_NT()
