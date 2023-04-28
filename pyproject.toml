@@ -1,10 +1,11 @@
 [tool.poetry]
-name = "biocypher-project-template"
+name = "tcr-epitope"
 version = "0.1.0"
-description = "Template for creating a BioCypher-driven knowledge graph"
+description = "Immune repertoire information retrieval and integration"
 authors = [
     "Sebastian Lobentanzer <sebastian.lobentanzer@gmail.com>",
-    "Andreas Maier <andreas.maier-1@uni-hamburg.de>",
+    "Lisa Dratva",
+    "Martin Kim",
 ]
 license = "MIT"
 readme = "README.md"
