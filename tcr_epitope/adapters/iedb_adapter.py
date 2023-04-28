@@ -1,18 +1,19 @@
 import logging
 import os
 from pathlib import Path
-from tempfile import TemporaryDirectory
-from typing import Optional
+from typing import List, Literal, Optional
 
 import pandas as pd
 import pooch
 
+from .base_adapter import BaseAdapter
+from .constants import REGISTRY_KEYS
 from .utils import validate_peptide_sequence
 
 logger = logging.getLogger(__name__)
 
 
-class IEDBAdapter:
+class IEDBAdapter(BaseAdapter):
     """
     BioCypher adapter for the Immune Epitope Database (IEDB)[https://www.iedb.org/].
     
@@ -30,57 +31,7 @@ class IEDBAdapter:
     TCR_FNAME = "tcr_full_v3.csv"
     BCR_FNAME = "bcr_full_v3.csv"
 
-    def __init__(self, cache_dir: Optional[str] = None, test: bool = False):
-        cache_dir = cache_dir or TemporaryDirectory().name
-        tcr_path, bcr_path = self.download_latest_release(cache_dir)
-
-        tcr_table = pd.read_csv(tcr_path, header=[0,1])
-        tcr_table.columns = tcr_table.columns.map(' '.join)
-        if test:
-            tcr_table = tcr_table.sample(frac=0.1, random_state=123456)
-        self.tcr_table = tcr_table
-        
-        alpha = tcr_table[["Chain 1 CDR3 Calculated"]].drop_duplicates().dropna()
-        beta = tcr_table[["Chain 2 CDR3 Calculated"]].drop_duplicates().dropna()
-        epitopes = tcr_table[["Epitope Name"]].drop_duplicates().dropna()
-
-        alpha_beta_edges = tcr_table[["Chain 1 CDR3 Calculated", "Chain 2 CDR3 Calculated"]].drop_duplicates().dropna()
-        alpha_epitope_edges = tcr_table[["Chain 1 CDR3 Calculated", "Epitope Name"]].drop_duplicates().dropna()
-        beta_epitope_edges = tcr_table[["Chain 2 CDR3 Calculated", "Epitope Name"]].drop_duplicates().dropna()
-
-        self.tcr = {
-            "alpha": alpha,
-            "beta": beta,
-            "epitopes": epitopes,
-            "alpha_beta_edges": alpha_beta_edges,
-            "alpha_epitope_edges": alpha_epitope_edges,
-            "beta_epitope_edges": beta_epitope_edges,
-        }
-
-        bcr_table = pd.read_csv(bcr_path, header=[0,1], index_col=0)
-        bcr_table.columns = bcr_table.columns.map(' '.join)
-        if test:
-            bcr_table = bcr_table.sample(frac=0.1)
-        self.bcr_table = bcr_table
-
-        heavy = bcr_table[["Chain 1 CDR3 Calculated"]].drop_duplicates().dropna()
-        light = bcr_table[["Chain 2 CDR3 Calculated"]].drop_duplicates().dropna()
-        epitopes = bcr_table[["Epitope Name"]].drop_duplicates().dropna()
-
-        heavy_light_edges = bcr_table[["Chain 1 CDR3 Calculated", "Chain 2 CDR3 Calculated"]].drop_duplicates().dropna()
-        heavy_epitope_edges = bcr_table[["Chain 1 CDR3 Calculated", "Epitope Name"]].drop_duplicates().dropna()
-        light_epitope_edges = bcr_table[["Chain 2 CDR3 Calculated", "Epitope Name"]].drop_duplicates().dropna()
-
-        self.bcr = {
-            "heavy": heavy,
-            "light": light,
-            "epitopes": epitopes,
-            "heavy_light_edges": heavy_light_edges,
-            "heavy_epitope_edges": heavy_epitope_edges,
-            "light_epitope_edges": light_epitope_edges,
-        }
-
-    def download_latest_release(self, save_dir: str) -> str:
+    def get_latest_release(self, save_dir: str) -> str:
         path = Path(pooch.retrieve(
             self.DB_URL,
             None,
@@ -90,144 +41,152 @@ class IEDBAdapter:
         )[0]).parent
 
         return os.path.join(path, self.TCR_FNAME), os.path.join(path, self.BCR_FNAME)
-        
+    
+    def read_table(self, table_path: str, test: bool = False) -> pd.DataFrame:
+        tcr_table_path, bcr_table_path = table_path
+
+        tcr_table = pd.read_csv(tcr_table_path, header=[0,1])
+        tcr_table.columns = tcr_table.columns.map(' '.join)
+        tcr_table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.TRA_KEY
+        tcr_table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
+
+        bcr_table = pd.read_csv(bcr_table_path, header=[0,1])
+        bcr_table.columns = bcr_table.columns.map(' '.join)
+        bcr_table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.IGH_KEY
+        bcr_table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.IGL_KEY
+
+        table = pd.concat([tcr_table, bcr_table], ignore_index=True)
+        table = table.where(pd.notnull(table), None)  # replace NaN with None
+        if test:
+            table = table.sample(frac=0.1)
+
+        rename_cols = {
+            "Epitope Name": REGISTRY_KEYS.EPITOPE_KEY,
+            "Epitope Source Molecule": REGISTRY_KEYS.ANTIGEN_KEY,
+            "Epitope Source Organism": REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
+            "Chain 1 CDR1 Calculated": REGISTRY_KEYS.CHAIN_1_CDR1_KEY,
+            "Chain 1 CDR2 Calculated": REGISTRY_KEYS.CHAIN_1_CDR2_KEY,
+            "Chain 1 CDR3 Calculated": REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            "Chain 2 CDR1 Calculated": REGISTRY_KEYS.CHAIN_2_CDR1_KEY,
+            "Chain 2 CDR2 Calculated": REGISTRY_KEYS.CHAIN_2_CDR2_KEY,
+            "Chain 2 CDR3 Calculated": REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+            "Chain 1 Calculated V Gene": REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
+            "Chain 1 Calculated J Gene": REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
+            "Chain 2 Calculated V Gene": REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
+            "Chain 2 Calculated J Gene": REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
+            "Chain 1 Organism IRI": REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
+            "Chain 2 Organism IRI": REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY,
+            REGISTRY_KEYS.CHAIN_1_TYPE_KEY: REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
+            REGISTRY_KEYS.CHAIN_2_TYPE_KEY: REGISTRY_KEYS.CHAIN_2_TYPE_KEY,
+        }
+        table = table.rename(columns=rename_cols)
+        table = table[list(rename_cols.values())]
+
+        # validate peptide sequences
+        sequence_cols = [
+            REGISTRY_KEYS.EPITOPE_KEY,
+            REGISTRY_KEYS.CHAIN_1_CDR1_KEY,
+            REGISTRY_KEYS.CHAIN_1_CDR2_KEY,
+            REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            REGISTRY_KEYS.CHAIN_2_CDR1_KEY,
+            REGISTRY_KEYS.CHAIN_2_CDR2_KEY,
+            REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+        ]
+        required_valid = [
+            REGISTRY_KEYS.EPITOPE_KEY,
+            REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+        ]
+
+        # some sequences are in the format `sequence + additional info`
+        def split_epitope_sequence(x: str) -> str:
+            return x.split("+")[0]
+
+        for col in sequence_cols:
+            table[col] = table[col].apply(str)
+            table[col] = table[col].apply(split_epitope_sequence)
+            table[col] = table[col].apply(lambda x: x.upper())
+            table[col] = table[col].apply(lambda x: "".join(x.split()))
+            table[f"{col}_valid"] = table[col].apply(validate_peptide_sequence)
+
+        for col in required_valid:
+            table = table[table[f"{col}_valid"]]
+            table = table[table[col] != "NAN"]
+
+        return table
+    
     def get_nodes(self):
-        non_sequence_entries = 0
+        # chain 1
+        yield from self._generate_nodes_from_table(
+            [
+                REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
+                REGISTRY_KEYS.CHAIN_1_CDR1_KEY,
+                REGISTRY_KEYS.CHAIN_1_CDR2_KEY,
+                REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+                REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
+            ],
+            unique_cols=REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+        )
 
-        for row in self.tcr["alpha"].itertuples():
-            seq = row[1]
-            if not validate_peptide_sequence(seq):
-                non_sequence_entries += 1
-                continue
-            
-            _id = "_".join(["TRA", seq])
-            _type = "TRA"
-            _props = {
-                'v_call' : self.tcr_table.loc[row.Index, 'Chain 1 Calculated V Gene'],
-                'j_call' : self.tcr_table.loc[row.Index, 'Chain 1 Calculated J Gene'],
-                'CDR1' : self.tcr_table.loc[row.Index, 'Chain 1 CDR1 Calculated'],
-                'CDR2' : self.tcr_table.loc[row.Index, 'Chain 1 CDR2 Calculated'],
-                'species' : self.tcr_table.loc[row.Index, 'Chain 1 Organism IRI']
-            }
+        # chain 2
+        yield from self._generate_nodes_from_table(
+            subset_cols=[
+                REGISTRY_KEYS.CHAIN_2_TYPE_KEY,
+                REGISTRY_KEYS.CHAIN_2_CDR1_KEY,
+                REGISTRY_KEYS.CHAIN_2_CDR2_KEY,
+                REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+                REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY,
+            ],
+            unique_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+        )
 
-            yield (_id, _type, _props)
+        # epitope
+        yield from self._generate_nodes_from_table(
+            subset_cols=[
+                REGISTRY_KEYS.EPITOPE_KEY,
+                REGISTRY_KEYS.ANTIGEN_KEY,
+                REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
+            ],
+            unique_cols=REGISTRY_KEYS.EPITOPE_KEY,
+        )
 
-        for row in self.tcr["beta"].itertuples():
-            seq = row[1]
-            if not validate_peptide_sequence(seq):
-                non_sequence_entries += 1
-                continue
+    def get_edges(self):        
+        # chain 1 - chain 2
+        yield from self._generate_edges_from_table(
+            [
+                REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
+                REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            ],
+            [
+                REGISTRY_KEYS.CHAIN_2_TYPE_KEY,
+                REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+            ],
+            source_unique_cols=REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            target_unique_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+        )
 
-            _id = "_".join(["TRB", row[1]])
-            _type = "TRB"
-            _props = {
-                'v_call' : self.tcr_table.loc[row.Index, 'Chain 2 Calculated V Gene'],
-                'j_call' : self.tcr_table.loc[row.Index, 'Chain 2 Calculated J Gene'],
-                'CDR1' : self.tcr_table.loc[row.Index, 'Chain 2 CDR1 Calculated'],
-                'CDR2' : self.tcr_table.loc[row.Index, 'Chain 2 CDR2 Calculated'],
-                'species' : self.tcr_table.loc[row.Index, 'Chain 2 Organism IRI']
-            }
+        # chain 1 - epitope
+        yield from self._generate_edges_from_table(
+            [
+                REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
+                REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            ],
+            REGISTRY_KEYS.EPITOPE_KEY,
+            source_unique_cols=REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            target_unique_cols=REGISTRY_KEYS.EPITOPE_KEY,
+        )
 
-            yield (_id, _type, _props)
-
-        for row in self.tcr["epitopes"].itertuples():
-            seq = row[1]
-            if not validate_peptide_sequence(seq):
-                non_sequence_entries += 1
-                continue
-
-            _id = "_".join(["Epitope", row[1]])
-            _type = "Epitope"
-            _props = {
-                'protein' : self.tcr_table.loc[row.Index, 'Epitope Source Molecule'],
-                'species' : self.tcr_table.loc[row.Index, 'Epitope Source Organism'],
-            }
-
-            yield (_id, _type, _props)
-
-        for row in self.bcr["heavy"].itertuples():
-            seq = row[1]
-            if not validate_peptide_sequence(seq):
-                non_sequence_entries += 1
-                continue
-
-            _id = "_".join(["IGH", row[1]])
-            _type = "IGH"
-            _props = {}
-
-            yield (_id, _type, _props)
-
-        for row in self.bcr["light"].itertuples():
-            seq = row[1]
-            if not validate_peptide_sequence(seq):
-                non_sequence_entries += 1
-                continue
-
-            _id = "_".join(["IGL", row[1]])
-            _type = "IGL"
-            _props = {}
-
-            yield (_id, _type, _props)
-
-        for row in self.bcr["epitopes"].itertuples():
-            seq = row[1]
-            if not validate_peptide_sequence(seq):
-                non_sequence_entries += 1
-                continue
-
-            _id = "_".join(["Epitope", row[1]])
-            _type = "Epitope"
-            _props = {}
-
-            yield (_id, _type, _props)
-        
-        logger.info(f"Number of non-sequence entries excluded: {non_sequence_entries}")
-
-    def get_edges(self):
-        for row in self.tcr["alpha_beta_edges"].itertuples():
-            _from = "_".join(["TRA", row[1]])
-            _to = "_".join(["TRB", row[2]])
-            _type = "TRA_To_TRB"
-            _props = {}
-
-            yield (_from, _to, _type, _props)
-
-        for row in self.tcr["alpha_epitope_edges"].itertuples():
-            _from = "_".join(["TRA", row[1]])
-            _to = row[2]
-            _type = "TCR_Sequence_To_Epitope"
-            _props = {}
-
-            yield (_from, _to, _type, _props)
-        
-        for row in self.tcr["beta_epitope_edges"].itertuples():
-            _from = "_".join(["TRB", row[1]])
-            _to = row[2]
-            _type = "TCR_Sequence_To_Epitope"
-            _props = {}
-
-            yield (_from, _to, _type, _props)
-        
-        for row in self.bcr["heavy_light_edges"].itertuples():
-            _from = "_".join(["IGH", row[1]])
-            _to = "_".join(["IGL", row[2]])
-            _type = "IGH_To_IGL"
-            _props = {}
-
-            yield (_from, _to, _type, _props)
-        
-        for row in self.bcr["heavy_epitope_edges"].itertuples():
-            _from = "_".join(["IGH", row[1]])
-            _to = row[2]
-            _type = "BCR_Sequence_To_Epitope"
-            _props = {}
-
-            yield (_from, _to, _type, _props)
-        
-        for row in self.bcr["light_epitope_edges"].itertuples():
-            _from = "_".join(["IGL", row[1]])
-            _to = row[2]
-            _type = "BCR_Sequence_To_Epitope"
-            _props = {}
-
-            yield (_from, _to, _type, _props)
+        # chain 2 - epitope
+        yield from self._generate_edges_from_table(
+            [
+                REGISTRY_KEYS.CHAIN_2_TYPE_KEY,
+                REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+            ],
+            REGISTRY_KEYS.EPITOPE_KEY,
+            source_unique_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+            target_unique_cols=REGISTRY_KEYS.EPITOPE_KEY,
+        )
