@@ -1,18 +1,17 @@
 import logging
 import os
 from pathlib import Path
-from tempfile import TemporaryDirectory
-from typing import Optional
 
 import pandas as pd
 import pooch
 
+from .base_adapter import BaseAdapter
 from .utils import validate_peptide_sequence
 
 logger = logging.getLogger(__name__)
 
 
-class IEDBAdapter:
+class IEDBAdapter(BaseAdapter):
     """
     BioCypher adapter for the Immune Epitope Database (IEDB)[https://www.iedb.org/].
     
@@ -30,57 +29,7 @@ class IEDBAdapter:
     TCR_FNAME = "tcr_full_v3.csv"
     BCR_FNAME = "bcr_full_v3.csv"
 
-    def __init__(self, cache_dir: Optional[str] = None, test: bool = False):
-        cache_dir = cache_dir or TemporaryDirectory().name
-        tcr_path, bcr_path = self.download_latest_release(cache_dir)
-
-        tcr_table = pd.read_csv(tcr_path, header=[0,1])
-        tcr_table.columns = tcr_table.columns.map(' '.join)
-        if test:
-            tcr_table = tcr_table.sample(frac=0.1)
-        self.tcr_table = tcr_table
-        
-        alpha = tcr_table[["Chain 1 CDR3 Calculated"]].drop_duplicates().dropna()
-        beta = tcr_table[["Chain 2 CDR3 Calculated"]].drop_duplicates().dropna()
-        epitopes = tcr_table[["Epitope Name"]].drop_duplicates().dropna()
-
-        alpha_beta_edges = tcr_table[["Chain 1 CDR3 Calculated", "Chain 2 CDR3 Calculated"]].drop_duplicates().dropna()
-        alpha_epitope_edges = tcr_table[["Chain 1 CDR3 Calculated", "Epitope Name"]].drop_duplicates().dropna()
-        beta_epitope_edges = tcr_table[["Chain 2 CDR3 Calculated", "Epitope Name"]].drop_duplicates().dropna()
-
-        self.tcr = {
-            "alpha": alpha,
-            "beta": beta,
-            "epitopes": epitopes,
-            "alpha_beta_edges": alpha_beta_edges,
-            "alpha_epitope_edges": alpha_epitope_edges,
-            "beta_epitope_edges": beta_epitope_edges,
-        }
-
-        bcr_table = pd.read_csv(bcr_path, header=[0,1], index_col=0)
-        bcr_table.columns = bcr_table.columns.map(' '.join)
-        if test:
-            bcr_table = bcr_table.sample(frac=0.1)
-        self.bcr_table = bcr_table
-
-        heavy = bcr_table[["Chain 1 CDR3 Calculated"]].drop_duplicates().dropna()
-        light = bcr_table[["Chain 2 CDR3 Calculated"]].drop_duplicates().dropna()
-        epitopes = bcr_table[["Epitope Name"]].drop_duplicates().dropna()
-
-        heavy_light_edges = bcr_table[["Chain 1 CDR3 Calculated", "Chain 2 CDR3 Calculated"]].drop_duplicates().dropna()
-        heavy_epitope_edges = bcr_table[["Chain 1 CDR3 Calculated", "Epitope Name"]].drop_duplicates().dropna()
-        light_epitope_edges = bcr_table[["Chain 2 CDR3 Calculated", "Epitope Name"]].drop_duplicates().dropna()
-
-        self.bcr = {
-            "heavy": heavy,
-            "light": light,
-            "epitopes": epitopes,
-            "heavy_light_edges": heavy_light_edges,
-            "heavy_epitope_edges": heavy_epitope_edges,
-            "light_epitope_edges": light_epitope_edges,
-        }
-
-    def download_latest_release(self, save_dir: str) -> str:
+    def get_latest_release(self, save_dir: str) -> str:
         path = Path(pooch.retrieve(
             self.DB_URL,
             None,
@@ -90,98 +39,210 @@ class IEDBAdapter:
         )[0]).parent
 
         return os.path.join(path, self.TCR_FNAME), os.path.join(path, self.BCR_FNAME)
-        
+    
+    def read_table(self, table_path: str, test: bool = False) -> pd.DataFrame:
+        tcr_table_path, bcr_table_path = table_path
+
+        tcr_table = pd.read_csv(tcr_table_path, header=[0,1])
+        tcr_table.columns = tcr_table.columns.map(' '.join)
+        tcr_table["type"] = "TCR"
+        bcr_table = pd.read_csv(bcr_table_path, header=[0,1])
+        bcr_table.columns = bcr_table.columns.map(' '.join)
+        bcr_table["type"] = "BCR"
+
+        table = pd.concat([tcr_table, bcr_table], ignore_index=True)
+        table = table.where(pd.notnull(table), None)  # replace NaN with None
+        if test:
+            table = table.sample(frac=0.1)
+
+        rename_cols = {
+            "Epitope Name": "epitope_sequence",
+            "Epitope Source Molecule": "antigen",
+            "Epitope Source Organism": "antigen_organism",
+            "Chain 1 CDR1 Calculated": "cdr1_alpha",
+            "Chain 1 CDR2 Calculated": "cdr2_alpha",
+            "Chain 1 CDR3 Calculated": "cdr3_alpha",
+            "Chain 2 CDR1 Calculated": "cdr1_beta",
+            "Chain 2 CDR2 Calculated": "cdr2_beta",
+            "Chain 2 CDR3 Calculated": "cdr3_beta",
+            "Chain 1 Calculated V Gene": "v_alpha",
+            "Chain 1 Calculated J Gene": "j_alpha",
+            "Chain 2 Calculated V Gene": "v_beta",
+            "Chain 2 Calculated J Gene": "j_beta",
+            "Chain 1 Organism IRI": "organism_alpha",
+            "Chain 2 Organism IRI": "organism_beta",
+            "type": "type",
+        }
+        table = table.rename(columns=rename_cols)
+        table = table[list(rename_cols.values())]
+
+        # validate peptide sequences
+        sequence_cols = [
+            "epitope_sequence", 
+            "cdr1_alpha", 
+            "cdr2_alpha",
+            "cdr3_alpha", 
+            "cdr1_beta", 
+            "cdr2_beta", 
+            "cdr3_beta"
+        ]
+        required_valid = [
+            "epitope_sequence",
+            "cdr3_alpha",
+            "cdr3_beta",
+        ]
+
+        # some sequences are in the format `sequence + additional info`
+        def split_epitope_sequence(x: str) -> str:
+            return x.split("+")[0]
+
+        for col in sequence_cols:
+            table[col] = table[col].apply(str)
+            table[col] = table[col].apply(split_epitope_sequence)
+            table[col] = table[col].apply(lambda x: x.upper())
+            table[col] = table[col].apply(lambda x: "".join(x.split()))
+            table[f"{col}_valid"] = table[col].apply(validate_peptide_sequence)
+
+        for col in required_valid:
+            table = table[table[f"{col}_valid"]]
+            table = table[table[col] != "NAN"]
+
+        return table
+    
     def get_nodes(self):
-        non_sequence_entries = 0
-
-        for row in self.tcr["alpha"].itertuples():
-            seq = row[1]
-            if not validate_peptide_sequence(seq):
-                non_sequence_entries += 1
-                continue
-            
-            _id = "_".join(["TRA", seq])
-            _type = "TRA"
+        # chain 1 (alpha or heavy)
+        chain_1_subset_cols = [
+            "type",
+            "cdr1_alpha",
+            "cdr2_alpha",
+            "cdr3_alpha",
+            "v_alpha",
+            "j_alpha",
+            "organism_alpha",
+        ]
+        chain_1_df = self.table[chain_1_subset_cols].drop_duplicates(
+            subset=["cdr3_alpha"]
+        )
+        for _, row in chain_1_df.iterrows():
+            _type = "TRA" if row["type"] == "TCR" else "IGH"
+            _id = "_".join([_type, row["cdr3_alpha"]])
             _props = {
-                'v_call' : self.tcr_table.loc[row.Index, 'Chain 1 Calculated V Gene'],
-                'j_call' : self.tcr_table.loc[row.Index, 'Chain 1 Calculated J Gene'],
-                'CDR1' : self.tcr_table.loc[row.Index, 'Chain 1 CDR1 Calculated'],
-                'CDR2' : self.tcr_table.loc[row.Index, 'Chain 1 CDR2 Calculated'],
-                'species' : self.tcr_table.loc[row.Index, 'Chain 1 Organism IRI']
+                "v_call": row["v_alpha"],
+                "j_call": row["j_alpha"],
+                "cdr1": row["cdr1_alpha"],
+                "cdr2": row["cdr2_alpha"],
+                "organism": row["organism_alpha"],
             }
 
             yield (_id, _type, _props)
 
-        for row in self.tcr["beta"].itertuples():
-            seq = row[1]
-            if not validate_peptide_sequence(seq):
-                non_sequence_entries += 1
-                continue
-
-            _id = "_".join(["TRB", row[1]])
-            _type = "TRB"
+        # chain 2 (beta or light)
+        chain_2_subset_cols = [
+            "type",
+            "cdr1_beta",
+            "cdr2_beta",
+            "cdr3_beta",
+            "v_beta",
+            "j_beta",
+            "organism_beta",
+        ]
+        chain_2_df = self.table[chain_2_subset_cols].drop_duplicates(
+            subset=["cdr3_beta"]
+        )
+        for _, row in chain_2_df.iterrows():
+            _type = "TRB" if row["type"] == "TCR" else "IGL"
+            _id = "_".join([_type, row["cdr3_beta"]])
             _props = {
-                'v_call' : self.tcr_table.loc[row.Index, 'Chain 2 Calculated V Gene'],
-                'j_call' : self.tcr_table.loc[row.Index, 'Chain 2 Calculated J Gene'],
-                'CDR1' : self.tcr_table.loc[row.Index, 'Chain 2 CDR1 Calculated'],
-                'CDR2' : self.tcr_table.loc[row.Index, 'Chain 2 CDR2 Calculated'],
-                'species' : self.tcr_table.loc[row.Index, 'Chain 2 Organism IRI']
+                "v_call": row["v_beta"],
+                "j_call": row["j_beta"],
+                "cdr1": row["cdr1_beta"],
+                "cdr2": row["cdr2_beta"],
+                "organism": row["organism_beta"],
             }
 
             yield (_id, _type, _props)
 
-        for row in self.tcr["epitopes"].itertuples():
-            seq = row[1]
-            if not validate_peptide_sequence(seq):
-                non_sequence_entries += 1
-                continue
-
-            _id = "_".join(["Epitope", row[1]])
-            _type = "Epitope"
+        # epitopes
+        epitope_subset_cols = [
+            "epitope_sequence",
+            "antigen",
+            "antigen_organism",
+        ]
+        epitope_df = self.table[epitope_subset_cols].drop_duplicates(
+            subset=["epitope_sequence"]
+        )
+        for _, row in epitope_df.iterrows():
+            _type = "epitope"
+            _id = "_".join([_type, row["epitope_sequence"]])
             _props = {
-                'protein' : self.tcr_table.loc[row.Index, 'Epitope Source Molecule'],
-                'species' : self.tcr_table.loc[row.Index, 'Epitope Source Organism'],
+                "antigen": row["antigen"],
+                "organism": row["antigen_organism"],
             }
 
             yield (_id, _type, _props)
 
-        for row in self.bcr["heavy"].itertuples():
-            seq = row[1]
-            if not validate_peptide_sequence(seq):
-                non_sequence_entries += 1
-                continue
+    def get_edges(self):        
+        # alpha-beta
+        alpha_beta_subset_cols = [
+            "type",
+            "cdr3_alpha",
+            "cdr3_beta",
+        ]
+        alpha_beta_df = self.table[alpha_beta_subset_cols].drop_duplicates(
+            subset=["cdr3_alpha", "cdr3_beta"]
+        )
+        for _, row in alpha_beta_df.iterrows():
+            _from_type = "TRA" if row["type"] == "TCR" else "IGH"
+            _from = "_".join([_from_type, row["cdr3_alpha"]])
+            _to_type = "TRB" if row["type"] == "TCR" else "IGL"
+            _to = "_".join([_to_type, row["cdr3_beta"]])
+            _id = "-".join([_from, _to])
+            _type = "_".join([_from_type, "to", "_to_type"])
 
-            _id = "_".join(["IGH", row[1]])
-            _type = "IGH"
-            _props = {}
+            yield (_id, _from, _to, _type, {})
 
-            yield (_id, _type, _props)
+        # alpha-epitope
+        alpha_epitope_subset_cols = [
+            "type",
+            "cdr3_alpha",
+            "epitope_sequence",
+        ]
+        alpha_epitope_df = self.table[alpha_epitope_subset_cols].drop_duplicates(
+            subset=["cdr3_alpha", "epitope_sequence"]
+        )
+        for _, row in alpha_epitope_df.iterrows():
+            _from_type = "TRA" if row["type"] == "TCR" else "IGH"
+            _from = "_".join([_from_type, row["cdr3_alpha"]])
+            _to_type = "epitope"
+            _to = "_".join([_type, row["epitope_sequence"]])
+            _id = "-".join([_from, _to])
+            _type = "_".join([_from_type, "to", "_to_type"])
 
-        for row in self.bcr["light"].itertuples():
-            seq = row[1]
-            if not validate_peptide_sequence(seq):
-                non_sequence_entries += 1
-                continue
-
-            _id = "_".join(["IGL", row[1]])
-            _type = "IGL"
-            _props = {}
-
-            yield (_id, _type, _props)
-
-        for row in self.bcr["epitopes"].itertuples():
-            seq = row[1]
-            if not validate_peptide_sequence(seq):
-                non_sequence_entries += 1
-                continue
-
-            _id = "_".join(["Epitope", row[1]])
-            _type = "Epitope"
-            _props = {}
-
-            yield (_id, _type, _props)
+            yield (_id, _from, _to, _type, {})
         
-        logger.info(f"Number of non-sequence entries excluded: {non_sequence_entries}")
+        # beta-epitope
+        beta_epitope_subset_cols = [
+            "type",
+            "cdr3_beta",
+            "epitope_sequence",
+        ]
+        beta_epitope_df = self.table[beta_epitope_subset_cols].drop_duplicates(
+            subset=["cdr3_beta", "epitope_sequence"]
+        )
+        for _, row in beta_epitope_df.iterrows():
+            _from_type = "TRB" if row["type"] == "TCR" else "IGL"
+            _from = "_".join([_from_type, row["cdr3_beta"]])
+            _to_type = "epitope"
+            _to = "_".join([_type, row["epitope_sequence"]])
+            _id = "-".join([_from, _to])
+            _type = "_".join([_from_type, "to", "_to_type"])
+            
+            yield (_id, _from, _to, _type, {})
+        
+
+
+
+        
 
     def get_edges(self):
         for row in self.tcr["alpha_beta_edges"].itertuples():
