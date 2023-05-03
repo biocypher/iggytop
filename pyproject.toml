@@ -12,11 +12,12 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-biocypher = { git = "https://github.com/biocypher/biocypher.git", branch = "pandas" }
+biocypher = "^0.5.13"
 pandas = "^2.0.1"
 PyGithub = "^1"
 requests = "^2"
 pooch = "^1"
+tqdm = "^4.65.0"
 
 [build-system]
 requires = ["poetry-core"]

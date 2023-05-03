@@ -25,7 +25,7 @@ adapters = [
 
 for adapter in adapters:
     bc.add(adapter.get_nodes())
-    bc.add(adapter.get_edges())
+    bc.add(adapter.get_edges())  # TODO no edges?
 
-entities = bc.to_df()
-bc.show_ontology_structure()
+print(bc.to_df())
+bc.summary()
