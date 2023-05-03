@@ -58,7 +58,7 @@ class BaseAdapter:
             else:
                 _type = "epitope"
 
-            _id = "_".join([_type] + row[unique_cols].to_list())
+            _id = ":".join([_type.lower()] + row[unique_cols].to_list())
             _props = {k: row[k] for k in property_cols}
 
             yield _id, _type, _props
@@ -105,9 +105,9 @@ class BaseAdapter:
             else:
                 _target_type = "epitope"
 
-            _source_id = "_".join([_source_type] + row[source_unique_cols].to_list())
-            _target_id = "_".join([_target_type] + row[target_unique_cols].to_list())
+            _source_id = ":".join([_source_type.lower()] + row[source_unique_cols].to_list())
+            _target_id = ":".join([_target_type.lower()] + row[target_unique_cols].to_list())
             _id = "-".join([_source_id, _target_id])
-            _type = "_".join([_source_type, "to", _target_type])
+            _type = "_".join([_source_type.lower(), "to", _target_type.lower()])
 
             yield (_id, _source_id, _target_id, _type, {})
