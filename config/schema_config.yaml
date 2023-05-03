@@ -4,13 +4,13 @@ immune receptor sequence:
   is_a: polypeptide
 
 t cell receptor sequence:
-    is_a: immune receptor sequence
-    properties:
-        v_call : str
-        j_call : str
-        CDR1 : str
-        CDR2 : str
-        species : str
+  is_a: immune receptor sequence
+  properties:
+      v_call : str
+      j_call : str
+      CDR1 : str
+      CDR2 : str
+      species : str
   
 b cell receptor sequence:
   is_a: immune receptor sequence  
@@ -18,27 +18,27 @@ b cell receptor sequence:
 tra sequence:
   is_a: t cell receptor sequence
   represented_as: node
-  input_label: TRA
+  input_label: [tra, TRA]
 
 trb sequence:
   is_a: t cell receptor sequence
   represented_as: node
-  input_label: TRB
+  input_label: [trb, TRB]
 
 igh sequence:
   is_a: b cell receptor sequence
   represented_as: node
-  input_label: IGH
+  input_label: igh
 
 igl sequence:
   is_a: b cell receptor sequence
   represented_as: node
-  input_label: IGL
+  input_label: igl
 
 epitope:
     is_a: polypeptide
     represented_as: node
-    input_label: Epitope
+    input_label: epitope
     properties:
         protein : str
         MHC_class : str
@@ -49,19 +49,19 @@ epitope:
 t cell receptor sequence to epitope association:
   is_a: association
   represented_as: edge
-  input_label: TCR_Sequence_To_Epitope
+  input_label: [tra_to_epitope, trb_to_epitope, TRA_to_epitope, TRB_to_epitope]
 
 b cell receptor sequence to epitope association:
   is_a: association
   represented_as: edge
-  input_label: BCR_Sequence_To_Epitope
+  input_label: [igh_to_epitope, igl_to_epitope]
 
 alpha sequence to beta sequence association:
   is_a: association
   represented_as: edge
-  input_label: TRA_To_TRB
+  input_label: tra_to_trb
 
 heavy sequence to light sequence association:
   is_a: association
   represented_as: edge
-  input_label: IGH_To_IGL
+  input_label: igh_to_igl
