@@ -18,12 +18,12 @@ b cell receptor sequence:
 tra sequence:
   is_a: t cell receptor sequence
   represented_as: node
-  input_label: [tra, TRA]
+  input_label: tra
 
 trb sequence:
   is_a: t cell receptor sequence
   represented_as: node
-  input_label: [trb, TRB]
+  input_label: trb
 
 igh sequence:
   is_a: b cell receptor sequence
@@ -49,7 +49,7 @@ epitope:
 t cell receptor sequence to epitope association:
   is_a: association
   represented_as: edge
-  input_label: [tra_to_epitope, trb_to_epitope, TRA_to_epitope, TRB_to_epitope]
+  input_label: [tra_to_epitope, trb_to_epitope]
 
 b cell receptor sequence to epitope association:
   is_a: association

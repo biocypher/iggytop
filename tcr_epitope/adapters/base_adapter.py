@@ -61,7 +61,7 @@ class BaseAdapter:
             _id = ":".join([_type.lower()] + row[unique_cols].to_list())
             _props = {k: row[k] for k in property_cols}
 
-            yield _id, _type, _props
+            yield _id, _type.lower(), _props
     
     def _generate_edges_from_table(
         self,
