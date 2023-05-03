@@ -25,7 +25,7 @@ adapters = [
 
 for adapter in adapters:
     bc.add(adapter.get_nodes())
-    bc.add(adapter.get_edges())  # TODO no edges?
+    bc.add(adapter.get_edges())
 
 print(bc.to_df())
 bc.summary()

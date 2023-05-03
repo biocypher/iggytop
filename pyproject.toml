@@ -12,7 +12,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-biocypher = "^0.5.13"
+biocypher = "^0.5.14"
 pandas = "^2.0.1"
 PyGithub = "^1"
 requests = "^2"

@@ -8,7 +8,7 @@ python-versions = "*"
 
 [[package]]
 name = "biocypher"
-version = "0.5.13"
+version = "0.5.14"
 description = "A unifying framework for biomedical research knowledge graphs"
 category = "main"
 optional = false
@@ -374,7 +374,7 @@ networkx = ["networkx (>=2.0.0,<3.0.0)"]
 
 [[package]]
 name = "requests"
-version = "2.30.0"
+version = "2.29.0"
 description = "Python HTTP for Humans."
 category = "main"
 optional = false
@@ -384,7 +384,7 @@ python-versions = ">=3.7"
 certifi = ">=2017.4.17"
 charset-normalizer = ">=2,<4"
 idna = ">=2.5,<4"
-urllib3 = ">=1.21.1,<3"
+urllib3 = ">=1.21.1,<1.27"
 
 [package.extras]
 socks = ["PySocks (>=1.5.6,!=1.5.7)"]
@@ -452,17 +452,16 @@ python-versions = ">=2"
 
 [[package]]
 name = "urllib3"
-version = "2.0.1"
+version = "1.26.15"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
 category = "main"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*"
 
 [package.extras]
-brotli = ["brotli (>=1.0.9)", "brotlicffi (>=0.8.0)"]
-secure = ["certifi", "cryptography (>=1.9)", "idna (>=2.0.0)", "pyopenssl (>=17.1.0)", "urllib3-secure-extra"]
-socks = ["pysocks (>=1.5.6,!=1.5.7,<2.0)"]
-zstd = ["zstandard (>=0.18.0)"]
+brotli = ["brotli (>=1.0.9)", "brotlicffi (>=0.8.0)", "brotlipy (>=0.6.0)"]
+secure = ["certifi", "cryptography (>=1.3.4)", "idna (>=2.0.0)", "ipaddress", "pyOpenSSL (>=0.14)", "urllib3-secure-extra"]
+socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 
 [[package]]
 name = "wrapt"
@@ -475,7 +474,7 @@ python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "a5553cb9a7bdd860db6a0c6c25ba82e405ced92327e3e2232929dc8be90a59c5"
+content-hash = "8ce12b8b3620c038fe81ef43bab58ad7a6d856bf95c94e697d05fc7de3fb0fcc"
 
 [metadata.files]
 appdirs = [
@@ -483,8 +482,8 @@ appdirs = [
     {file = "appdirs-1.4.4.tar.gz", hash = "sha256:7d5d0167b2b1ba821647616af46a749d1c653740dd0d2415100fe26e27afdf41"},
 ]
 biocypher = [
-    {file = "biocypher-0.5.13-py3-none-any.whl", hash = "sha256:0f9a792ad59bb28bcc1c9b60957c251946fd309fb76b1700c7a68017a8315a74"},
-    {file = "biocypher-0.5.13.tar.gz", hash = "sha256:22c775e191fec73753103d6e898b0351f97f3df01a80626c9fafb684dbaddb38"},
+    {file = "biocypher-0.5.14-py3-none-any.whl", hash = "sha256:8a7f15a137fe10d9663c520e3364a1293b223b7243a97516c27702b6d19f86bb"},
+    {file = "biocypher-0.5.14.tar.gz", hash = "sha256:ff98ecefae00a783db43c1ef2cc6d8e9ca80f61432354f451ad3ee8f5c4b9084"},
 ]
 certifi = [
     {file = "certifi-2022.12.7-py3-none-any.whl", hash = "sha256:4ad3232f5e926d6718ec31cfc1fcadfde020920e278684144551c91769c7bc18"},
@@ -841,8 +840,8 @@ rdflib = [
     {file = "rdflib-6.3.2.tar.gz", hash = "sha256:72af591ff704f4caacea7ecc0c5a9056b8553e0489dd4f35a9bc52dbd41522e0"},
 ]
 requests = [
-    {file = "requests-2.30.0-py3-none-any.whl", hash = "sha256:10e94cc4f3121ee6da529d358cdaeaff2f1c409cd377dbc72b825852f2f7e294"},
-    {file = "requests-2.30.0.tar.gz", hash = "sha256:239d7d4458afcb28a692cdd298d87542235f4ca8d36d03a15bfc128a6559a2f4"},
+    {file = "requests-2.29.0-py3-none-any.whl", hash = "sha256:e8f3c9be120d3333921d213eef078af392fba3933ab7ed2d1cba3b56f2568c3b"},
+    {file = "requests-2.29.0.tar.gz", hash = "sha256:f2e34a75f4749019bb0e3effb66683630e4ffeaf75819fb51bebef1bf5aef059"},
 ]
 six = [
     {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
@@ -868,8 +867,8 @@ tzdata = [
     {file = "tzdata-2023.3.tar.gz", hash = "sha256:11ef1e08e54acb0d4f95bdb1be05da659673de4acbd21bf9c69e94cc5e907a3a"},
 ]
 urllib3 = [
-    {file = "urllib3-2.0.1-py3-none-any.whl", hash = "sha256:d75e5ece05ff170e323303fd924edf29e705f5ae057c489f453a686b639bb68a"},
-    {file = "urllib3-2.0.1.tar.gz", hash = "sha256:2ce66a68134be469f5df5d46d724237489b3cd85b2bba2223dbbee1746548826"},
+    {file = "urllib3-1.26.15-py2.py3-none-any.whl", hash = "sha256:aa751d169e23c7479ce47a0cb0da579e3ede798f994f5816a74e4f4500dcea42"},
+    {file = "urllib3-1.26.15.tar.gz", hash = "sha256:8a388717b9476f934a21484e8c8e61875ab60644d29b9b39e11e4b9dc1c6b305"},
 ]
 wrapt = [
     {file = "wrapt-1.15.0-cp27-cp27m-macosx_10_9_x86_64.whl", hash = "sha256:ca1cccf838cd28d5a0883b342474c630ac48cac5df0ee6eacc9c7290f76b11c1"},
