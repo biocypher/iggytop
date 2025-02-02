@@ -1,11 +1,10 @@
 import os
-from typing import Optional
-
 import pandas as pd
+from typing import Optional
+from biocypher import BioCypher
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-
 
 class MCPASAdapter(BaseAdapter):
     """
@@ -18,6 +17,8 @@ class MCPASAdapter(BaseAdapter):
     
     Parameters
     ----------
+    bc
+        BioCypher instance for DB download.
     cache_dir
         The directory to store the downloaded IEDB data in. If `None`, a temporary
         directory will be created.
@@ -27,7 +28,7 @@ class MCPASAdapter(BaseAdapter):
 
     DB_PATH = "data/mcpas_full.csv"
 
-    def get_latest_release(self, save_dir: str) -> str:
+    def get_latest_release(self, bc: BioCypher, cache_dir: str) -> str:
         if not os.path.exists(self.DB_PATH):
             raise FileNotFoundError(
                 "MCPAS database not found. Please download from "

@@ -2,8 +2,8 @@ import os
 from pathlib import Path
 
 import pandas as pd
-import pooch
 from github import Github
+from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
@@ -16,6 +16,8 @@ class VDJDBAdapter(BaseAdapter):
     
     Parameters
     ----------
+    bc
+        BioCypher instance for DB download.
     cache_dir
         The directory to store the downloaded IEDB data in. If `None`, a temporary
         directory will be created.
@@ -27,19 +29,25 @@ class VDJDBAdapter(BaseAdapter):
     DB_DIR = "vdjdb_latest"
     DB_FNAME = "vdjdb.txt"
 
-    def get_latest_release(self, save_dir: str) -> str:
+    def get_latest_release(self, bc: BioCypher, cache_dir: str) -> str:
         repo = Github().get_repo(self.REPO_NAME)
         db_url = repo.get_latest_release().get_assets()[0].browser_download_url
 
-        path = Path(pooch.retrieve(
-            db_url,
-            None,
-            fname=self.DB_DIR,
-            path=save_dir,
-            processor=pooch.Unzip(),
-        )[0]).parent
+        vdjdb_resource = FileDownload(
+            name="vdjdb_resource",
+            url_s=db_url,
+            lifetime=30,
+            is_dir=False,
+        )
 
-        return os.path.join(path, self.DB_FNAME)
+        vdjdb_paths = bc.download(vdjdb_resource)
+            
+        db_path = os.path.join(Path(vdjdb_paths[0]).parent, self.DB_FNAME)
+
+        if not db_path or not os.path.exists(db_path):
+            raise FileNotFoundError(f"Failed to download VDJdb database from {db_url}")
+        
+        return db_path
     
     def read_table(self, table_path: str, test: bool = False) -> pd.DataFrame:
         table = pd.read_csv(table_path, sep="\t")

@@ -3,19 +3,20 @@ from tempfile import TemporaryDirectory
 from typing import List, Optional
 
 import pandas as pd
+from biocypher import BioCypher
 
 from .constants import REGISTRY_KEYS
 
 
 class BaseAdapter:
 
-    def __init__(self, cache_dir: Optional[str] = None, test: bool = False):
+    def __init__(self, bc: BioCypher, cache_dir: Optional[str] = None, test: bool = False):
         cache_dir = cache_dir or TemporaryDirectory().name
-        table_path = self.get_latest_release(cache_dir)
+        table_path = self.get_latest_release(bc, cache_dir)
         self.table = self.read_table(table_path, test=test)
 
     @abstractmethod
-    def get_latest_release(self, save_dir: str) -> str:
+    def get_latest_release(self, bc: BioCypher, cache_dir: str) -> str:
         pass
 
     @abstractmethod
