@@ -35,7 +35,7 @@ class IEDBAdapter(BaseAdapter):
     def get_latest_release(self, bc: BioCypher, cache_dir: str) -> str:
     # Download IEDB
         iedb_resource = FileDownload(
-            name="iedb_resource",
+            name=self.DB_DIR,
             url_s=self.DB_URL,
             lifetime=30,
             is_dir=False,
@@ -72,12 +72,12 @@ class IEDBAdapter(BaseAdapter):
             "Epitope Name": REGISTRY_KEYS.EPITOPE_KEY,
             "Epitope Source Molecule": REGISTRY_KEYS.ANTIGEN_KEY,
             "Epitope Source Organism": REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
-            "Chain 1 CDR3 Calculated": REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
-            "Chain 2 CDR3 Calculated": REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
-            "Chain 1 Calculated V Gene": REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
-            "Chain 1 Calculated J Gene": REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
-            "Chain 2 Calculated V Gene": REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
-            "Chain 2 Calculated J Gene": REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
+            "Chain 1 CDR3 Curated": REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            "Chain 2 CDR3 Curated": REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+            "Chain 1 Curated V Gene": REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
+            "Chain 1 Curated J Gene": REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
+            "Chain 2 Curated V Gene": REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
+            "Chain 2 Curated J Gene": REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             "Chain 1 Organism IRI": REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
             "Chain 2 Organism IRI": REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY,
             REGISTRY_KEYS.CHAIN_1_TYPE_KEY: REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
@@ -107,11 +107,6 @@ class IEDBAdapter(BaseAdapter):
             table[col] = table[col].apply(split_epitope_sequence)
             table[col] = table[col].apply(lambda x: x.upper())
             table[col] = table[col].apply(lambda x: "".join(x.split()))
-            table[f"{col}_valid"] = table[col].apply(validate_peptide_sequence)
-
-        for col in required_valid:
-            table = table[table[f"{col}_valid"]]
-            table = table[table[col] != "NAN"]
 
         return table
     

@@ -34,12 +34,12 @@ class VDJDBAdapter(BaseAdapter):
         db_url = repo.get_latest_release().get_assets()[0].browser_download_url
 
         vdjdb_resource = FileDownload(
-            name="vdjdb_resource",
+            name=self.DB_DIR,
             url_s=db_url,
             lifetime=30,
             is_dir=False,
         )
-
+        
         vdjdb_paths = bc.download(vdjdb_resource)
             
         db_path = os.path.join(Path(vdjdb_paths[0]).parent, self.DB_FNAME)

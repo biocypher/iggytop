@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 from typing import Optional
-from biocypher import BioCypher
+from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
@@ -9,12 +9,8 @@ from .constants import REGISTRY_KEYS
 class MCPASAdapter(BaseAdapter):
     """
     BioCypher adapter for the manually-curated catalogue of pathology-associated T cell 
-    receptor sequences (McPAS-TCR)[http://friedmanlab.weizmann.ac.il/McPAS-TCR/].
+    receptor sequences (McPAS-TCR)[https://friedmanlab.weizmann.ac.il/McPAS-TCR.csv].
 
-    In order to use this adapter, please download the latest version of the database
-    from http://friedmanlab.weizmann.ac.il/McPAS-TCR/ and save it as `mcpas_full.csv`
-    in the `data/` directory.
-    
     Parameters
     ----------
     bc
@@ -25,21 +21,28 @@ class MCPASAdapter(BaseAdapter):
     test
         If `True`, only a subset of the data will be loaded for testing purposes.
     """
-
-    DB_PATH = "data/mcpas_full.csv"
+    
+    DB_URL = "https://friedmanlab.weizmann.ac.il/McPAS-TCR.csv"
+    DB_DIR = "mcpas_latest"
 
     def get_latest_release(self, bc: BioCypher, cache_dir: str) -> str:
-        if not os.path.exists(self.DB_PATH):
-            raise FileNotFoundError(
-                "MCPAS database not found. Please download from "
-                "http://friedmanlab.weizmann.ac.il/McPAS-TCR/ and save as "
-                "`mcpas_full.csv` in the `data/` directory."
-            )
 
-        return self.DB_PATH
+        mcpas_resource = FileDownload(
+            name=self.DB_DIR,
+            url_s=self.DB_URL,
+            lifetime=30,
+            is_dir=False,
+        )
+
+        mcpas_path = bc.download(mcpas_resource)
+
+        if not mcpas_path:
+            raise FileNotFoundError(f"Failed to download McPAS-TCR database from {self.DB_URL}")
+
+        return mcpas_path[0]
     
     def read_table(self, table_path: str, test: bool = False) -> pd.DataFrame:
-        table = pd.read_csv(table_path, encoding="unicode_escape")
+        table = pd.read_csv(table_path, encoding="utf-8-sig")
         if test:
             table = table.sample(frac=0.1)
         table = table.where(pd.notnull(table), None)  # replace NaN with None
