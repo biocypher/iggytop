@@ -1,6 +1,4 @@
-import os
 import pandas as pd
-from typing import Optional
 from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
