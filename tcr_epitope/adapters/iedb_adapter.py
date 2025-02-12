@@ -2,12 +2,10 @@ import logging
 import os
 import pandas as pd
 from pathlib import Path
-from typing import List, Literal, Optional
 from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import validate_peptide_sequence
 
 logger = logging.getLogger(__name__)
 
