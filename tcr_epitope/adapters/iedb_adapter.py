@@ -2,7 +2,7 @@ import logging
 import os
 import pandas as pd
 from pathlib import Path
-from typing import List, Literal, Optional
+
 from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
@@ -88,11 +88,6 @@ class IEDBAdapter(BaseAdapter):
 
         # validate peptide sequences
         sequence_cols = [
-            REGISTRY_KEYS.EPITOPE_KEY,
-            REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
-            REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
-        ]
-        required_valid = [
             REGISTRY_KEYS.EPITOPE_KEY,
             REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
             REGISTRY_KEYS.CHAIN_2_CDR3_KEY,

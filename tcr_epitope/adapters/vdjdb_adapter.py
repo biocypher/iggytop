@@ -76,20 +76,11 @@ class VDJDBAdapter(BaseAdapter):
             REGISTRY_KEYS.EPITOPE_KEY,
             REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
         ]
-        required_valid = [
-            REGISTRY_KEYS.EPITOPE_KEY,
-            REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
-        ]
 
         for col in sequence_cols:
             table[col] = table[col].apply(str)
             table[col] = table[col].apply(lambda x: x.upper())
             table[col] = table[col].apply(lambda x: "".join(x.split()))
-            table[f"{col}_valid"] = table[col].apply(validate_peptide_sequence)
-
-        for col in required_valid:
-            table = table[table[f"{col}_valid"]]
-            table = table[table[col] != "NAN"]
 
         return table
 
