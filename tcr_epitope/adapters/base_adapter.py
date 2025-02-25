@@ -1,14 +1,17 @@
 from abc import abstractmethod
 from tempfile import TemporaryDirectory
-import pandas as pd
-from biocypher import BioCypher
 
 from .constants import REGISTRY_KEYS
 
+from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    import pandas as pd
+    from biocypher import BioCypher
+    
 class BaseAdapter:
 
-    def __init__(self, bc: BioCypher, cache_dir: str | None = None, test: bool = False):
+    def __init__(self, bc: "BioCypher", cache_dir: str | None = None, test: bool = False):
         cache_dir = cache_dir or TemporaryDirectory().name
         table_path = self.get_latest_release(bc, cache_dir)
         self.table = self.read_table(table_path, test=test)
@@ -18,7 +21,7 @@ class BaseAdapter:
         pass
 
     @abstractmethod
-    def read_table(self, table_path: str, test: bool = False) -> pd.DataFrame:
+    def read_table(self, table_path: str, test: bool = False) -> "pd.DataFrame":
         pass
 
     @abstractmethod
