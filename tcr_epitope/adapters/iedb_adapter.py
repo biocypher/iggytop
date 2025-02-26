@@ -90,11 +90,6 @@ class IEDBAdapter(BaseAdapter):
             REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
             REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
         ]
-        required_valid = [
-            REGISTRY_KEYS.EPITOPE_KEY,
-            REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
-            REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
-        ]
 
         # some sequences are in the format `sequence + additional info`
         def split_epitope_sequence(x: str) -> str:
