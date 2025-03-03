@@ -9,15 +9,19 @@ authors = [
 ]
 license = "MIT"
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.10"
-biocypher = "^0.5.14"
+biocypher = "0.6.1"
 pandas = "^2.0.1"
 PyGithub = "^1"
 requests = "^2"
 pooch = "^1"
 tqdm = "^4.65.0"
+ipykernel = "^6.29.5"
+matplotlib = "^3.10.0"
+matplotlib-venn = "^1.1.1"
 
 [build-system]
 requires = ["poetry-core"]

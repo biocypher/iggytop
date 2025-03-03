@@ -134,3 +134,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 .idea
+
+# Add testing notebooks
+tcr_epitope/adapters/test.ipynb
+test.ipynb
+statistics_dbs.ipynb
+

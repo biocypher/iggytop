@@ -13,7 +13,7 @@ t cell receptor sequence:
       species : str
   
 b cell receptor sequence:
-  is_a: immune receptor sequence  
+  is_a: immune receptor sequence
 
 tra sequence:
   is_a: t cell receptor sequence
@@ -36,15 +36,16 @@ igl sequence:
   input_label: igl
 
 epitope:
-    is_a: polypeptide
-    represented_as: node
-    input_label: epitope
-    properties:
-        protein : str
-        MHC_class : str
-        MHC_gene_1 : str
-        MHC_gene_2 : str
-        species : str
+  is_a: polypeptide
+  represented_as: node
+  input_label: epitope
+  # preferred_id: epitope_id_from_iedb
+  properties:
+    protein: str
+    MHC_class: str
+    MHC_gene_1: str
+    MHC_gene_2: str
+    species: strr
 
 t cell receptor sequence to epitope association:
   is_a: association

@@ -1,14 +1,11 @@
 import logging
 import os
-from pathlib import Path
-from typing import List, Literal, Optional
-
 import pandas as pd
-import pooch
+from pathlib import Path
+from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import validate_peptide_sequence
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +16,8 @@ class IEDBAdapter(BaseAdapter):
     
     Parameters
     ----------
+    bc
+        BioCypher instance for DB download.
     cache_dir
         The directory to store the downloaded IEDB data in. If `None`, a temporary
         directory will be created.
@@ -31,16 +30,23 @@ class IEDBAdapter(BaseAdapter):
     TCR_FNAME = "tcr_full_v3.csv"
     BCR_FNAME = "bcr_full_v3.csv"
 
-    def get_latest_release(self, save_dir: str) -> str:
-        path = Path(pooch.retrieve(
-            self.DB_URL,
-            None,
-            fname=self.DB_DIR,
-            path=save_dir,
-            processor=pooch.Unzip(),
-        )[0]).parent
+    def get_latest_release(self, bc: BioCypher, cache_dir: str) -> str:
+    # Download IEDB
+        iedb_resource = FileDownload(
+            name=self.DB_DIR,
+            url_s=self.DB_URL,
+            lifetime=30,
+            is_dir=False,
+        )
 
-        return os.path.join(path, self.TCR_FNAME), os.path.join(path, self.BCR_FNAME)
+        iedb_paths = bc.download(iedb_resource)
+        tcr_path = os.path.join(Path(iedb_paths[0]).parent, self.TCR_FNAME)
+        bcr_path = os.path.join(Path(iedb_paths[0]).parent, self.BCR_FNAME)
+
+        if not tcr_path or not os.path.exists(tcr_path):
+            raise FileNotFoundError(f"Failed to download IEDB database from {self.DB_URL}")
+
+        return tcr_path, bcr_path
     
     def read_table(self, table_path: str, test: bool = False) -> pd.DataFrame:
         tcr_table_path, bcr_table_path = table_path
@@ -64,16 +70,12 @@ class IEDBAdapter(BaseAdapter):
             "Epitope Name": REGISTRY_KEYS.EPITOPE_KEY,
             "Epitope Source Molecule": REGISTRY_KEYS.ANTIGEN_KEY,
             "Epitope Source Organism": REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
-            "Chain 1 CDR1 Calculated": REGISTRY_KEYS.CHAIN_1_CDR1_KEY,
-            "Chain 1 CDR2 Calculated": REGISTRY_KEYS.CHAIN_1_CDR2_KEY,
-            "Chain 1 CDR3 Calculated": REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
-            "Chain 2 CDR1 Calculated": REGISTRY_KEYS.CHAIN_2_CDR1_KEY,
-            "Chain 2 CDR2 Calculated": REGISTRY_KEYS.CHAIN_2_CDR2_KEY,
-            "Chain 2 CDR3 Calculated": REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
-            "Chain 1 Calculated V Gene": REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
-            "Chain 1 Calculated J Gene": REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
-            "Chain 2 Calculated V Gene": REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
-            "Chain 2 Calculated J Gene": REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
+            "Chain 1 CDR3 Curated": REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            "Chain 2 CDR3 Curated": REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+            "Chain 1 Curated V Gene": REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
+            "Chain 1 Curated J Gene": REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
+            "Chain 2 Curated V Gene": REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
+            "Chain 2 Curated J Gene": REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             "Chain 1 Organism IRI": REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
             "Chain 2 Organism IRI": REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY,
             REGISTRY_KEYS.CHAIN_1_TYPE_KEY: REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
@@ -84,15 +86,6 @@ class IEDBAdapter(BaseAdapter):
 
         # validate peptide sequences
         sequence_cols = [
-            REGISTRY_KEYS.EPITOPE_KEY,
-            REGISTRY_KEYS.CHAIN_1_CDR1_KEY,
-            REGISTRY_KEYS.CHAIN_1_CDR2_KEY,
-            REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
-            REGISTRY_KEYS.CHAIN_2_CDR1_KEY,
-            REGISTRY_KEYS.CHAIN_2_CDR2_KEY,
-            REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
-        ]
-        required_valid = [
             REGISTRY_KEYS.EPITOPE_KEY,
             REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
             REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
@@ -107,11 +100,6 @@ class IEDBAdapter(BaseAdapter):
             table[col] = table[col].apply(split_epitope_sequence)
             table[col] = table[col].apply(lambda x: x.upper())
             table[col] = table[col].apply(lambda x: "".join(x.split()))
-            table[f"{col}_valid"] = table[col].apply(validate_peptide_sequence)
-
-        for col in required_valid:
-            table = table[table[f"{col}_valid"]]
-            table = table[table[col] != "NAN"]
 
         return table
     
@@ -120,8 +108,6 @@ class IEDBAdapter(BaseAdapter):
         yield from self._generate_nodes_from_table(
             [
                 REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
-                REGISTRY_KEYS.CHAIN_1_CDR1_KEY,
-                REGISTRY_KEYS.CHAIN_1_CDR2_KEY,
                 REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
                 REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
@@ -134,8 +120,6 @@ class IEDBAdapter(BaseAdapter):
         yield from self._generate_nodes_from_table(
             subset_cols=[
                 REGISTRY_KEYS.CHAIN_2_TYPE_KEY,
-                REGISTRY_KEYS.CHAIN_2_CDR1_KEY,
-                REGISTRY_KEYS.CHAIN_2_CDR2_KEY,
                 REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
                 REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
