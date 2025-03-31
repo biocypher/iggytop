@@ -42,10 +42,13 @@ epitope:
   # preferred_id: epitope_id_from_iedb
   properties:
     protein: str
+    iedb_id: str
+    antigen_name: str
+    antigen_organism: str
     MHC_class: str
     MHC_gene_1: str
     MHC_gene_2: str
-    species: strr
+    chain_1_organism: str
 
 t cell receptor sequence to epitope association:
   is_a: association

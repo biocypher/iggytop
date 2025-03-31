@@ -1,21 +1,19 @@
 import logging
 import os
-import pandas as pd
 from pathlib import Path
 
+import pandas as pd
 from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import validate_peptide_sequence
 
 logger = logging.getLogger(__name__)
 
 
 class IEDBAdapter(BaseAdapter):
-    """
-    BioCypher adapter for the Immune Epitope Database (IEDB)[https://www.iedb.org/].
-    
+    """BioCypher adapter for the Immune Epitope Database (IEDB)[https://www.iedb.org/].
+
     Parameters
     ----------
     bc
@@ -26,14 +24,14 @@ class IEDBAdapter(BaseAdapter):
     test
         If `True`, only a subset of the data will be loaded for testing purposes.
     """
-    
+
     DB_URL = "https://www.iedb.org/downloader.php?file_name=doc/receptor_full_v3.zip"
     DB_DIR = "iedb_latest"
     TCR_FNAME = "tcr_full_v3.csv"
     BCR_FNAME = "bcr_full_v3.csv"
 
     def get_latest_release(self, bc: BioCypher, cache_dir: str) -> str:
-    # Download IEDB
+        # Download IEDB
         iedb_resource = FileDownload(
             name=self.DB_DIR,
             url_s=self.DB_URL,
@@ -49,17 +47,17 @@ class IEDBAdapter(BaseAdapter):
             raise FileNotFoundError(f"Failed to download IEDB database from {self.DB_URL}")
 
         return tcr_path, bcr_path
-    
+
     def read_table(self, table_path: str, test: bool = False) -> pd.DataFrame:
         tcr_table_path, bcr_table_path = table_path
 
-        tcr_table = pd.read_csv(tcr_table_path, header=[0,1])
-        tcr_table.columns = tcr_table.columns.map(' '.join)
+        tcr_table = pd.read_csv(tcr_table_path, header=[0, 1])
+        tcr_table.columns = tcr_table.columns.map(" ".join)
         tcr_table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.TRA_KEY
         tcr_table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
 
-        bcr_table = pd.read_csv(bcr_table_path, header=[0,1])
-        bcr_table.columns = bcr_table.columns.map(' '.join)
+        bcr_table = pd.read_csv(bcr_table_path, header=[0, 1])
+        bcr_table.columns = bcr_table.columns.map(" ".join)
         bcr_table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.IGH_KEY
         bcr_table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.IGL_KEY
 
@@ -70,6 +68,7 @@ class IEDBAdapter(BaseAdapter):
 
         rename_cols = {
             "Epitope Name": REGISTRY_KEYS.EPITOPE_KEY,
+            "Epitope IEDB IRI": REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
             "Epitope Source Molecule": REGISTRY_KEYS.ANTIGEN_KEY,
             "Epitope Source Organism": REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
             "Chain 1 CDR3 Curated": REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
@@ -83,6 +82,7 @@ class IEDBAdapter(BaseAdapter):
             REGISTRY_KEYS.CHAIN_1_TYPE_KEY: REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
             REGISTRY_KEYS.CHAIN_2_TYPE_KEY: REGISTRY_KEYS.CHAIN_2_TYPE_KEY,
         }
+
         table = table.rename(columns=rename_cols)
         table = table[list(rename_cols.values())]
 
@@ -104,7 +104,7 @@ class IEDBAdapter(BaseAdapter):
             table[col] = table[col].apply(lambda x: "".join(x.split()))
 
         return table
-    
+
     def get_nodes(self):
         # chain 1
         yield from self._generate_nodes_from_table(
@@ -133,6 +133,7 @@ class IEDBAdapter(BaseAdapter):
         # epitope
         yield from self._generate_nodes_from_table(
             subset_cols=[
+                REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
                 REGISTRY_KEYS.EPITOPE_KEY,
                 REGISTRY_KEYS.ANTIGEN_KEY,
                 REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
@@ -140,7 +141,7 @@ class IEDBAdapter(BaseAdapter):
             unique_cols=REGISTRY_KEYS.EPITOPE_KEY,
         )
 
-    def get_edges(self):        
+    def get_edges(self):
         # chain 1 - chain 2
         yield from self._generate_edges_from_table(
             [

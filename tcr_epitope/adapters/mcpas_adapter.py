@@ -1,14 +1,13 @@
-import os
 import pandas as pd
-from typing import Optional
 from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
+from .utils import get_iedb_ids_batch
+
 
 class MCPASAdapter(BaseAdapter):
-    """
-    BioCypher adapter for the manually-curated catalogue of pathology-associated T cell 
+    """BioCypher adapter for the manually-curated catalogue of pathology-associated T cell
     receptor sequences (McPAS-TCR)[https://friedmanlab.weizmann.ac.il/McPAS-TCR.csv].
 
     Parameters
@@ -21,12 +20,11 @@ class MCPASAdapter(BaseAdapter):
     test
         If `True`, only a subset of the data will be loaded for testing purposes.
     """
-    
+
     DB_URL = "https://friedmanlab.weizmann.ac.il/McPAS-TCR.csv"
     DB_DIR = "mcpas_latest"
 
     def get_latest_release(self, bc: BioCypher, cache_dir: str) -> str:
-
         mcpas_resource = FileDownload(
             name=self.DB_DIR,
             url_s=self.DB_URL,
@@ -40,7 +38,7 @@ class MCPASAdapter(BaseAdapter):
             raise FileNotFoundError(f"Failed to download McPAS-TCR database from {self.DB_URL}")
 
         return mcpas_path[0]
-    
+
     def read_table(self, table_path: str, test: bool = False) -> pd.DataFrame:
         table = pd.read_csv(table_path, encoding="utf-8-sig")
         if test:
@@ -58,12 +56,20 @@ class MCPASAdapter(BaseAdapter):
             "TRBV": REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
             "TRBJ": REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             "Species": REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
+            # "PubMed.ID": REGISTRY_KEYS.PUBLICATION_KEY,
         }
         table = table.rename(columns=rename_cols)
         table = table[list(rename_cols.values())]
         table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.TRA_KEY
         table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
         table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY] = table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY]
+
+        # Map epitope sequences to IEDB IDs
+        valid_epitopes = table[REGISTRY_KEYS.EPITOPE_KEY].dropna().drop_duplicates().tolist()
+        if len(valid_epitopes) > 0:
+            epitope_map = get_iedb_ids_batch(valid_epitopes)
+        # Apply the mapping to create the IEDB ID column
+        table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].map(epitope_map)
 
         return table
 
@@ -96,8 +102,10 @@ class MCPASAdapter(BaseAdapter):
         yield from self._generate_nodes_from_table(
             [
                 REGISTRY_KEYS.EPITOPE_KEY,
+                REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
                 REGISTRY_KEYS.ANTIGEN_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
+                REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
             ],
             unique_cols=REGISTRY_KEYS.EPITOPE_KEY,
         )
@@ -136,4 +144,3 @@ class MCPASAdapter(BaseAdapter):
             REGISTRY_KEYS.EPITOPE_KEY,
             source_unique_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
         )
-        

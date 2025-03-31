@@ -1,13 +1,17 @@
+from __future__ import annotations
+
 from abc import abstractmethod
 from tempfile import TemporaryDirectory
-import pandas as pd
-from biocypher import BioCypher
+from typing import TYPE_CHECKING
 
 from .constants import REGISTRY_KEYS
 
+if TYPE_CHECKING:
+    import pandas as pd
+    from biocypher import BioCypher
+
 
 class BaseAdapter:
-
     def __init__(self, bc: BioCypher, cache_dir: str | None = None, test: bool = False):
         cache_dir = cache_dir or TemporaryDirectory().name
         table_path = self.get_latest_release(bc, cache_dir)
@@ -46,9 +50,7 @@ class BaseAdapter:
         if not isinstance(property_cols, list):
             property_cols = [property_cols]
 
-        subset_table = self.table[subset_cols].drop_duplicates(
-            subset=unique_cols
-        ).dropna(subset=unique_cols)
+        subset_table = self.table[subset_cols].drop_duplicates(subset=unique_cols).dropna(subset=unique_cols)
         for _, row in subset_table.iterrows():
             if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in subset_cols:
                 _type = row[REGISTRY_KEYS.CHAIN_1_TYPE_KEY]
@@ -61,10 +63,10 @@ class BaseAdapter:
             _props = {k: row[k] for k in property_cols}
 
             yield _id, _type.lower(), _props
-    
+
     def _generate_edges_from_table(
         self,
-        source_subset_cols: list[str], 
+        source_subset_cols: list[str],
         target_subset_cols: list[str],
         source_unique_cols: list[str] | None = None,
         target_unique_cols: list[str] | None = None,
@@ -85,9 +87,11 @@ class BaseAdapter:
         if not isinstance(target_unique_cols, list):
             target_unique_cols = [target_unique_cols]
 
-        subset_table = self.table[source_subset_cols + target_subset_cols].drop_duplicates(
-            subset=source_unique_cols + target_unique_cols
-        ).dropna(subset=source_unique_cols + target_unique_cols)
+        subset_table = (
+            self.table[source_subset_cols + target_subset_cols]
+            .drop_duplicates(subset=source_unique_cols + target_unique_cols)
+            .dropna(subset=source_unique_cols + target_unique_cols)
+        )
 
         for _, row in subset_table.iterrows():
             if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in source_subset_cols:

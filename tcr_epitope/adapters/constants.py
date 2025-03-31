@@ -3,6 +3,7 @@ from typing import NamedTuple
 
 class _REGISTRY_KEYS_NT(NamedTuple):
     EPITOPE_KEY: str = "epitope_sequence"
+    EPITOPE_IEDB_ID_KEY: str = "iedb_id"
     ANTIGEN_KEY: str = "antigen_name"
     ANTIGEN_ORGANISM_KEY: str = "antigen_organism"
     CHAIN_1_CDR1_KEY: str = "chain_1_cdr1"
@@ -23,7 +24,7 @@ class _REGISTRY_KEYS_NT(NamedTuple):
     TRB_KEY: str = "trb"
     IGH_KEY: str = "igh"
     IGL_KEY: str = "igl"
-    MHC_CLASS_KEY: str = "mhc_class"
+    MHC_CLASS_KEY: str = "MHC_class"
     MHC_GENE_1_KEY: str = "mhc_gene_1"
     MHC_GENE_2_KEY: str = "mhc_gene_2"
 

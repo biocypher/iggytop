@@ -2,18 +2,17 @@ import os
 from pathlib import Path
 
 import pandas as pd
-from github import Github
 from biocypher import BioCypher, FileDownload
+from github import Github
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import validate_peptide_sequence
+from .utils import get_iedb_ids_batch
 
 
 class VDJDBAdapter(BaseAdapter):
-    """
-    BioCypher adapter for the VDJdb database (https://vdjdb.cdr3.net/).
-    
+    """BioCypher adapter for the VDJdb database (https://vdjdb.cdr3.net/).
+
     Parameters
     ----------
     bc
@@ -39,16 +38,16 @@ class VDJDBAdapter(BaseAdapter):
             lifetime=30,
             is_dir=False,
         )
-        
+
         vdjdb_paths = bc.download(vdjdb_resource)
-            
+
         db_path = os.path.join(Path(vdjdb_paths[0]).parent, self.DB_FNAME)
 
         if not db_path or not os.path.exists(db_path):
             raise FileNotFoundError(f"Failed to download VDJdb database from {db_url}")
-        
+
         return db_path
-    
+
     def read_table(self, table_path: str, test: bool = False) -> pd.DataFrame:
         table = pd.read_csv(table_path, sep="\t")
         if test:
@@ -82,6 +81,13 @@ class VDJDBAdapter(BaseAdapter):
             table[col] = table[col].apply(lambda x: x.upper())
             table[col] = table[col].apply(lambda x: "".join(x.split()))
 
+        # Map epitope sequences to IEDB IDs
+        valid_epitopes = table[REGISTRY_KEYS.EPITOPE_KEY].dropna().drop_duplicates().tolist()
+        if len(valid_epitopes) > 0:
+            epitope_map = get_iedb_ids_batch(valid_epitopes)
+        # Apply the mapping to create the IEDB ID column
+        table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].map(epitope_map)
+
         return table
 
     def get_nodes(self):
@@ -108,6 +114,7 @@ class VDJDBAdapter(BaseAdapter):
         yield from self._generate_nodes_from_table(
             subset_cols=[
                 REGISTRY_KEYS.EPITOPE_KEY,
+                REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
                 REGISTRY_KEYS.ANTIGEN_KEY,
                 REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
                 REGISTRY_KEYS.MHC_CLASS_KEY,
@@ -118,6 +125,7 @@ class VDJDBAdapter(BaseAdapter):
                 REGISTRY_KEYS.EPITOPE_KEY,
             ],
             property_cols=[
+                REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
                 REGISTRY_KEYS.ANTIGEN_KEY,
                 REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
                 REGISTRY_KEYS.MHC_CLASS_KEY,
