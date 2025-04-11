@@ -18,7 +18,7 @@ def validate_peptide_sequence(seq: str) -> bool:
         return False
 
 
-def get_iedb_ids_batch(epitopes: list[str], chunk_size: int = 50) -> dict[str, int]:
+def get_iedb_ids_batch(bc: BioCypher, epitopes: list[str], chunk_size: int = 150) -> dict[str, int]:
     """Retrieve IEDB IDs for multiple epitopes using batched requests.
 
     First tries exact matches, then falls back to substring matches for unmatched epitopes.
@@ -36,10 +36,12 @@ def get_iedb_ids_batch(epitopes: list[str], chunk_size: int = 50) -> dict[str, i
 
     # Step 1: Try exact matches first
     print("Mapping AA epitope sequences to IEDB IDs: exact matches...")
+
     for i in range(0, len(epitopes), chunk_size):
         chunk = epitopes[i : i + chunk_size]
         # print(f"Processing batch {i//chunk_size + 1}/{(len(epitopes)-1)//chunk_size + 1}")
-        epitope_matches = _get_epitope_data(chunk, base_url, match_type="exact")
+        print("\nStarting new batch...")
+        epitope_matches = _get_epitope_data(bc, chunk, base_url, match_type="exact")
 
         # Map results to the dictionary
         for epitope in chunk:
@@ -69,7 +71,7 @@ def get_iedb_ids_batch(epitopes: list[str], chunk_size: int = 50) -> dict[str, i
         for i in range(0, len(unmatched_epitopes), chunk_size):
             chunk = unmatched_epitopes[i : i + chunk_size]
             # print(f"Processing unmatched batch {i//chunk_size + 1}/{(len(unmatched_epitopes)-1)//chunk_size + 1}")
-            substring_matches = _get_epitope_data(chunk, base_url, match_type="substring")
+            substring_matches = _get_epitope_data(bc, chunk, base_url, match_type="substring")
 
             for epitope in chunk:
                 best_match = None
@@ -94,7 +96,7 @@ def get_iedb_ids_batch(epitopes: list[str], chunk_size: int = 50) -> dict[str, i
     return epitope_to_id
 
 
-def _get_epitope_data(epitopes: list[str], base_url: str, match_type: str = "exact") -> list[dict]:
+def _get_epitope_data(bc: BioCypher, epitopes: list[str], base_url: str, match_type: str = "exact") -> list[dict]:
     """Get epitope data.
 
     Args:
@@ -105,18 +107,17 @@ def _get_epitope_data(epitopes: list[str], base_url: str, match_type: str = "exa
     Returns:
         List of epitope data dictionaries
     """
-    bc = BioCypher()
-
     if match_type == "exact":
         request_hash = hashlib.md5("_".join(sorted(epitopes)).encode()).hexdigest()
-        request_name = f"iedb_exact_{request_hash}"
+        request_name = f"iedb_exact_matches_{request_hash}"
         epitope_list = f"({','.join([f'{e}' for e in epitopes])})"
-        check = f"linear_sequence.in.{epitope_list}"
+        check = f"linear_sequence=in.{epitope_list}"
         url = f"{base_url}?{check}&select=structure_id,structure_descriptions,linear_sequence&order=structure_id"
+        print(f"Request URL: {url[:100]}..." if len(url) > 100 else f"Request URL: {url}")
 
     else:
         request_hash = hashlib.md5("_".join(sorted(epitopes)).encode()).hexdigest()
-        request_name = f"iedb_substring_{request_hash}"
+        request_name = f"iedb_substring_matches{request_hash}"
         conditions = [f"linear_sequence.ilike.*{e}*" for e in epitopes]
         check = f"or=({','.join(conditions)})"
         url = f"{base_url}?{check}&select=structure_id,structure_descriptions,linear_sequence&order=structure_id"

@@ -17,9 +17,6 @@ class VDJDBAdapter(BaseAdapter):
     ----------
     bc
         BioCypher instance for DB download.
-    cache_dir
-        The directory to store the downloaded IEDB data in. If `None`, a temporary
-        directory will be created.
     test
         If `True`, only a subset of the data will be loaded for testing purposes.
     """
@@ -28,7 +25,7 @@ class VDJDBAdapter(BaseAdapter):
     DB_DIR = "vdjdb_latest"
     DB_FNAME = "vdjdb.txt"
 
-    def get_latest_release(self, bc: BioCypher, cache_dir: str) -> str:
+    def get_latest_release(self, bc: BioCypher) -> str:
         repo = Github().get_repo(self.REPO_NAME)
         db_url = repo.get_latest_release().get_assets()[0].browser_download_url
 
@@ -48,10 +45,10 @@ class VDJDBAdapter(BaseAdapter):
 
         return db_path
 
-    def read_table(self, table_path: str, test: bool = False) -> pd.DataFrame:
+    def read_table(self, bc: BioCypher, table_path: str, test: bool = False) -> pd.DataFrame:
         table = pd.read_csv(table_path, sep="\t")
         if test:
-            table = table.sample(frac=0.1)
+            table = table.sample(frac=0.1, random_state=42)
         table = table.where(pd.notnull(table), None)  # replace NaN with None
 
         rename_cols = {
@@ -84,7 +81,7 @@ class VDJDBAdapter(BaseAdapter):
         # Map epitope sequences to IEDB IDs
         valid_epitopes = table[REGISTRY_KEYS.EPITOPE_KEY].dropna().drop_duplicates().tolist()
         if len(valid_epitopes) > 0:
-            epitope_map = get_iedb_ids_batch(valid_epitopes)
+            epitope_map = get_iedb_ids_batch(bc, valid_epitopes)
         # Apply the mapping to create the IEDB ID column
         table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].map(epitope_map)
 

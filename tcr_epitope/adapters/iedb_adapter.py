@@ -18,9 +18,6 @@ class IEDBAdapter(BaseAdapter):
     ----------
     bc
         BioCypher instance for DB download.
-    cache_dir
-        The directory to store the downloaded IEDB data in. If `None`, a temporary
-        directory will be created.
     test
         If `True`, only a subset of the data will be loaded for testing purposes.
     """
@@ -30,7 +27,7 @@ class IEDBAdapter(BaseAdapter):
     TCR_FNAME = "tcr_full_v3.csv"
     BCR_FNAME = "bcr_full_v3.csv"
 
-    def get_latest_release(self, bc: BioCypher, cache_dir: str) -> str:
+    def get_latest_release(self, bc: BioCypher) -> str:
         # Download IEDB
         iedb_resource = FileDownload(
             name=self.DB_DIR,
