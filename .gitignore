@@ -135,5 +135,8 @@ dmypy.json
 .pyre/
 .idea
 
-# Add testing notebooks
+# Exclude all ipynb files
 *.ipynb
+
+# But allow ipynb files in notebooks folder
+!notebooks/*.ipynb
