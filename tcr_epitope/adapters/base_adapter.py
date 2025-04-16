@@ -2,20 +2,20 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from tempfile import TemporaryDirectory
+from typing import TYPE_CHECKING
 
 from .constants import REGISTRY_KEYS
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     import pandas as pd
     from biocypher import BioCypher
-    
+
+
 class BaseAdapter:
     def __init__(self, bc: BioCypher, cache_dir: str | None = None, test: bool = False):
         cache_dir = cache_dir or TemporaryDirectory().name
         table_path = self.get_latest_release(bc)
-        self.table = self.read_table(bc, table_path, test=test)
+        self.table = self.read_table(bc, table_path, test)
 
     @abstractmethod
     def get_latest_release(self, bc: BioCypher, cache_dir: str) -> str:

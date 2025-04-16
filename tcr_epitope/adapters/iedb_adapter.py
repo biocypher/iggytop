@@ -37,15 +37,20 @@ class IEDBAdapter(BaseAdapter):
         )
 
         iedb_paths = bc.download(iedb_resource)
-        tcr_path = os.path.join(Path(iedb_paths[0]).parent, self.TCR_FNAME)
-        bcr_path = os.path.join(Path(iedb_paths[0]).parent, self.BCR_FNAME)
+        db_dir = Path(iedb_paths[0]).parent
+        for root, dirs, files in os.walk(db_dir):
+            for file in files:
+                if file == self.TCR_FNAME:
+                    tcr_path = os.path.join(root, file)
+                elif file == self.BCR_FNAME:
+                    bcr_path = os.path.join(root, file)
 
         if not tcr_path or not os.path.exists(tcr_path):
             raise FileNotFoundError(f"Failed to download IEDB database from {self.DB_URL}")
 
         return tcr_path, bcr_path
 
-    def read_table(self, table_path: str, test: bool = False) -> pd.DataFrame:
+    def read_table(self, bc: BioCypher, table_path: str, test: bool = False) -> pd.DataFrame:
         tcr_table_path, bcr_table_path = table_path
 
         tcr_table = pd.read_csv(tcr_table_path, header=[0, 1])

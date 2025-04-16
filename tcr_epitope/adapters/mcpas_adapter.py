@@ -61,6 +61,17 @@ class MCPASAdapter(BaseAdapter):
         table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
         table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY] = table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY]
 
+        sequence_cols = [
+            REGISTRY_KEYS.EPITOPE_KEY,
+            REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+        ]
+
+        for col in sequence_cols:
+            table[col] = table[col].apply(str)
+            table[col] = table[col].apply(lambda x: x.upper())
+            table[col] = table[col].apply(lambda x: "".join(x.split()))
+
         # Map epitope sequences to IEDB IDs
         valid_epitopes = table[REGISTRY_KEYS.EPITOPE_KEY].dropna().drop_duplicates().tolist()
         if len(valid_epitopes) > 0:

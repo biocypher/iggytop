@@ -28,6 +28,7 @@ class VDJDBAdapter(BaseAdapter):
     def get_latest_release(self, bc: BioCypher) -> str:
         repo = Github().get_repo(self.REPO_NAME)
         db_url = repo.get_latest_release().get_assets()[0].browser_download_url
+        # db_url = "https://github.com/antigenomics/vdjdb-db/releases/download/pyvdjdb-2025-02-21/vdjdb-2025-02-21.zip"
 
         vdjdb_resource = FileDownload(
             name=self.DB_DIR,
@@ -38,7 +39,11 @@ class VDJDBAdapter(BaseAdapter):
 
         vdjdb_paths = bc.download(vdjdb_resource)
 
-        db_path = os.path.join(Path(vdjdb_paths[0]).parent, self.DB_FNAME)
+        db_dir = Path(vdjdb_paths[0]).parent
+        for root, dirs, files in os.walk(db_dir):
+            for file in files:
+                if file == self.DB_FNAME:
+                    db_path = os.path.join(root, file)
 
         if not db_path or not os.path.exists(db_path):
             raise FileNotFoundError(f"Failed to download VDJdb database from {db_url}")
@@ -78,6 +83,10 @@ class VDJDBAdapter(BaseAdapter):
             table[col] = table[col].apply(lambda x: x.upper())
             table[col] = table[col].apply(lambda x: "".join(x.split()))
 
+        table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY].apply(lambda x: x.lower())
+        table[REGISTRY_KEYS.CHAIN_2_V_GENE_KEY] = table[REGISTRY_KEYS.CHAIN_1_V_GENE_KEY]
+        table[REGISTRY_KEYS.CHAIN_2_J_GENE_KEY] = table[REGISTRY_KEYS.CHAIN_1_J_GENE_KEY]
+
         # Map epitope sequences to IEDB IDs
         valid_epitopes = table[REGISTRY_KEYS.EPITOPE_KEY].dropna().drop_duplicates().tolist()
         if len(valid_epitopes) > 0:
@@ -96,14 +105,19 @@ class VDJDBAdapter(BaseAdapter):
                 REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
                 REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             ],
             unique_cols=[
                 REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
             ],
             property_cols=[
+                REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
                 REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             ],
         )
 
