@@ -4,7 +4,7 @@ biocypher:
   offline: false
   debug: true
   schema_config_path: config/schema_config.yaml
-  dbms: pandas
+  dbms: airr
 
 neo4j:
   delimiter: '\t'

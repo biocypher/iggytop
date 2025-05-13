@@ -7,6 +7,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
+from .utils import process_sequence
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,7 @@ class IEDBAdapter(BaseAdapter):
 
         iedb_paths = bc.download(iedb_resource)
         db_dir = Path(iedb_paths[0]).parent
-        for root, dirs, files in os.walk(db_dir):
+        for root, _dirs, files in os.walk(db_dir):
             for file in files:
                 if file == self.TCR_FNAME:
                     tcr_path = os.path.join(root, file)
@@ -64,9 +65,18 @@ class IEDBAdapter(BaseAdapter):
         bcr_table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.IGL_KEY
 
         table = pd.concat([tcr_table, bcr_table], ignore_index=True)
-        table = table.where(pd.notnull(table), None)  # replace NaN with None
         if test:
-            table = table.sample(frac=0.1)
+            table = table.sample(frac=0.01, random_state=42)
+        # Replace NaN and empty strings with None
+        table = table.replace(["", "nan"], None).where(pd.notnull, None)
+
+        # Fill curated columns with calculated values if curated is empty
+        table["Chain 1 CDR3 Curated"] = (
+            table["Chain 1 CDR3 Curated"].replace("", pd.NA).fillna(table["Chain 1 CDR3 Calculated"])
+        )
+        table["Chain 2 CDR3 Curated"] = (
+            table["Chain 2 CDR3 Curated"].replace("", pd.NA).fillna(table["Chain 2 CDR3 Calculated"])
+        )
 
         rename_cols = {
             "Epitope Name": REGISTRY_KEYS.EPITOPE_KEY,
@@ -95,15 +105,8 @@ class IEDBAdapter(BaseAdapter):
             REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
         ]
 
-        # some sequences are in the format `sequence + additional info`
-        def split_epitope_sequence(x: str) -> str:
-            return x.split("+")[0]
-
         for col in sequence_cols:
-            table[col] = table[col].apply(str)
-            table[col] = table[col].apply(split_epitope_sequence)
-            table[col] = table[col].apply(lambda x: x.upper())
-            table[col] = table[col].apply(lambda x: "".join(x.split()))
+            table[col] = table[col].apply(process_sequence)
 
         return table
 

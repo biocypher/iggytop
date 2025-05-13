@@ -7,7 +7,7 @@ from github import Github
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_iedb_ids_batch
+from .utils import get_iedb_ids_batch, process_sequence
 
 
 class VDJDBAdapter(BaseAdapter):
@@ -40,7 +40,7 @@ class VDJDBAdapter(BaseAdapter):
         vdjdb_paths = bc.download(vdjdb_resource)
 
         db_dir = Path(vdjdb_paths[0]).parent
-        for root, dirs, files in os.walk(db_dir):
+        for root, _dirs, files in os.walk(db_dir):
             for file in files:
                 if file == self.DB_FNAME:
                     db_path = os.path.join(root, file)
@@ -53,8 +53,9 @@ class VDJDBAdapter(BaseAdapter):
     def read_table(self, bc: BioCypher, table_path: str, test: bool = False) -> pd.DataFrame:
         table = pd.read_csv(table_path, sep="\t")
         if test:
-            table = table.sample(frac=0.1, random_state=42)
-        table = table.where(pd.notnull(table), None)  # replace NaN with None
+            table = table.sample(frac=0.01, random_state=42)
+        # Replace NaN and empty strings with None
+        table = table.replace(["", "nan"], None).where(pd.notnull, None)
 
         rename_cols = {
             "gene": REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
@@ -79,9 +80,7 @@ class VDJDBAdapter(BaseAdapter):
         ]
 
         for col in sequence_cols:
-            table[col] = table[col].apply(str)
-            table[col] = table[col].apply(lambda x: x.upper())
-            table[col] = table[col].apply(lambda x: "".join(x.split()))
+            table[col] = table[col].apply(process_sequence)
 
         table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY].apply(lambda x: x.lower())
         table[REGISTRY_KEYS.CHAIN_2_V_GENE_KEY] = table[REGISTRY_KEYS.CHAIN_1_V_GENE_KEY]

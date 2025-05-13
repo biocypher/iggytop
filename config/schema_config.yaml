@@ -47,7 +47,7 @@ epitope:
     MHC_class: str
     MHC_gene_1: str
     MHC_gene_2: str
-    chain_1_organism: str
+
 
 t cell receptor sequence to epitope association:
   is_a: association

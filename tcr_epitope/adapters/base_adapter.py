@@ -12,6 +12,10 @@ if TYPE_CHECKING:
 
 
 class BaseAdapter:
+    """Base class for all adapters. This class is responsible for downloading and reading the data from the source.
+    It also provides methods for generating BioCypher nodes and edges from the data.
+    """
+
     def __init__(self, bc: BioCypher, cache_dir: str | None = None, test: bool = False):
         cache_dir = cache_dir or TemporaryDirectory().name
         table_path = self.get_latest_release(bc)
@@ -51,6 +55,7 @@ class BaseAdapter:
             property_cols = [property_cols]
 
         subset_table = self.table[subset_cols].drop_duplicates(subset=unique_cols).dropna(subset=unique_cols)
+
         for _, row in subset_table.iterrows():
             if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in subset_cols:
                 _type = row[REGISTRY_KEYS.CHAIN_1_TYPE_KEY]
@@ -59,7 +64,7 @@ class BaseAdapter:
             else:
                 _type = "epitope"
 
-            _id = ":".join([_type.lower()] + row[unique_cols].to_list())
+            _id = ":".join([_type.lower(), *row[unique_cols].to_list()])
             _props = {k: row[k] for k in property_cols}
 
             yield _id, _type.lower(), _props
@@ -108,8 +113,8 @@ class BaseAdapter:
             else:
                 _target_type = "epitope"
 
-            _source_id = ":".join([_source_type.lower()] + row[source_unique_cols].to_list())
-            _target_id = ":".join([_target_type.lower()] + row[target_unique_cols].to_list())
+            _source_id = ":".join([_source_type.lower(), *row[source_unique_cols].to_list()])
+            _target_id = ":".join([_target_type.lower(), *row[target_unique_cols].to_list()])
             _id = "-".join([_source_id, _target_id])
             _type = "_".join([_source_type.lower(), "to", _target_type.lower()])
 

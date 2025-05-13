@@ -3,7 +3,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_iedb_ids_batch
+from .utils import get_iedb_ids_batch, process_sequence
 
 
 class MCPASAdapter(BaseAdapter):
@@ -39,8 +39,9 @@ class MCPASAdapter(BaseAdapter):
     def read_table(self, bc: BioCypher, table_path: str, test: bool = False) -> pd.DataFrame:
         table = pd.read_csv(table_path, encoding="utf-8-sig")
         if test:
-            table = table.sample(frac=0.1, random_state=42)
-        table = table.where(pd.notnull(table), None)  # replace NaN with None
+            table = table.sample(frac=0.01, random_state=42)
+        # Replace NaN and empty strings with None
+        table = table.replace(["", "nan"], None).where(pd.notnull, None)
 
         rename_cols = {
             "CDR3.alpha.aa": REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
@@ -55,6 +56,7 @@ class MCPASAdapter(BaseAdapter):
             "Species": REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
             # "PubMed.ID": REGISTRY_KEYS.PUBLICATION_KEY,
         }
+
         table = table.rename(columns=rename_cols)
         table = table[list(rename_cols.values())]
         table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.TRA_KEY
@@ -68,9 +70,7 @@ class MCPASAdapter(BaseAdapter):
         ]
 
         for col in sequence_cols:
-            table[col] = table[col].apply(str)
-            table[col] = table[col].apply(lambda x: x.upper())
-            table[col] = table[col].apply(lambda x: "".join(x.split()))
+            table[col] = table[col].apply(process_sequence)
 
         # Map epitope sequences to IEDB IDs
         valid_epitopes = table[REGISTRY_KEYS.EPITOPE_KEY].dropna().drop_duplicates().tolist()
@@ -139,8 +139,9 @@ class MCPASAdapter(BaseAdapter):
                 REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
             ],
-            REGISTRY_KEYS.EPITOPE_KEY,
+            [REGISTRY_KEYS.EPITOPE_KEY],
             source_unique_cols=REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            target_unique_cols=REGISTRY_KEYS.EPITOPE_KEY,
         )
 
         # chain 2 to epitope
@@ -149,6 +150,7 @@ class MCPASAdapter(BaseAdapter):
                 REGISTRY_KEYS.CHAIN_2_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
             ],
-            REGISTRY_KEYS.EPITOPE_KEY,
+            [REGISTRY_KEYS.EPITOPE_KEY],
             source_unique_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+            target_unique_cols=REGISTRY_KEYS.EPITOPE_KEY,
         )
