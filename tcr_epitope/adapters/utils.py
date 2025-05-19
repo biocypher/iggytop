@@ -74,7 +74,7 @@ def get_iedb_ids_batch(bc: BioCypher, epitopes: list[str], chunk_size: int = 150
     if unmatched_epitopes:
         print(
             f"Found {len(epitopes) - len(unmatched_epitopes)} exact IEDB ID matches.",
-            f"Trying substring matches for {len(unmatched_epitopes)} remaining epitopes..."
+            f"Trying substring matches for {len(unmatched_epitopes)} remaining epitopes...",
         )
         chunk_size = chunk_size // 2
 
@@ -148,4 +148,3 @@ def _get_epitope_data(bc: BioCypher, epitopes: list[str], base_url: str, match_t
     except Exception as e:
         print(f"API request failed: {e}")
         return []
-    

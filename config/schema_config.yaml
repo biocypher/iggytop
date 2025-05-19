@@ -12,7 +12,7 @@ t cell receptor sequence:
       CDR1 : str
       CDR2 : str
       species : str
-  
+
 b cell receptor sequence:
   is_a: immune receptor sequence
 
