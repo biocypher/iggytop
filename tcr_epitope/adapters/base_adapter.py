@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from abc import abstractmethod
 from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING
@@ -65,7 +67,9 @@ class BaseAdapter:
                 _type = "epitope"
 
             _id = ":".join([_type.lower(), *row[unique_cols].to_list()])
-            _props = {k: row[k] for k in property_cols}
+            _props = {re.sub("chain_\d_", "", k): row[k] for k in property_cols}
+            _props["junction_aa"] = row[unique_cols[0]] if unique_cols else None
+
 
             yield _id, _type.lower(), _props
 

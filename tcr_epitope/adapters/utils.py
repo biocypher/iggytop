@@ -48,7 +48,6 @@ def get_iedb_ids_batch(bc: BioCypher, epitopes: list[str], chunk_size: int = 150
 
     for i in range(0, len(epitopes), chunk_size):
         chunk = epitopes[i : i + chunk_size]
-        print(f"Processing batch {i // chunk_size + 1}/{(len(epitopes) - 1) // chunk_size + 1}")
         # print("Starting new batch...")
 
         epitope_matches = _get_epitope_data(bc, chunk, base_url, match_type="exact")
@@ -75,13 +74,12 @@ def get_iedb_ids_batch(bc: BioCypher, epitopes: list[str], chunk_size: int = 150
     if unmatched_epitopes:
         print(
             f"Found {len(epitopes) - len(unmatched_epitopes)} exact IEDB ID matches.",
-            "Trying substring matches for {len(unmatched_epitopes)} remaining epitopes..."
+            f"Trying substring matches for {len(unmatched_epitopes)} remaining epitopes..."
         )
         chunk_size = chunk_size // 2
 
         for i in range(0, len(unmatched_epitopes), chunk_size):
             chunk = unmatched_epitopes[i : i + chunk_size]
-            # print(f"Processing unmatched batch {i//chunk_size + 1}/{(len(unmatched_epitopes)-1)//chunk_size + 1}")
             substring_matches = _get_epitope_data(bc, chunk, base_url, match_type="substring")
 
             for epitope in chunk:

@@ -6,6 +6,7 @@ immune receptor sequence:
 t cell receptor sequence:
   is_a: immune receptor sequence
   properties:
+      junction_aa: str
       v_call : str
       j_call : str
       CDR1 : str
