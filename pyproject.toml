@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tcr-epitope"
-version = "0.2.0"
+version = "1.0.0"
 description = "Immune repertoire information retrieval and integration"
 authors = [
     "Sebastian Lobentanzer <sebastian.lobentanzer@gmail.com>",
