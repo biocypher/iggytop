@@ -1,22 +1,26 @@
 from __future__ import annotations
 
+import re
 from abc import abstractmethod
 from tempfile import TemporaryDirectory
+from typing import TYPE_CHECKING
 
 from .constants import REGISTRY_KEYS
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     import pandas as pd
     from biocypher import BioCypher
-    
+
+
 class BaseAdapter:
+    """Base class for all adapters. This class is responsible for downloading and reading the data from the source.
+    It also provides methods for generating BioCypher nodes and edges from the data.
+    """
 
     def __init__(self, bc: BioCypher, cache_dir: str | None = None, test: bool = False):
         cache_dir = cache_dir or TemporaryDirectory().name
-        table_path = self.get_latest_release(bc, cache_dir)
-        self.table = self.read_table(table_path, test=test)
+        table_path = self.get_latest_release(bc)
+        self.table = self.read_table(bc, table_path, test)
 
     @abstractmethod
     def get_latest_release(self, bc: BioCypher, cache_dir: str) -> str:
@@ -51,9 +55,8 @@ class BaseAdapter:
         if not isinstance(property_cols, list):
             property_cols = [property_cols]
 
-        subset_table = self.table[subset_cols].drop_duplicates(
-            subset=unique_cols
-        ).dropna(subset=unique_cols)
+        subset_table = self.table[subset_cols].drop_duplicates(subset=unique_cols).dropna(subset=unique_cols)
+
         for _, row in subset_table.iterrows():
             if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in subset_cols:
                 _type = row[REGISTRY_KEYS.CHAIN_1_TYPE_KEY]
@@ -62,14 +65,15 @@ class BaseAdapter:
             else:
                 _type = "epitope"
 
-            _id = ":".join([_type.lower()] + row[unique_cols].to_list())
-            _props = {k: row[k] for k in property_cols}
+            _id = ":".join([_type.lower(), *row[unique_cols].to_list()])
+            _props = {re.sub("chain_\d_", "", k): row[k] for k in property_cols}
+            _props["junction_aa"] = row[unique_cols[0]] if unique_cols else None
 
             yield _id, _type.lower(), _props
-    
+
     def _generate_edges_from_table(
         self,
-        source_subset_cols: list[str], 
+        source_subset_cols: list[str],
         target_subset_cols: list[str],
         source_unique_cols: list[str] | None = None,
         target_unique_cols: list[str] | None = None,
@@ -90,9 +94,11 @@ class BaseAdapter:
         if not isinstance(target_unique_cols, list):
             target_unique_cols = [target_unique_cols]
 
-        subset_table = self.table[source_subset_cols + target_subset_cols].drop_duplicates(
-            subset=source_unique_cols + target_unique_cols
-        ).dropna(subset=source_unique_cols + target_unique_cols)
+        subset_table = (
+            self.table[source_subset_cols + target_subset_cols]
+            .drop_duplicates(subset=source_unique_cols + target_unique_cols)
+            .dropna(subset=source_unique_cols + target_unique_cols)
+        )
 
         for _, row in subset_table.iterrows():
             if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in source_subset_cols:
@@ -109,8 +115,8 @@ class BaseAdapter:
             else:
                 _target_type = "epitope"
 
-            _source_id = ":".join([_source_type.lower()] + row[source_unique_cols].to_list())
-            _target_id = ":".join([_target_type.lower()] + row[target_unique_cols].to_list())
+            _source_id = ":".join([_source_type.lower(), *row[source_unique_cols].to_list()])
+            _target_id = ":".join([_target_type.lower(), *row[target_unique_cols].to_list()])
             _id = "-".join([_source_id, _target_id])
             _type = "_".join([_source_type.lower(), "to", _target_type.lower()])
 

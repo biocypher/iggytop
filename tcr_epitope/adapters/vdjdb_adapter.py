@@ -2,25 +2,21 @@ import os
 from pathlib import Path
 
 import pandas as pd
-from github import Github
 from biocypher import BioCypher, FileDownload
+from github import Github
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import validate_peptide_sequence
+from .utils import get_iedb_ids_batch, process_sequence
 
 
 class VDJDBAdapter(BaseAdapter):
-    """
-    BioCypher adapter for the VDJdb database (https://vdjdb.cdr3.net/).
-    
+    """BioCypher adapter for the VDJdb database (https://vdjdb.cdr3.net/).
+
     Parameters
     ----------
     bc
         BioCypher instance for DB download.
-    cache_dir
-        The directory to store the downloaded IEDB data in. If `None`, a temporary
-        directory will be created.
     test
         If `True`, only a subset of the data will be loaded for testing purposes.
     """
@@ -29,9 +25,10 @@ class VDJDBAdapter(BaseAdapter):
     DB_DIR = "vdjdb_latest"
     DB_FNAME = "vdjdb.txt"
 
-    def get_latest_release(self, bc: BioCypher, cache_dir: str) -> str:
+    def get_latest_release(self, bc: BioCypher) -> str:
         repo = Github().get_repo(self.REPO_NAME)
         db_url = repo.get_latest_release().get_assets()[0].browser_download_url
+        # db_url = "https://github.com/antigenomics/vdjdb-db/releases/download/pyvdjdb-2025-02-21/vdjdb-2025-02-21.zip"
 
         vdjdb_resource = FileDownload(
             name=self.DB_DIR,
@@ -39,21 +36,26 @@ class VDJDBAdapter(BaseAdapter):
             lifetime=30,
             is_dir=False,
         )
-        
+
         vdjdb_paths = bc.download(vdjdb_resource)
-            
-        db_path = os.path.join(Path(vdjdb_paths[0]).parent, self.DB_FNAME)
+
+        db_dir = Path(vdjdb_paths[0]).parent
+        for root, _dirs, files in os.walk(db_dir):
+            for file in files:
+                if file == self.DB_FNAME:
+                    db_path = os.path.join(root, file)
 
         if not db_path or not os.path.exists(db_path):
             raise FileNotFoundError(f"Failed to download VDJdb database from {db_url}")
-        
+
         return db_path
-    
-    def read_table(self, table_path: str, test: bool = False) -> pd.DataFrame:
+
+    def read_table(self, bc: BioCypher, table_path: str, test: bool = False) -> pd.DataFrame:
         table = pd.read_csv(table_path, sep="\t")
         if test:
-            table = table.sample(frac=0.1)
-        table = table.where(pd.notnull(table), None)  # replace NaN with None
+            table = table.sample(frac=0.01, random_state=42)
+        # Replace NaN and empty strings with None
+        table = table.replace(["", "nan"], None).where(pd.notnull, None)
 
         rename_cols = {
             "gene": REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
@@ -78,9 +80,18 @@ class VDJDBAdapter(BaseAdapter):
         ]
 
         for col in sequence_cols:
-            table[col] = table[col].apply(str)
-            table[col] = table[col].apply(lambda x: x.upper())
-            table[col] = table[col].apply(lambda x: "".join(x.split()))
+            table[col] = table[col].apply(process_sequence)
+
+        table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY].apply(lambda x: x.lower())
+        table[REGISTRY_KEYS.CHAIN_2_V_GENE_KEY] = table[REGISTRY_KEYS.CHAIN_1_V_GENE_KEY]
+        table[REGISTRY_KEYS.CHAIN_2_J_GENE_KEY] = table[REGISTRY_KEYS.CHAIN_1_J_GENE_KEY]
+
+        # Map epitope sequences to IEDB IDs
+        valid_epitopes = table[REGISTRY_KEYS.EPITOPE_KEY].dropna().drop_duplicates().tolist()
+        if len(valid_epitopes) > 0:
+            epitope_map = get_iedb_ids_batch(bc, valid_epitopes)
+        # Apply the mapping to create the IEDB ID column
+        table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].map(epitope_map)
 
         return table
 
@@ -93,14 +104,19 @@ class VDJDBAdapter(BaseAdapter):
                 REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
                 REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             ],
             unique_cols=[
                 REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
             ],
             property_cols=[
+                REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
                 REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             ],
         )
 
@@ -108,6 +124,7 @@ class VDJDBAdapter(BaseAdapter):
         yield from self._generate_nodes_from_table(
             subset_cols=[
                 REGISTRY_KEYS.EPITOPE_KEY,
+                REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
                 REGISTRY_KEYS.ANTIGEN_KEY,
                 REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
                 REGISTRY_KEYS.MHC_CLASS_KEY,
@@ -118,6 +135,7 @@ class VDJDBAdapter(BaseAdapter):
                 REGISTRY_KEYS.EPITOPE_KEY,
             ],
             property_cols=[
+                REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
                 REGISTRY_KEYS.ANTIGEN_KEY,
                 REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
                 REGISTRY_KEYS.MHC_CLASS_KEY,

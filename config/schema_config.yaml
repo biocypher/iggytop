@@ -6,12 +6,13 @@ immune receptor sequence:
 t cell receptor sequence:
   is_a: immune receptor sequence
   properties:
+      junction_aa: str
       v_call : str
       j_call : str
       CDR1 : str
       CDR2 : str
       species : str
-  
+
 b cell receptor sequence:
   is_a: immune receptor sequence
 
@@ -39,13 +40,15 @@ epitope:
   is_a: polypeptide
   represented_as: node
   input_label: epitope
-  # preferred_id: epitope_id_from_iedb
   properties:
     protein: str
+    IEDB_ID: str
+    antigen_name: str
+    antigen_organism: str
     MHC_class: str
     MHC_gene_1: str
     MHC_gene_2: str
-    species: strr
+
 
 t cell receptor sequence to epitope association:
   is_a: association
