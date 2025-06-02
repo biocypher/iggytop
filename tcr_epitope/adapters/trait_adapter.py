@@ -4,7 +4,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_iedb_ids_batch, process_sequence
+from .utils import get_iedb_ids_batch, harmonise_sequences
 
 
 class TRAITAdapter(BaseAdapter):
@@ -64,23 +64,18 @@ class TRAITAdapter(BaseAdapter):
         table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
         table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY] = table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY]
 
-        sequence_cols = [
-            REGISTRY_KEYS.EPITOPE_KEY,
-            REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
-            REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
-        ]
-
-        for col in sequence_cols:
-            table[col] = table[col].apply(process_sequence)
-
         # Map epitope sequences to IEDB IDs
         valid_epitopes = table[REGISTRY_KEYS.EPITOPE_KEY].dropna().drop_duplicates().tolist()
         if len(valid_epitopes) > 0:
             epitope_map = get_iedb_ids_batch(bc, valid_epitopes)
+
         # Apply the mapping to create the IEDB ID column
         table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].map(epitope_map)
 
-        return table
+        # Preprocesses CDR3 sequences, epitope sequences, and gene names
+        table_preprocessed = harmonise_sequences(table)
+
+        return table_preprocessed
 
     def get_nodes(self):
         # chain 1

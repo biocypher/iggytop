@@ -41,13 +41,14 @@ epitope:
   represented_as: node
   input_label: epitope
   properties:
-    protein: str
+    epitope_sequence: str
     IEDB_ID: str
     antigen_name: str
-    antigen_organism: str
+    antigen_species: str
     MHC_class: str
     MHC_gene_1: str
     MHC_gene_2: str
+    PMID: str
 
 
 t cell receptor sequence to epitope association:

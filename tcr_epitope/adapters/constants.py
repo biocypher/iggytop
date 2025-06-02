@@ -5,7 +5,7 @@ class _REGISTRY_KEYS_NT(NamedTuple):
     EPITOPE_KEY: str = "epitope_sequence"
     EPITOPE_IEDB_ID_KEY: str = "iedb_id"
     ANTIGEN_KEY: str = "antigen_name"
-    ANTIGEN_ORGANISM_KEY: str = "antigen_organism"
+    ANTIGEN_ORGANISM_KEY: str = "antigen_species"
     CHAIN_1_CDR1_KEY: str = "chain_1_cdr1"
     CHAIN_1_CDR2_KEY: str = "chain_1_cdr2"
     CHAIN_1_CDR3_KEY: str = "chain_1_cdr3"

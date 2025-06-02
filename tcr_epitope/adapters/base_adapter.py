@@ -55,7 +55,7 @@ class BaseAdapter:
         if not isinstance(property_cols, list):
             property_cols = [property_cols]
 
-        subset_table = self.table[subset_cols].drop_duplicates(subset=unique_cols).dropna(subset=unique_cols)
+        subset_table = self.table[subset_cols].dropna(subset=unique_cols)
 
         for _, row in subset_table.iterrows():
             if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in subset_cols:
@@ -65,7 +65,31 @@ class BaseAdapter:
             else:
                 _type = "epitope"
 
-            _id = ":".join([_type.lower(), *row[unique_cols].to_list()])
+            # _id = ":".join([_type.lower(), *row[unique_cols].to_list()])
+            
+            # For TCR chains, use sequence + V gene + J gene as the identifier
+            if _type.lower() in ["tra", "trb", "trd", "trg"]:
+                # Get V gene and J gene if available
+                v_gene_key = REGISTRY_KEYS.CHAIN_1_V_GENE_KEY if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in subset_cols else REGISTRY_KEYS.CHAIN_2_V_GENE_KEY
+                j_gene_key = REGISTRY_KEYS.CHAIN_1_J_GENE_KEY if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in subset_cols else REGISTRY_KEYS.CHAIN_2_J_GENE_KEY
+                
+                # Check if V and J genes are available in the row
+                v_gene = row.get(v_gene_key)
+                j_gene = row.get(j_gene_key)
+                
+                # Create an ID that includes V and J genes if available
+                id_components = [_type.lower()]
+                id_components.extend(row[unique_cols].to_list())
+                if v_gene:
+                    id_components.append(f"v_{v_gene}")
+                if j_gene:
+                    id_components.append(f"j_{j_gene}")
+                
+                _id = ":".join(id_components)
+            else:
+                # For epitopes and other types, keep the original ID format
+                _id = ":".join([_type.lower(), *row[unique_cols].to_list()])
+            
             _props = {re.sub("chain_\d_", "", k): row[k] for k in property_cols}
             _props["junction_aa"] = row[unique_cols[0]] if unique_cols else None
 

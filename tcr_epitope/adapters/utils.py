@@ -1,20 +1,38 @@
 import hashlib
 import json
+import re
 
+import pandas as pd
 from biocypher import APIRequest, BioCypher
+from .constants import REGISTRY_KEYS
 
 AMINO_ACIDS = set("ACDEFGHIKLMNPQRSTVWY")
 
-
-def validate_peptide_sequence(seq: str) -> bool:
+def is_valid_peptide_sequence(seq: str) -> bool:
     """Checks if a given sequence is a valid peptide sequence."""
     if isinstance(seq, str):
         return all([aa in AMINO_ACIDS for aa in seq])
     else:
         return False
 
+def process_cdr3_sequence(seq: str) -> str | None:
+    if seq is None:
+        return None
 
-def process_sequence(x):
+    # Get rid of characters that are not part of the peptide sequence and validate aa
+    seq = str(seq).upper().strip().replace(" ", "").replace("\n", "")
+    if not is_valid_peptide_sequence(seq):
+        return None
+
+
+
+    # Trim C and F only if both are present at ends to get juncion_aa
+    if seq.startswith("C") and seq.endswith("F") and len(seq) > 2:
+        return seq[1:-1]  # junction_aa
+    return seq
+
+def process_epitope_sequence(x) -> str | None:
+    """Process a sequence string to remove non-peptidic characters and validate it."""
     if x is None:
         return None
 
@@ -22,9 +40,47 @@ def process_sequence(x):
     result = x.split("+")[0]  # split_epitope_sequence
     result = result.upper()
     result = "".join(result.split())
-    # TODO: add here sequence validation but avoid the non-peptidic epitopes in IEDB db!
+
     return result
 
+def normalise_gene_name(gene: str) -> str:
+    if pd.isna(gene):
+        return None
+    gene = gene.strip()
+    # Replace TCRA → TRA, TCRB → TRB, etc.
+    gene = re.sub(r'^TCR([ABGD])', r'TR\1', gene)
+    # Remove allele annotation like *01 or *01_F
+    gene = re.sub(r'\*.*$', '', gene)
+    return gene
+
+
+def harmonise_sequences(table: pd.DataFrame) -> pd.DataFrame:
+    """Preprocesses CDR3 sequences, epitope sequences, and gene names in a harmonized way."""
+    # Clean CDR3 sequences (normalize junction_aas)
+    cdr3_sequence_cols = [
+        REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+        REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+    ]
+    for col in cdr3_sequence_cols:
+        if col in table.columns:
+            table[col] = table[col].apply(process_cdr3_sequence)
+
+    # Clean epitope sequences
+    if REGISTRY_KEYS.EPITOPE_KEY in table.columns:
+        table[REGISTRY_KEYS.EPITOPE_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].apply(process_epitope_sequence)
+
+    # Normalize V and J genes
+    vj_genes_cols = [
+        REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
+        REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
+        REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
+        REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
+    ]
+    for col in vj_genes_cols:
+        if col in table.columns:
+            table[col] = table[col].apply(normalise_gene_name)
+
+    return table
 
 def get_iedb_ids_batch(bc: BioCypher, epitopes: list[str], chunk_size: int = 150) -> dict[str, int]:
     """Retrieve IEDB IDs for multiple epitopes using batched requests.

@@ -7,7 +7,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import process_sequence
+from .utils import harmonise_sequences
 
 logger = logging.getLogger(__name__)
 
@@ -71,12 +71,11 @@ class IEDBAdapter(BaseAdapter):
         table = table.replace(["", "nan"], None).where(pd.notnull, None)
 
         # Fill curated columns with calculated values if curated is empty
-        table["Chain 1 CDR3 Curated"] = (
-            table["Chain 1 CDR3 Curated"].replace("", pd.NA).fillna(table["Chain 1 CDR3 Calculated"])
-        )
-        table["Chain 2 CDR3 Curated"] = (
-            table["Chain 2 CDR3 Curated"].replace("", pd.NA).fillna(table["Chain 2 CDR3 Calculated"])
-        )
+        for chain_num in [1, 2]:
+            table[f"Chain {chain_num} CDR3 Calculated"] = table[f"Chain {chain_num} CDR3 Calculated"].fillna(table[f"Chain {chain_num} CDR3 Curated"])
+            table[f"Chain {chain_num} Calculated V Gene"] = table[f"Chain {chain_num} Calculated V Gene"].fillna(table[f"Chain {chain_num} Curated V Gene"])
+            table[f"Chain {chain_num} Calculated J Gene"] = table[f"Chain {chain_num} Calculated J Gene"].fillna(table[f"Chain {chain_num} Curated J Gene"])
+
 
         rename_cols = {
             "Epitope Name": REGISTRY_KEYS.EPITOPE_KEY,
@@ -98,17 +97,10 @@ class IEDBAdapter(BaseAdapter):
         table = table.rename(columns=rename_cols)
         table = table[list(rename_cols.values())]
 
-        # validate peptide sequences
-        sequence_cols = [
-            REGISTRY_KEYS.EPITOPE_KEY,
-            REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
-            REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
-        ]
+        # Preprocesses CDR3 sequences, epitope sequences, and gene names
+        table_preprocessed = harmonise_sequences(table)
 
-        for col in sequence_cols:
-            table[col] = table[col].apply(process_sequence)
-
-        return table
+        return table_preprocessed
 
     def get_nodes(self):
         # chain 1
