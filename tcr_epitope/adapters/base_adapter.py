@@ -68,7 +68,7 @@ class BaseAdapter:
             # _id = ":".join([_type.lower(), *row[unique_cols].to_list()])
             
             # For TCR chains, use sequence + V gene + J gene as the identifier
-            if _type.lower() in ["tra", "trb", "trd", "trg"]:
+            if _type.lower() != "epitope":
                 # Get V gene and J gene if available
                 v_gene_key = REGISTRY_KEYS.CHAIN_1_V_GENE_KEY if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in subset_cols else REGISTRY_KEYS.CHAIN_2_V_GENE_KEY
                 j_gene_key = REGISTRY_KEYS.CHAIN_1_J_GENE_KEY if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in subset_cols else REGISTRY_KEYS.CHAIN_2_J_GENE_KEY
@@ -91,7 +91,7 @@ class BaseAdapter:
                 _id = ":".join([_type.lower(), *row[unique_cols].to_list()])
             
             _props = {re.sub("chain_\d_", "", k): row[k] for k in property_cols}
-            _props["junction_aa"] = row[unique_cols[0]] if unique_cols else None
+            # _props["junction_aa"] = row[unique_cols[0]] if unique_cols else None
 
             yield _id, _type.lower(), _props
 
@@ -139,7 +139,27 @@ class BaseAdapter:
             else:
                 _target_type = "epitope"
 
-            _source_id = ":".join([_source_type.lower(), *row[source_unique_cols].to_list()])
+            # _source_id = ":".join([_source_type.lower(), *row[source_unique_cols].to_list()])
+
+            # For TCR chains, use sequence + V gene + J gene as the identifier
+            # Get V gene and J gene if available
+            v_gene_key = REGISTRY_KEYS.CHAIN_1_V_GENE_KEY if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in source_subset_cols else REGISTRY_KEYS.CHAIN_2_V_GENE_KEY
+            j_gene_key = REGISTRY_KEYS.CHAIN_1_J_GENE_KEY if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in source_subset_cols else REGISTRY_KEYS.CHAIN_2_J_GENE_KEY
+            
+            # Check if V and J genes are available in the row
+            v_gene = row.get(v_gene_key)
+            j_gene = row.get(j_gene_key)
+            
+            # Create an ID that includes V and J genes if available
+            id_components = [_source_type.lower()]
+            id_components.extend(row[source_unique_cols].to_list())
+            if v_gene:
+                id_components.append(f"v_{v_gene}")
+            if j_gene:
+                id_components.append(f"j_{j_gene}")
+            
+            _source_id = ":".join(id_components)
+             
             _target_id = ":".join([_target_type.lower(), *row[target_unique_cols].to_list()])
             _id = "-".join([_source_id, _target_id])
             _type = "_".join([_source_type.lower(), "to", _target_type.lower()])

@@ -43,11 +43,17 @@ class MCPASAdapter(BaseAdapter):
         # Replace NaN and empty strings with None
         table = table.replace(["", "nan"], None).where(pd.notnull, None)
 
+        table["Pathology"] = table.apply(
+            lambda row: "HomoSapiens" if row["Category"] == "Autoimmune" else row["Pathology"],
+            axis=1
+        )
+
         rename_cols = {
             "CDR3.alpha.aa": REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
             "CDR3.beta.aa": REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
             "Epitope.peptide": REGISTRY_KEYS.EPITOPE_KEY,
             "Antigen.protein": REGISTRY_KEYS.ANTIGEN_KEY,
+            "Pathology": REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
             "MHC": REGISTRY_KEYS.MHC_GENE_1_KEY,
             "TRAV": REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
             "TRAJ": REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
@@ -79,38 +85,65 @@ class MCPASAdapter(BaseAdapter):
     def get_nodes(self):
         # chain 1
         yield from self._generate_nodes_from_table(
-            [
+            subset_cols=[
                 REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
                 REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
             ],
-            unique_cols=REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            unique_cols=[
+                REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            ],
+            property_cols=[
+                REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
+                REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+                REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
+            ],
         )
 
         # chain 2
         yield from self._generate_nodes_from_table(
-            [
+            subset_cols=[
                 REGISTRY_KEYS.CHAIN_2_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
                 REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY,
             ],
-            unique_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+            unique_cols=[
+                REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+            ],
+            property_cols=[
+                REGISTRY_KEYS.CHAIN_2_TYPE_KEY,
+                REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+                REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY,
+            ],
         )
 
         # epitope
         yield from self._generate_nodes_from_table(
-            [
+            subset_cols=[
                 REGISTRY_KEYS.EPITOPE_KEY,
                 REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
                 REGISTRY_KEYS.ANTIGEN_KEY,
+                REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
-                REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
             ],
-            unique_cols=REGISTRY_KEYS.EPITOPE_KEY,
+            unique_cols=[
+                REGISTRY_KEYS.EPITOPE_KEY,
+            ],
+            property_cols=[
+                REGISTRY_KEYS.EPITOPE_KEY,
+                REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
+                REGISTRY_KEYS.ANTIGEN_KEY,
+                REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
+                REGISTRY_KEYS.MHC_GENE_1_KEY,
+            ],
         )
 
     def get_edges(self):
@@ -133,6 +166,8 @@ class MCPASAdapter(BaseAdapter):
             [
                 REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+                REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
             ],
             [REGISTRY_KEYS.EPITOPE_KEY],
             source_unique_cols=REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
@@ -144,6 +179,8 @@ class MCPASAdapter(BaseAdapter):
             [
                 REGISTRY_KEYS.CHAIN_2_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+                REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             ],
             [REGISTRY_KEYS.EPITOPE_KEY],
             source_unique_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,

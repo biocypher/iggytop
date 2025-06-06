@@ -158,6 +158,8 @@ class CEDARAdapter(BaseAdapter):
             [
                 REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+                REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
             ],
             REGISTRY_KEYS.EPITOPE_KEY,
             source_unique_cols=REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
@@ -169,6 +171,8 @@ class CEDARAdapter(BaseAdapter):
             [
                 REGISTRY_KEYS.CHAIN_2_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+                REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             ],
             REGISTRY_KEYS.EPITOPE_KEY,
             source_unique_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,

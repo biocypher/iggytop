@@ -42,7 +42,7 @@ epitope:
   input_label: epitope
   properties:
     epitope_sequence: str
-    IEDB_ID: str
+    iedb_id: str
     antigen_name: str
     antigen_species: str
     MHC_class: str

@@ -180,31 +180,49 @@ class VDJDBAdapter(BaseAdapter):
     def get_nodes(self):
         # chain 1
         yield from self._generate_nodes_from_table(
-            [
+            subset_cols=[
                 REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
                 REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
             ],
-            unique_cols=REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            unique_cols=[
+                REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            ],
+            property_cols=[
+                REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
+                REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+                REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
+            ],
         )
 
         # chain 2
         yield from self._generate_nodes_from_table(
-            [
+            subset_cols=[
                 REGISTRY_KEYS.CHAIN_2_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
                 REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY,
             ],
-            unique_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+            unique_cols=[
+                REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+            ],
+            property_cols=[
+                REGISTRY_KEYS.CHAIN_2_TYPE_KEY,
+                REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+                REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY,
+            ],
         )
 
         # epitope
         yield from self._generate_nodes_from_table(
-            [
+            subset_cols=[
                 REGISTRY_KEYS.EPITOPE_KEY,
                 REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
                 REGISTRY_KEYS.ANTIGEN_KEY,
@@ -213,7 +231,18 @@ class VDJDBAdapter(BaseAdapter):
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
                 REGISTRY_KEYS.MHC_GENE_2_KEY,
             ],
-            unique_cols=REGISTRY_KEYS.EPITOPE_KEY,
+            unique_cols=[
+                REGISTRY_KEYS.EPITOPE_KEY,
+            ],
+            property_cols=[
+                REGISTRY_KEYS.EPITOPE_KEY,
+                REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
+                REGISTRY_KEYS.ANTIGEN_KEY,
+                REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
+                REGISTRY_KEYS.MHC_CLASS_KEY,
+                REGISTRY_KEYS.MHC_GENE_1_KEY,
+                REGISTRY_KEYS.MHC_GENE_2_KEY,
+            ],
         )
 
     def get_edges(self):
@@ -236,6 +265,8 @@ class VDJDBAdapter(BaseAdapter):
             [
                 REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+                REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
             ],
             [REGISTRY_KEYS.EPITOPE_KEY],
             source_unique_cols=REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
@@ -247,6 +278,8 @@ class VDJDBAdapter(BaseAdapter):
             [
                 REGISTRY_KEYS.CHAIN_2_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+                REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             ],
             [REGISTRY_KEYS.EPITOPE_KEY],
             source_unique_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
