@@ -81,9 +81,9 @@ class BaseAdapter:
                 id_components = [_type.lower()]
                 id_components.extend(row[unique_cols].to_list())
                 if v_gene:
-                    id_components.append(f"v_{v_gene}")
-                if j_gene:
-                    id_components.append(f"j_{j_gene}")
+                    id_components.append(f"{v_gene}")
+                # if j_gene:
+                    # id_components.append(f"j_{j_gene}")
                 
                 _id = ":".join(id_components)
             else:
@@ -125,43 +125,39 @@ class BaseAdapter:
         )
 
         for _, row in subset_table.iterrows():
-            if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in source_subset_cols:
-                _source_type = row[REGISTRY_KEYS.CHAIN_1_TYPE_KEY]
-            elif REGISTRY_KEYS.CHAIN_2_TYPE_KEY in source_subset_cols:
-                _source_type = row[REGISTRY_KEYS.CHAIN_2_TYPE_KEY]
-            else:
-                _source_type = "epitope"
 
-            if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in target_subset_cols:
-                _target_type = row[REGISTRY_KEYS.CHAIN_1_TYPE_KEY]
-            elif REGISTRY_KEYS.CHAIN_2_TYPE_KEY in target_subset_cols:
-                _target_type = row[REGISTRY_KEYS.CHAIN_2_TYPE_KEY]
-            else:
-                _target_type = "epitope"
+            node_data = {}
+            for i in ["source", "target"]:
+                cols = locals()[f"{i}_subset_cols"]
+                if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in cols:
+                    node_type = row[REGISTRY_KEYS.CHAIN_1_TYPE_KEY]
+                    v_gene_key = REGISTRY_KEYS.CHAIN_1_V_GENE_KEY
+                elif REGISTRY_KEYS.CHAIN_2_TYPE_KEY in cols:
+                    node_type = row[REGISTRY_KEYS.CHAIN_2_TYPE_KEY]
+                    v_gene_key = REGISTRY_KEYS.CHAIN_2_V_GENE_KEY
+                else:
+                    node_type = "epitope"
+                    v_gene_key = None
 
-            # _source_id = ":".join([_source_type.lower(), *row[source_unique_cols].to_list()])
+                id_components = [node_type.lower()]
+                id_components.extend(row[locals()[f"{i}_unique_cols"]].tolist())
 
-            # For TCR chains, use sequence + V gene + J gene as the identifier
-            # Get V gene and J gene if available
-            v_gene_key = REGISTRY_KEYS.CHAIN_1_V_GENE_KEY if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in source_subset_cols else REGISTRY_KEYS.CHAIN_2_V_GENE_KEY
-            j_gene_key = REGISTRY_KEYS.CHAIN_1_J_GENE_KEY if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in source_subset_cols else REGISTRY_KEYS.CHAIN_2_J_GENE_KEY
-            
-            # Check if V and J genes are available in the row
-            v_gene = row.get(v_gene_key)
-            j_gene = row.get(j_gene_key)
-            
-            # Create an ID that includes V and J genes if available
-            id_components = [_source_type.lower()]
-            id_components.extend(row[source_unique_cols].to_list())
-            if v_gene:
-                id_components.append(f"v_{v_gene}")
-            if j_gene:
-                id_components.append(f"j_{j_gene}")
-            
-            _source_id = ":".join(id_components)
-             
-            _target_id = ":".join([_target_type.lower(), *row[target_unique_cols].to_list()])
-            _id = "-".join([_source_id, _target_id])
-            _type = "_".join([_source_type.lower(), "to", _target_type.lower()])
+                if v_gene_key:
+                    v_gene = row[v_gene_key]
+                    if v_gene:
+                        id_components.append(v_gene)
+
+                node_data[i] = {
+                    "id": ":".join(id_components),
+                    "type": node_type
+                }
+
+            _source_id = node_data["source"]["id"]
+            _target_id = node_data["target"]["id"]
+            _source_type = node_data["source"]["type"]
+            _target_type = node_data["target"]["type"]
+
+            _id = f"{_source_id}-{_target_id}"
+            _type = f"{_source_type.lower()}_to_{_target_type.lower()}"
 
             yield (_id, _source_id, _target_id, _type, {})

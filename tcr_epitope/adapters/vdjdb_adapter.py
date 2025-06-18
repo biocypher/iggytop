@@ -8,7 +8,7 @@ from github import Github
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_iedb_ids_batch, harmonise_sequences
+from .utils import get_iedb_ids_batch, harmonize_sequences
 
 
 class VDJDBAdapter(BaseAdapter):
@@ -75,6 +75,7 @@ class VDJDBAdapter(BaseAdapter):
             "antigen.epitope": REGISTRY_KEYS.EPITOPE_KEY,
             "antigen.gene": REGISTRY_KEYS.ANTIGEN_KEY,
             "antigen.species": REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
+            "reference.id": REGISTRY_KEYS.PUBLICATION_KEY,
 
             "mhc.class": REGISTRY_KEYS.MHC_CLASS_KEY,
             "mhc.a": REGISTRY_KEYS.MHC_GENE_1_KEY,
@@ -98,7 +99,7 @@ class VDJDBAdapter(BaseAdapter):
         table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].map(epitope_map)
 
         # Preprocesses CDR3 sequences, epitope sequences, and gene names
-        table_preprocessed = harmonise_sequences(table)
+        table_preprocessed = harmonize_sequences(table)
 
         return table_preprocessed
 
@@ -230,9 +231,10 @@ class VDJDBAdapter(BaseAdapter):
                 REGISTRY_KEYS.MHC_CLASS_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
                 REGISTRY_KEYS.MHC_GENE_2_KEY,
+                REGISTRY_KEYS.PUBLICATION_KEY,
             ],
             unique_cols=[
-                REGISTRY_KEYS.EPITOPE_KEY,
+                REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
             ],
             property_cols=[
                 REGISTRY_KEYS.EPITOPE_KEY,
@@ -242,6 +244,7 @@ class VDJDBAdapter(BaseAdapter):
                 REGISTRY_KEYS.MHC_CLASS_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
                 REGISTRY_KEYS.MHC_GENE_2_KEY,
+                REGISTRY_KEYS.PUBLICATION_KEY,
             ],
         )
 
@@ -251,10 +254,14 @@ class VDJDBAdapter(BaseAdapter):
             [
                 REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+                REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
             ],
             [
                 REGISTRY_KEYS.CHAIN_2_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+                REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             ],
             source_unique_cols=REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
             target_unique_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
@@ -268,9 +275,9 @@ class VDJDBAdapter(BaseAdapter):
                 REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
             ],
-            [REGISTRY_KEYS.EPITOPE_KEY],
+            [REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY],
             source_unique_cols=REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
-            target_unique_cols=REGISTRY_KEYS.EPITOPE_KEY,
+            target_unique_cols=REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
         )
 
         # chain 2 to epitope
@@ -281,8 +288,8 @@ class VDJDBAdapter(BaseAdapter):
                 REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             ],
-            [REGISTRY_KEYS.EPITOPE_KEY],
+            [REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY],
             source_unique_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
-            target_unique_cols=REGISTRY_KEYS.EPITOPE_KEY,
+            target_unique_cols=REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
         )
         

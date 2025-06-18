@@ -7,7 +7,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import harmonise_sequences
+from .utils import harmonize_sequences
 
 logger = logging.getLogger(__name__)
 
@@ -79,9 +79,10 @@ class CEDARAdapter(BaseAdapter):
 
         rename_cols = {
             "Epitope Name": REGISTRY_KEYS.EPITOPE_KEY,
-            # "Epitope IEDB IRI": REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
+            "Epitope CEDAR IRI": REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
             "Epitope Source Molecule": REGISTRY_KEYS.ANTIGEN_KEY,
             "Epitope Source Organism": REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
+            "Assay MHC Allele Names": REGISTRY_KEYS.MHC_GENE_1_KEY,
             "Chain 1 CDR3 Curated": REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
             "Chain 2 CDR3 Curated": REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
             "Chain 1 Curated V Gene": REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
@@ -98,21 +99,31 @@ class CEDARAdapter(BaseAdapter):
         table = table[list(rename_cols.values())]
 
         # Preprocesses CDR3 sequences, epitope sequences, and gene names
-        table_preprocessed = harmonise_sequences(table)
+        table_preprocessed = harmonize_sequences(table)
 
         return table_preprocessed
+
 
     def get_nodes(self):
         # chain 1
         yield from self._generate_nodes_from_table(
-            [
+            subset_cols=[
                 REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
                 REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
             ],
-            unique_cols=REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            unique_cols=[
+                REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            ],
+            property_cols=[
+                REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
+                REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+                REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
+            ],
         )
 
         # chain 2
@@ -124,18 +135,37 @@ class CEDARAdapter(BaseAdapter):
                 REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY,
             ],
-            unique_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+            unique_cols=[
+                REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+            ],
+            property_cols=[
+                REGISTRY_KEYS.CHAIN_2_TYPE_KEY,
+                REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+                REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY,
+            ],
         )
 
         # epitope
         yield from self._generate_nodes_from_table(
             subset_cols=[
-                # REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
                 REGISTRY_KEYS.EPITOPE_KEY,
+                REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
                 REGISTRY_KEYS.ANTIGEN_KEY,
                 REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
+                REGISTRY_KEYS.MHC_GENE_1_KEY,
             ],
-            unique_cols=REGISTRY_KEYS.EPITOPE_KEY,
+            unique_cols=[
+                REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
+            ],
+            property_cols=[
+                REGISTRY_KEYS.EPITOPE_KEY,
+                REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
+                REGISTRY_KEYS.ANTIGEN_KEY,
+                REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
+                REGISTRY_KEYS.MHC_GENE_1_KEY,
+            ],
         )
 
     def get_edges(self):
@@ -144,10 +174,14 @@ class CEDARAdapter(BaseAdapter):
             [
                 REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+                REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
             ],
             [
                 REGISTRY_KEYS.CHAIN_2_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+                REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             ],
             source_unique_cols=REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
             target_unique_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
@@ -161,9 +195,9 @@ class CEDARAdapter(BaseAdapter):
                 REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
             ],
-            REGISTRY_KEYS.EPITOPE_KEY,
+            REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
             source_unique_cols=REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
-            target_unique_cols=REGISTRY_KEYS.EPITOPE_KEY,
+            target_unique_cols=REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
         )
 
         # chain 2 - epitope
@@ -174,7 +208,7 @@ class CEDARAdapter(BaseAdapter):
                 REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             ],
-            REGISTRY_KEYS.EPITOPE_KEY,
+            REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
             source_unique_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
-            target_unique_cols=REGISTRY_KEYS.EPITOPE_KEY,
+            target_unique_cols=REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
         )

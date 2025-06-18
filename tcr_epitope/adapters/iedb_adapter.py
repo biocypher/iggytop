@@ -7,7 +7,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import harmonise_sequences
+from .utils import harmonize_sequences
 
 logger = logging.getLogger(__name__)
 
@@ -98,8 +98,11 @@ class IEDBAdapter(BaseAdapter):
         table = table.rename(columns=rename_cols)
         table = table[list(rename_cols.values())]
 
+        # Extract iedb ID from the url
+        table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = "iedb_iri:" + table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY].str.extract(r"/epitope/(\d+)$")[0]
+
         # Preprocesses CDR3 sequences, epitope sequences, and gene names
-        table_preprocessed = harmonise_sequences(table)
+        table_preprocessed = harmonize_sequences(table)
 
         return table_preprocessed
 
@@ -156,7 +159,7 @@ class IEDBAdapter(BaseAdapter):
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
             ],
             unique_cols=[
-                REGISTRY_KEYS.EPITOPE_KEY,
+                REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
             ],
             property_cols=[
                 REGISTRY_KEYS.EPITOPE_KEY,
@@ -173,10 +176,14 @@ class IEDBAdapter(BaseAdapter):
             [
                 REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+                REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
             ],
             [
                 REGISTRY_KEYS.CHAIN_2_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+                REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             ],
             source_unique_cols=REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
             target_unique_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
@@ -190,9 +197,9 @@ class IEDBAdapter(BaseAdapter):
                 REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
             ],
-            REGISTRY_KEYS.EPITOPE_KEY,
+            REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
             source_unique_cols=REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
-            target_unique_cols=REGISTRY_KEYS.EPITOPE_KEY,
+            target_unique_cols=REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
         )
 
         # chain 2 - epitope
@@ -203,7 +210,7 @@ class IEDBAdapter(BaseAdapter):
                 REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             ],
-            REGISTRY_KEYS.EPITOPE_KEY,
+            REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
             source_unique_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
-            target_unique_cols=REGISTRY_KEYS.EPITOPE_KEY,
+            target_unique_cols=REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
         )

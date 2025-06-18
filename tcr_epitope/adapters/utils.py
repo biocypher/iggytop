@@ -5,39 +5,50 @@ import re
 import pandas as pd
 from biocypher import APIRequest, BioCypher
 from .constants import REGISTRY_KEYS
+from .mapping_utils import map_species_terms
 
 AMINO_ACIDS = set("ACDEFGHIKLMNPQRSTVWY")
 
-def is_valid_peptide_sequence(seq: str) -> bool:
+def is_valid_peptide_sequence(seq: str) -> bool:    
     """Checks if a given sequence is a valid peptide sequence."""
-    if isinstance(seq, str):
+    if isinstance(seq, str) and len(seq) > 2:
         return all([aa in AMINO_ACIDS for aa in seq])
     else:
         return False
 
-def process_cdr3_sequence(seq: str) -> str | None:
+def process_cdr3_sequence(seq: str, is_igh: bool = False) -> str | None:
     if seq is None:
         return None
-
-    # Get rid of characters that are not part of the peptide sequence and validate aa
+    
+    # Clean and normalize the sequence
     seq = str(seq).upper().strip().replace(" ", "").replace("\n", "")
+
+    # Validate that the sequence contains only valid amino acids (optional: define valid AAs if needed)
     if not is_valid_peptide_sequence(seq):
         return None
 
+    # Check if sequence has a valid CDR3 format
+    starts_with_c = seq.startswith("C")
+    ends_with_fw = seq.endswith("F") or (is_igh and seq.endswith("W"))
+    
+    if starts_with_c and ends_with_fw:
+        return seq
 
+    # Pad the sequence appropriately
+    seq = seq.lstrip("C")  # remove leading C if already present
+    if is_igh:
+        seq = seq.rstrip("FW")  # remove existing F or W if present
+        return f"C{seq}W"
+    else:
+        seq = seq.rstrip("F")
+        return f"C{seq}F"
 
-    # Trim C and F only if both are present at ends to get juncion_aa
-    if seq.startswith("C") and seq.endswith("F") and len(seq) > 2:
-        return seq[1:-1]  # junction_aa
-    return seq
-
-def process_epitope_sequence(x) -> str | None:
+def process_epitope_sequence(seq: str | None) -> str | None:
     """Process a sequence string to remove non-peptidic characters and validate it."""
-    if x is None:
+    if seq is None:
         return None
-
-    x = str(x)
-    result = x.split("+")[0]  # split_epitope_sequence
+    seq = str(seq)
+    result = seq.split("+")[0]  # split_epitope_sequence
     result = result.upper()
     result = "".join(result.split())
 
@@ -54,16 +65,21 @@ def normalise_gene_name(gene: str) -> str:
     return gene
 
 
-def harmonise_sequences(table: pd.DataFrame) -> pd.DataFrame:
+def harmonize_sequences(table: pd.DataFrame) -> pd.DataFrame:
     """Preprocesses CDR3 sequences, epitope sequences, and gene names in a harmonized way."""
     # Clean CDR3 sequences (normalize junction_aas)
-    cdr3_sequence_cols = [
-        REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
-        REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
-    ]
-    for col in cdr3_sequence_cols:
-        if col in table.columns:
-            table[col] = table[col].apply(process_cdr3_sequence)
+    for i in [1, 2]:
+        cdr3_col = getattr(REGISTRY_KEYS, f"CHAIN_{i}_CDR3_KEY")
+        type_col = getattr(REGISTRY_KEYS, f"CHAIN_{i}_TYPE_KEY")
+
+        if cdr3_col in table.columns and type_col in table.columns:
+            table[cdr3_col] = table.apply(
+                lambda row: process_cdr3_sequence(
+                    row[cdr3_col],
+                    is_igh=(row[type_col] == "IGH")
+                ),
+                axis=1
+            )
 
     # Clean epitope sequences
     if REGISTRY_KEYS.EPITOPE_KEY in table.columns:
@@ -79,6 +95,27 @@ def harmonise_sequences(table: pd.DataFrame) -> pd.DataFrame:
     for col in vj_genes_cols:
         if col in table.columns:
             table[col] = table[col].apply(normalise_gene_name)
+
+
+    # human_keys = [
+    #     'HomoSapiens',
+    #     'Homosapian',  # typo but likely refers to humans
+    #     'Human',
+    #     'http://purl.obolibrary.org/obo/NCBITaxon_9606',  # NCBI taxonomy ID for Homo sapiens
+    #     'Homo sapiens (human)',
+    # ]
+    # # table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY] = table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY].replace(human_keys, 'HomoSapiens')
+    # # table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY] = table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY].replace(human_keys, 'HomoSapiens')
+    # # table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY] = table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY].replace(human_keys, 'HomoSapiens')
+
+    # Apply mapping for Antigen species keys
+    if REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY in table.columns:
+        antigen_species_map = map_species_terms(table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY].dropna().unique().tolist())
+        table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY] = table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY].map(antigen_species_map)
+
+    # Clean antigen names
+    # table[REGISTRY_KEYS.ANTIGEN_KEY] = table[REGISTRY_KEYS.ANTIGEN_KEY].apply(clean_antigen)
+
 
     return table
 
@@ -98,6 +135,7 @@ def get_iedb_ids_batch(bc: BioCypher, epitopes: list[str], chunk_size: int = 150
     base_url = "https://query-api.iedb.org/epitope_search"
     epitope_to_id = {}
     unmatched_epitopes = []
+    epitopes = [e for e in epitopes if e is not None]
 
     # Step 1: Try exact matches first
     print("Mapping AA epitope sequences to IEDB IDs: exact matches...")
@@ -110,7 +148,7 @@ def get_iedb_ids_batch(bc: BioCypher, epitopes: list[str], chunk_size: int = 150
 
         # Map results to the dictionary
         for epitope in chunk:
-            epitope_to_id[epitope] = 0  # Default value if not found
+            epitope_to_id[epitope] = f"no_iedb_iri:{epitope}"  # Default value if not found
 
         for match in epitope_matches:
             # Handle both possible API return formats for epitope sequences
@@ -122,10 +160,10 @@ def get_iedb_ids_batch(bc: BioCypher, epitopes: list[str], chunk_size: int = 150
                 continue
 
             if epitope_seq in epitope_to_id:  # Only update if it's one we requested
-                epitope_to_id[epitope_seq] = match["structure_id"]
+                epitope_to_id[epitope_seq] = f"iedb_iri:{match['structure_id']}"
 
-    # Step 2: Collect epitopes without matches
-    unmatched_epitopes = [ep for ep, id_val in epitope_to_id.items() if id_val == 0]
+    # Step 2: Collect epitopes without matches and try string matching
+    unmatched_epitopes = [ep for ep, id_val in epitope_to_id.items() if id_val == f"no_iedb_iri:{ep}"]
 
     if unmatched_epitopes:
         print(
@@ -150,14 +188,13 @@ def get_iedb_ids_batch(bc: BioCypher, epitopes: list[str], chunk_size: int = 150
 
                 # Update the dictionary if a match was found
                 if best_match:
-                    epitope_to_id[epitope] = best_match["structure_id"]
+                    epitope_to_id[epitope] = f"iedb_iri:{best_match['structure_id']}"
 
     # Final statistics
-    matched_count = sum(1 for id_val in epitope_to_id.values() if id_val > 0)
+    matched_count = sum(1 for id_val in epitope_to_id.values() if id_val.startswith("iedb_iri:"))
     print(
         f"Final results: {matched_count} of {len(epitopes)} epitopes matched to IEDB IDs ({matched_count / len(epitopes) * 100:.1f}%)"
     )
-
     return epitope_to_id
 
 
@@ -204,3 +241,6 @@ def _get_epitope_data(bc: BioCypher, epitopes: list[str], base_url: str, match_t
     except Exception as e:
         print(f"API request failed: {e}")
         return []
+
+# def clean_antigen(term):
+#     return re.sub(r'\s*[\(\[].*?[\)\]]', '', term).strip()

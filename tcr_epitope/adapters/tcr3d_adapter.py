@@ -1,4 +1,6 @@
-import os
+import sys
+sys.path.append('..')
+sys.path.append('../..')
 import pandas as pd
 from biocypher import BioCypher, FileDownload
 
@@ -7,8 +9,8 @@ from .constants import REGISTRY_KEYS
 from .utils import get_iedb_ids_batch, harmonize_sequences
 
 
-class TRAITAdapter(BaseAdapter):
-    """A Comprehensive Database for T-cell Receptor-Antigen Interactions (TRAIT)[https://pgx.zju.edu.cn/traitdb/].
+class TCR3DAdapter(BaseAdapter):
+    """BioCypher adapter for the TCR3d database (https://tcr3d.ibbr.umd.edu).
 
     Parameters
     ----------
@@ -18,64 +20,68 @@ class TRAITAdapter(BaseAdapter):
         If `True`, only a subset of the data will be loaded for testing purposes.
     """
 
-    DB_URL = "https://pgx.zju.edu.cn/download.trait/Interactive_TCR-pMHC_Pairs.zip_20250312.zip"
-    DB_DIR = "trait_latest"
+    DB_URL = "https://tcr3d.ibbr.umd.edu/static/download/tcr_complexes_data.tsv"
+    DB_DIR = "tcr3d_latest"
 
     def get_latest_release(self, bc: BioCypher) -> str:
-        trait_resource = FileDownload(
+        tcr3d_resource = FileDownload(
             name=self.DB_DIR,
             url_s=self.DB_URL,
             lifetime=30,
             is_dir=False,
         )
 
-        trait_parent_path = bc.download(trait_resource)
-        trait_path = os.path.join(trait_parent_path[0], os.listdir(trait_parent_path[0])[0])
+        tcr3d_path = bc.download(tcr3d_resource)
 
-        if not trait_path:
-            raise FileNotFoundError(f"Failed to download McPAS-TCR database from {self.DB_URL}")
+        if not tcr3d_path:
+            raise FileNotFoundError(f"Failed to download TCR3d database from {self.DB_URL}")
 
-        return trait_path
+        return tcr3d_path[0]
 
     def read_table(self, bc: BioCypher, table_path: str, test: bool = False) -> pd.DataFrame:
-        table = pd.read_excel(table_path)
+        table = pd.read_csv(table_path, sep="\t")
+    
         if test:
             table = table.sample(frac=0.01, random_state=42)
-        # Replace NaN and empty strings with None
-        table = table.replace(["", "nan"], None).where(pd.notnull, None)
+
+        # Replace missing values
+        table = table.replace(["", "nan", "n.a.", "null"], None).where(pd.notnull, None)
 
         rename_cols = {
-            "CDR3α": REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
-            "CDR3β": REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+            "CDR3_alpha": REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            "TRAV_gene": REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
+            "CDR3_beta": REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+            "TRBV_gene": REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
             "Epitope": REGISTRY_KEYS.EPITOPE_KEY,
-            "Epitope_gene": REGISTRY_KEYS.ANTIGEN_KEY,
-            "Epitope_species": REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
-            "MHC_class": REGISTRY_KEYS.MHC_CLASS_KEY,
-            "MHC_A": REGISTRY_KEYS.MHC_GENE_1_KEY,
-            "MHC_B": REGISTRY_KEYS.MHC_GENE_2_KEY,
-            "TRAV": REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
-            "TRAJ": REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
-            "TRBV": REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
-            "TRBJ": REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
-            "Species": REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
-            # "PubMed.ID": REGISTRY_KEYS.PUBLICATION_KEY,
+            "MHC_allele": REGISTRY_KEYS.MHC_GENE_1_KEY,
+            "TCR_organism": REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
+            "Pubmed": REGISTRY_KEYS.PUBLICATION_KEY,
         }
 
         table = table.rename(columns=rename_cols)
         table = table[list(rename_cols.values())]
+
         table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.TRA_KEY
         table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
         table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY] = table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY]
+
+        table[REGISTRY_KEYS.CHAIN_1_J_GENE_KEY] = None
+        table[REGISTRY_KEYS.CHAIN_2_J_GENE_KEY] = None
+
+        # For the rows with multiple epitopes, separate them into multiple rows
+        table[REGISTRY_KEYS.EPITOPE_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].apply(
+            lambda x: x.split(",") if x is not None and "," in x else x
+        )
+        table = table.explode(REGISTRY_KEYS.EPITOPE_KEY).reset_index(drop=True)
+        
 
         # Map epitope sequences to IEDB IDs
         valid_epitopes = table[REGISTRY_KEYS.EPITOPE_KEY].dropna().drop_duplicates().tolist()
         if len(valid_epitopes) > 0:
             epitope_map = get_iedb_ids_batch(bc, valid_epitopes)
 
-        # Apply the mapping to create the IEDB ID column
         table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].map(epitope_map)
 
-        # Preprocesses CDR3 sequences, epitope sequences, and gene names
         table_preprocessed = harmonize_sequences(table)
 
         return table_preprocessed
@@ -128,11 +134,8 @@ class TRAITAdapter(BaseAdapter):
             subset_cols=[
                 REGISTRY_KEYS.EPITOPE_KEY,
                 REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
-                REGISTRY_KEYS.ANTIGEN_KEY,
-                REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
-                REGISTRY_KEYS.MHC_CLASS_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
-                REGISTRY_KEYS.MHC_GENE_2_KEY,
+                REGISTRY_KEYS.PUBLICATION_KEY,
             ],
             unique_cols=[
                 REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
@@ -140,11 +143,8 @@ class TRAITAdapter(BaseAdapter):
             property_cols=[
                 REGISTRY_KEYS.EPITOPE_KEY,
                 REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
-                REGISTRY_KEYS.ANTIGEN_KEY,
-                REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
-                REGISTRY_KEYS.MHC_CLASS_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
-                REGISTRY_KEYS.MHC_GENE_2_KEY,
+                REGISTRY_KEYS.PUBLICATION_KEY,
             ],
         )
 

@@ -3,7 +3,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_iedb_ids_batch, harmonise_sequences
+from .utils import get_iedb_ids_batch, harmonize_sequences
 
 
 class MCPASAdapter(BaseAdapter):
@@ -44,7 +44,7 @@ class MCPASAdapter(BaseAdapter):
         table = table.replace(["", "nan"], None).where(pd.notnull, None)
 
         table["Pathology"] = table.apply(
-            lambda row: "HomoSapiens" if row["Category"] == "Autoimmune" else row["Pathology"],
+            lambda row: "HomoSapiens" if row["Category"] == "Autoimmune" or row["Category"] == "Cancer" else row["Pathology"],
             axis=1
         )
 
@@ -60,7 +60,7 @@ class MCPASAdapter(BaseAdapter):
             "TRBV": REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
             "TRBJ": REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             "Species": REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
-            # "PubMed.ID": REGISTRY_KEYS.PUBLICATION_KEY,
+            "PubMed.ID": REGISTRY_KEYS.PUBLICATION_KEY,
         }
 
         table = table.rename(columns=rename_cols)
@@ -78,7 +78,7 @@ class MCPASAdapter(BaseAdapter):
         table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].map(epitope_map)
 
         # Preprocesses CDR3 sequences, epitope sequences, and gene names
-        table_preprocessed = harmonise_sequences(table)
+        table_preprocessed = harmonize_sequences(table)
 
         return table_preprocessed
 
@@ -133,9 +133,10 @@ class MCPASAdapter(BaseAdapter):
                 REGISTRY_KEYS.ANTIGEN_KEY,
                 REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
+                REGISTRY_KEYS.PUBLICATION_KEY,
             ],
             unique_cols=[
-                REGISTRY_KEYS.EPITOPE_KEY,
+                REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
             ],
             property_cols=[
                 REGISTRY_KEYS.EPITOPE_KEY,
@@ -143,6 +144,7 @@ class MCPASAdapter(BaseAdapter):
                 REGISTRY_KEYS.ANTIGEN_KEY,
                 REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
+                REGISTRY_KEYS.PUBLICATION_KEY,
             ],
         )
 
@@ -152,10 +154,14 @@ class MCPASAdapter(BaseAdapter):
             [
                 REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+                REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
             ],
             [
                 REGISTRY_KEYS.CHAIN_2_TYPE_KEY,
                 REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+                REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             ],
             source_unique_cols=REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
             target_unique_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
@@ -169,9 +175,9 @@ class MCPASAdapter(BaseAdapter):
                 REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
             ],
-            [REGISTRY_KEYS.EPITOPE_KEY],
+            [REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY],
             source_unique_cols=REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
-            target_unique_cols=REGISTRY_KEYS.EPITOPE_KEY,
+            target_unique_cols=REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
         )
 
         # chain 2 to epitope
@@ -182,7 +188,7 @@ class MCPASAdapter(BaseAdapter):
                 REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             ],
-            [REGISTRY_KEYS.EPITOPE_KEY],
+            [REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY],
             source_unique_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
-            target_unique_cols=REGISTRY_KEYS.EPITOPE_KEY,
+            target_unique_cols=REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
         )
