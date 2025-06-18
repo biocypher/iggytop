@@ -1,19 +1,14 @@
-import logging
 import os
-from pathlib import Path
-
 import pandas as pd
 from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import harmonize_sequences
-
-logger = logging.getLogger(__name__)
+from .utils import get_iedb_ids_batch, harmonize_sequences
 
 
-class IEDBAdapter(BaseAdapter):
-    """BioCypher adapter for the Immune Epitope Database (IEDB)[https://www.iedb.org/].
+class TRAITAdapter(BaseAdapter):
+    """A Comprehensive Database for T-cell Receptor-Antigen Interactions (TRAIT)[https://pgx.zju.edu.cn/traitdb/].
 
     Parameters
     ----------
@@ -23,83 +18,62 @@ class IEDBAdapter(BaseAdapter):
         If `True`, only a subset of the data will be loaded for testing purposes.
     """
 
-    DB_URL = "https://www.iedb.org/downloader.php?file_name=doc/receptor_full_v3.zip"
-    DB_DIR = "iedb_latest"
-    TCR_FNAME = "tcr_full_v3.csv"
-    BCR_FNAME = "bcr_full_v3.csv"
+    DB_URL = "https://pgx.zju.edu.cn/download.trait/Interactive_TCR-pMHC_Pairs.zip_20250312.zip"
+    DB_DIR = "trait_latest"
 
     def get_latest_release(self, bc: BioCypher) -> str:
-        # Download IEDB
-        iedb_resource = FileDownload(
+        trait_resource = FileDownload(
             name=self.DB_DIR,
             url_s=self.DB_URL,
             lifetime=30,
             is_dir=False,
         )
 
-        iedb_paths = bc.download(iedb_resource)
-        db_dir = Path(iedb_paths[0]).parent
-        for root, _dirs, files in os.walk(db_dir):
-            for file in files:
-                if file == self.TCR_FNAME:
-                    tcr_path = os.path.join(root, file)
-                elif file == self.BCR_FNAME:
-                    bcr_path = os.path.join(root, file)
+        trait_parent_path = bc.download(trait_resource)
+        trait_path = os.path.join(trait_parent_path[0], os.listdir(trait_parent_path[0])[0])
 
-        if not tcr_path or not os.path.exists(tcr_path):
-            raise FileNotFoundError(f"Failed to download IEDB database from {self.DB_URL}")
+        if not trait_path:
+            raise FileNotFoundError(f"Failed to download McPAS-TCR database from {self.DB_URL}")
 
-        return tcr_path, bcr_path
+        return trait_path
 
     def read_table(self, bc: BioCypher, table_path: str, test: bool = False) -> pd.DataFrame:
-        tcr_table_path, bcr_table_path = table_path
-
-        tcr_table = pd.read_csv(tcr_table_path, header=[0, 1])
-        tcr_table.columns = tcr_table.columns.map(" ".join)
-        tcr_table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.TRA_KEY
-        tcr_table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
-
-        bcr_table = pd.read_csv(bcr_table_path, header=[0, 1])
-        bcr_table.columns = bcr_table.columns.map(" ".join)
-        bcr_table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.IGH_KEY
-        bcr_table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.IGL_KEY
-
-        table = pd.concat([tcr_table, bcr_table], ignore_index=True)
+        table = pd.read_excel(table_path)
         if test:
             table = table.sample(frac=0.01, random_state=42)
         # Replace NaN and empty strings with None
         table = table.replace(["", "nan"], None).where(pd.notnull, None)
 
-        # Fill curated columns with calculated values if curated is empty
-        for chain_num in [1, 2]:
-            table[f"Chain {chain_num} CDR3 Calculated"] = table[f"Chain {chain_num} CDR3 Calculated"].fillna(table[f"Chain {chain_num} CDR3 Curated"])
-            table[f"Chain {chain_num} Calculated V Gene"] = table[f"Chain {chain_num} Calculated V Gene"].fillna(table[f"Chain {chain_num} Curated V Gene"])
-            table[f"Chain {chain_num} Calculated J Gene"] = table[f"Chain {chain_num} Calculated J Gene"].fillna(table[f"Chain {chain_num} Curated J Gene"])
-
-
         rename_cols = {
-            "Epitope Name": REGISTRY_KEYS.EPITOPE_KEY,
-            "Epitope IEDB IRI": REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
-            "Epitope Source Molecule": REGISTRY_KEYS.ANTIGEN_KEY,
-            "Epitope Source Organism": REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
-            "Assay MHC Allele Names": REGISTRY_KEYS.MHC_GENE_1_KEY,
-            "Chain 1 CDR3 Curated": REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
-            "Chain 2 CDR3 Curated": REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
-            "Chain 1 Curated V Gene": REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
-            "Chain 1 Curated J Gene": REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
-            "Chain 2 Curated V Gene": REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
-            "Chain 2 Curated J Gene": REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
-            "Chain 1 Organism IRI": REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
-            "Chain 2 Organism IRI": REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY,
-            REGISTRY_KEYS.CHAIN_1_TYPE_KEY: REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
-            REGISTRY_KEYS.CHAIN_2_TYPE_KEY: REGISTRY_KEYS.CHAIN_2_TYPE_KEY,
+            "CDR3α": REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            "CDR3β": REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+            "Epitope": REGISTRY_KEYS.EPITOPE_KEY,
+            "Epitope_gene": REGISTRY_KEYS.ANTIGEN_KEY,
+            "Epitope_species": REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
+            "MHC_class": REGISTRY_KEYS.MHC_CLASS_KEY,
+            "MHC_A": REGISTRY_KEYS.MHC_GENE_1_KEY,
+            "MHC_B": REGISTRY_KEYS.MHC_GENE_2_KEY,
+            "TRAV": REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
+            "TRAJ": REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
+            "TRBV": REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
+            "TRBJ": REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
+            "Species": REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
+            # "PubMed.ID": REGISTRY_KEYS.PUBLICATION_KEY,
         }
 
         table = table.rename(columns=rename_cols)
         table = table[list(rename_cols.values())]
+        table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.TRA_KEY
+        table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
+        table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY] = table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY]
 
-        # Extract iedb ID from the url
-        table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = "iedb_iri:" + table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY].str.extract(r"/epitope/(\d+)$")[0]
+        # Map epitope sequences to IEDB IDs
+        valid_epitopes = table[REGISTRY_KEYS.EPITOPE_KEY].dropna().drop_duplicates().tolist()
+        if len(valid_epitopes) > 0:
+            epitope_map = get_iedb_ids_batch(bc, valid_epitopes)
+
+        # Apply the mapping to create the IEDB ID column
+        table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].map(epitope_map)
 
         # Preprocesses CDR3 sequences, epitope sequences, and gene names
         table_preprocessed = harmonize_sequences(table)
@@ -156,7 +130,9 @@ class IEDBAdapter(BaseAdapter):
                 REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
                 REGISTRY_KEYS.ANTIGEN_KEY,
                 REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
+                REGISTRY_KEYS.MHC_CLASS_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
+                REGISTRY_KEYS.MHC_GENE_2_KEY,
             ],
             unique_cols=[
                 REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
@@ -166,12 +142,14 @@ class IEDBAdapter(BaseAdapter):
                 REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
                 REGISTRY_KEYS.ANTIGEN_KEY,
                 REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
+                REGISTRY_KEYS.MHC_CLASS_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
+                REGISTRY_KEYS.MHC_GENE_2_KEY,
             ],
         )
 
     def get_edges(self):
-        # chain 1 - chain 2
+        # chain 1 to chain 2
         yield from self._generate_edges_from_table(
             [
                 REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
@@ -189,7 +167,7 @@ class IEDBAdapter(BaseAdapter):
             target_unique_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
         )
 
-        # chain 1 - epitope
+        # chain 1 to epitope
         yield from self._generate_edges_from_table(
             [
                 REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
@@ -197,12 +175,12 @@ class IEDBAdapter(BaseAdapter):
                 REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
             ],
-            REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
+            [REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY],
             source_unique_cols=REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
             target_unique_cols=REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
         )
 
-        # chain 2 - epitope
+        # chain 2 to epitope
         yield from self._generate_edges_from_table(
             [
                 REGISTRY_KEYS.CHAIN_2_TYPE_KEY,
@@ -210,7 +188,7 @@ class IEDBAdapter(BaseAdapter):
                 REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             ],
-            REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
+            [REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY],
             source_unique_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
             target_unique_cols=REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
         )

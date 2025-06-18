@@ -12,8 +12,8 @@ from .utils import harmonize_sequences
 logger = logging.getLogger(__name__)
 
 
-class IEDBAdapter(BaseAdapter):
-    """BioCypher adapter for the Immune Epitope Database (IEDB)[https://www.iedb.org/].
+class CEDARAdapter(BaseAdapter):
+    """BioCypher adapter for the Cancer Epitope Database and Analysis Resource (CEDAR)[https://cedar.iedb.org/].
 
     Parameters
     ----------
@@ -23,22 +23,22 @@ class IEDBAdapter(BaseAdapter):
         If `True`, only a subset of the data will be loaded for testing purposes.
     """
 
-    DB_URL = "https://www.iedb.org/downloader.php?file_name=doc/receptor_full_v3.zip"
-    DB_DIR = "iedb_latest"
+    DB_URL = "https://cedar.iedb.org/downloader.php?file_name=doc/receptor_full_v3.zip"
+    DB_DIR = "cedar_latest"
     TCR_FNAME = "tcr_full_v3.csv"
     BCR_FNAME = "bcr_full_v3.csv"
 
     def get_latest_release(self, bc: BioCypher) -> str:
-        # Download IEDB
-        iedb_resource = FileDownload(
+        # Download CEDAR
+        cedar_resource = FileDownload(
             name=self.DB_DIR,
             url_s=self.DB_URL,
             lifetime=30,
             is_dir=False,
         )
 
-        iedb_paths = bc.download(iedb_resource)
-        db_dir = Path(iedb_paths[0]).parent
+        cedar_paths = bc.download(cedar_resource)
+        db_dir = Path(cedar_paths[0]).parent
         for root, _dirs, files in os.walk(db_dir):
             for file in files:
                 if file == self.TCR_FNAME:
@@ -47,7 +47,7 @@ class IEDBAdapter(BaseAdapter):
                     bcr_path = os.path.join(root, file)
 
         if not tcr_path or not os.path.exists(tcr_path):
-            raise FileNotFoundError(f"Failed to download IEDB database from {self.DB_URL}")
+            raise FileNotFoundError(f"Failed to download CEDAR database from {self.DB_URL}")
 
         return tcr_path, bcr_path
 
@@ -79,7 +79,7 @@ class IEDBAdapter(BaseAdapter):
 
         rename_cols = {
             "Epitope Name": REGISTRY_KEYS.EPITOPE_KEY,
-            "Epitope IEDB IRI": REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
+            "Epitope CEDAR IRI": REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
             "Epitope Source Molecule": REGISTRY_KEYS.ANTIGEN_KEY,
             "Epitope Source Organism": REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
             "Assay MHC Allele Names": REGISTRY_KEYS.MHC_GENE_1_KEY,
@@ -98,13 +98,11 @@ class IEDBAdapter(BaseAdapter):
         table = table.rename(columns=rename_cols)
         table = table[list(rename_cols.values())]
 
-        # Extract iedb ID from the url
-        table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = "iedb_iri:" + table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY].str.extract(r"/epitope/(\d+)$")[0]
-
         # Preprocesses CDR3 sequences, epitope sequences, and gene names
         table_preprocessed = harmonize_sequences(table)
 
         return table_preprocessed
+
 
     def get_nodes(self):
         # chain 1

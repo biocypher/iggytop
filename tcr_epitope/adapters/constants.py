@@ -2,16 +2,17 @@ from typing import NamedTuple
 
 
 class _REGISTRY_KEYS_NT(NamedTuple):
+    PREFERRED_ID_KEY: str = "preferred_id"
     EPITOPE_KEY: str = "epitope_sequence"
-    EPITOPE_IEDB_ID_KEY: str = "iedb_id"
+    EPITOPE_IEDB_ID_KEY: str = "iedb_iri"
     ANTIGEN_KEY: str = "antigen_name"
-    ANTIGEN_ORGANISM_KEY: str = "antigen_organism"
+    ANTIGEN_ORGANISM_KEY: str = "antigen_species"
     CHAIN_1_CDR1_KEY: str = "chain_1_cdr1"
     CHAIN_1_CDR2_KEY: str = "chain_1_cdr2"
-    CHAIN_1_CDR3_KEY: str = "chain_1_cdr3"
+    CHAIN_1_CDR3_KEY: str = "chain_1_junction_aa"
     CHAIN_2_CDR1_KEY: str = "chain_2_cdr1"
     CHAIN_2_CDR2_KEY: str = "chain_2_cdr2"
-    CHAIN_2_CDR3_KEY: str = "chain_2_cdr3"
+    CHAIN_2_CDR3_KEY: str = "chain_2_junction_aa"
     CHAIN_1_V_GENE_KEY: str = "chain_1_v_call"
     CHAIN_1_J_GENE_KEY: str = "chain_1_j_call"
     CHAIN_2_V_GENE_KEY: str = "chain_2_v_call"
@@ -25,8 +26,9 @@ class _REGISTRY_KEYS_NT(NamedTuple):
     IGH_KEY: str = "igh"
     IGL_KEY: str = "igl"
     MHC_CLASS_KEY: str = "MHC_class"
-    MHC_GENE_1_KEY: str = "mhc_gene_1"
-    MHC_GENE_2_KEY: str = "mhc_gene_2"
+    MHC_GENE_1_KEY: str = "MHC_gene_1"
+    MHC_GENE_2_KEY: str = "MHC_gene_2"
+    PUBLICATION_KEY: str = "PMID"
 
 
 REGISTRY_KEYS = _REGISTRY_KEYS_NT()
