@@ -75,14 +75,10 @@ class TCR3DAdapter(BaseAdapter):
         table = table.explode(REGISTRY_KEYS.EPITOPE_KEY).reset_index(drop=True)
         
 
-        # Map epitope sequences to IEDB IDs
-        valid_epitopes = table[REGISTRY_KEYS.EPITOPE_KEY].dropna().drop_duplicates().tolist()
-        if len(valid_epitopes) > 0:
-            epitope_map = get_iedb_ids_batch(bc, valid_epitopes)
-
-        table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].map(epitope_map)
-
-        table_preprocessed = harmonize_sequences(table)
+        # Create a column placeholder for the antigen species
+        table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY] = None
+        
+        table_preprocessed = harmonize_sequences(bc, table)
 
         return table_preprocessed
 

@@ -90,16 +90,9 @@ class VDJDBAdapter(BaseAdapter):
         table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.TRA_KEY
         table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
 
-        # Map epitope sequences to IEDB IDs
-        valid_epitopes = table[REGISTRY_KEYS.EPITOPE_KEY].dropna().drop_duplicates().tolist()
-        if len(valid_epitopes) > 0:
-            epitope_map = get_iedb_ids_batch(bc, valid_epitopes)
-
-        # Apply the mapping to create the IEDB ID column
-        table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].map(epitope_map)
 
         # Preprocesses CDR3 sequences, epitope sequences, and gene names
-        table_preprocessed = harmonize_sequences(table)
+        table_preprocessed = harmonize_sequences(bc, table)
 
         return table_preprocessed
 

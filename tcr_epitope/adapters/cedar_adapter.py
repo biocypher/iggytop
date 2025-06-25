@@ -97,9 +97,12 @@ class CEDARAdapter(BaseAdapter):
 
         table = table.rename(columns=rename_cols)
         table = table[list(rename_cols.values())]
+        
+        # Extract iedb ID from the url
+        table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = "iedb:" + table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY].str.extract(r"/epitope/(\d+)$")[0]
 
         # Preprocesses CDR3 sequences, epitope sequences, and gene names
-        table_preprocessed = harmonize_sequences(table)
+        table_preprocessed = harmonize_sequences(bc, table)
 
         return table_preprocessed
 

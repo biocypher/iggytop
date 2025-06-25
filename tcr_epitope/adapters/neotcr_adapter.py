@@ -72,15 +72,10 @@ class NeoTCRAdapter(BaseAdapter):
         )
         table = table.explode(REGISTRY_KEYS.EPITOPE_KEY).reset_index(drop=True)
 
-        # Map epitopes to IEDB IDs
-        epitopes = table[REGISTRY_KEYS.EPITOPE_KEY].dropna().drop_duplicates().tolist()
-        epitope_map = get_iedb_ids_batch(bc, epitopes) if epitopes else {}
-        table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].map(epitope_map)
-
         # Trim Pubmed IDs
         table[REGISTRY_KEYS.PUBLICATION_KEY] = table[REGISTRY_KEYS.PUBLICATION_KEY].astype(str).str.replace("PMID:", "").str.strip()
 
-        table = harmonize_sequences(table)
+        table = harmonize_sequences(bc, table)
 
         return table
 
