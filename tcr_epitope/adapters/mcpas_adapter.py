@@ -3,7 +3,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_iedb_ids_batch, harmonize_sequences
+from .utils import harmonize_sequences
 
 
 class MCPASAdapter(BaseAdapter):
@@ -44,8 +44,10 @@ class MCPASAdapter(BaseAdapter):
         table = table.replace(["", "nan"], None).where(pd.notnull, None)
 
         table["Pathology"] = table.apply(
-            lambda row: "HomoSapiens" if row["Category"] == "Autoimmune" or row["Category"] == "Cancer" else row["Pathology"],
-            axis=1
+            lambda row: "HomoSapiens"
+            if row["Category"] == "Autoimmune" or row["Category"] == "Cancer"
+            else row["Pathology"],
+            axis=1,
         )
 
         rename_cols = {
@@ -68,7 +70,6 @@ class MCPASAdapter(BaseAdapter):
         table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.TRA_KEY
         table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
         table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY] = table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY]
-
 
         # Preprocesses CDR3 sequences, epitope sequences, and gene names
         table_preprocessed = harmonize_sequences(bc, table)

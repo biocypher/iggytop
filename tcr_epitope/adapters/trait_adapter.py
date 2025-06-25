@@ -1,10 +1,11 @@
 import os
+
 import pandas as pd
 from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_iedb_ids_batch, harmonize_sequences
+from .utils import harmonize_sequences
 
 
 class TRAITAdapter(BaseAdapter):

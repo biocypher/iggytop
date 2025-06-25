@@ -1,14 +1,13 @@
 import os
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 from biocypher import BioCypher, FileDownload
 from github import Github
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_iedb_ids_batch, harmonize_sequences
+from .utils import harmonize_sequences
 
 
 class VDJDBAdapter(BaseAdapter):
@@ -66,22 +65,19 @@ class VDJDBAdapter(BaseAdapter):
             "cdr3_chain_1": REGISTRY_KEYS.CHAIN_1_CDR3_KEY,  # Note: changed from cdr3_chain_1
             "v.segm_chain_1": REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,  # Note: changed from v.segm_chain_1
             "j.segm_chain_1": REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,  # Note: changed from j.segm_chain_1
-
             "cdr3_chain_2": REGISTRY_KEYS.CHAIN_2_CDR3_KEY,  # Note: changed from cdr3_chain_2
             "v.segm_chain_2": REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,  # Note: changed from v.segm_chain_2
             "j.segm_chain_2": REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,  # Note: changed from j.segm_chain_2
             "species": REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
-
             "antigen.epitope": REGISTRY_KEYS.EPITOPE_KEY,
             "antigen.gene": REGISTRY_KEYS.ANTIGEN_KEY,
             "antigen.species": REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
             "reference.id": REGISTRY_KEYS.PUBLICATION_KEY,
-
             "mhc.class": REGISTRY_KEYS.MHC_CLASS_KEY,
             "mhc.a": REGISTRY_KEYS.MHC_GENE_1_KEY,
             "mhc.b": REGISTRY_KEYS.MHC_GENE_2_KEY,
         }
-        
+
         # Only rename columns that exist in the table
         table = table.rename(columns=rename_cols)
         table = table[list(rename_cols.values())]
@@ -90,7 +86,6 @@ class VDJDBAdapter(BaseAdapter):
         table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.TRA_KEY
         table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
 
-
         # Preprocesses CDR3 sequences, epitope sequences, and gene names
         table_preprocessed = harmonize_sequences(bc, table)
 
@@ -98,52 +93,60 @@ class VDJDBAdapter(BaseAdapter):
 
     def _transform_paired_data_efficient(self, df):
         """Efficient transformation that handles ALL cases correctly."""
-        
+
         # 1. Separate unpaired (complex.id == 0)
-        unpaired = df[df['complex.id'] == 0].copy()
-        
+        unpaired = df[df["complex.id"] == 0].copy()
+
         # 2. Find ACTUALLY paired data (duplicated non-zero complex.ids)
-        paired_mask = (df['complex.id'] != 0) & (df['complex.id'].duplicated(keep=False))
+        paired_mask = (df["complex.id"] != 0) & (df["complex.id"].duplicated(keep=False))
         paired = df[paired_mask].copy()
-        
+
         # 3. Find incomplete pairs (non-zero, non-duplicated complex.ids)
-        incomplete = df[(df['complex.id'] != 0) & (~paired_mask)].copy()
-        
+        incomplete = df[(df["complex.id"] != 0) & (~paired_mask)].copy()
+
         result_parts = []
-        
+
         # Process complete pairs
         if len(paired) > 0:
             # Check which complex.ids have both TRA and TRB
-            chain_counts = paired.groupby('complex.id')['gene'].apply(set)
-            complete_mask = chain_counts.apply(lambda x: {'TRA', 'TRB'}.issubset(x))
+            chain_counts = paired.groupby("complex.id")["gene"].apply(set)
+            complete_mask = chain_counts.apply(lambda x: {"TRA", "TRB"}.issubset(x))
             complete_complexes = chain_counts[complete_mask].index
-            
+
             if len(complete_complexes) > 0:
-                complete_data = paired[paired['complex.id'].isin(complete_complexes)]
-                tra_complete = complete_data[complete_data['gene'] == 'TRA']
-                trb_complete = complete_data[complete_data['gene'] == 'TRB']
-                
-                merge_cols = ['complex.id', 'antigen.epitope', 'antigen.gene', 'antigen.species', 
-                            'mhc.class', 'mhc.a', 'mhc.b', 'reference.id']
-                
+                complete_data = paired[paired["complex.id"].isin(complete_complexes)]
+                tra_complete = complete_data[complete_data["gene"] == "TRA"]
+                trb_complete = complete_data[complete_data["gene"] == "TRB"]
+
+                merge_cols = [
+                    "complex.id",
+                    "antigen.epitope",
+                    "antigen.gene",
+                    "antigen.species",
+                    "mhc.class",
+                    "mhc.a",
+                    "mhc.b",
+                    "reference.id",
+                ]
+
                 paired_result = tra_complete.merge(
-                    trb_complete[merge_cols + ['cdr3', 'v.segm', 'j.segm']], 
-                    on=merge_cols, suffixes=('_chain_1', '_chain_2')
+                    trb_complete[merge_cols + ["cdr3", "v.segm", "j.segm"]],
+                    on=merge_cols,
+                    suffixes=("_chain_1", "_chain_2"),
                 )
-                paired_result = paired_result.rename(columns={
-                    'cdr3': 'cdr3_tra', 'v.segm': 'v.segm_tra', 'j.segm': 'j.segm_tra'
-                })
+                paired_result = paired_result.rename(
+                    columns={"cdr3": "cdr3_tra", "v.segm": "v.segm_tra", "j.segm": "j.segm_tra"}
+                )
                 result_parts.append(paired_result)
 
-        
         # Process all single chains (unpaired + incomplete pairs)
         all_singles = pd.concat([unpaired, incomplete], ignore_index=True) if len(incomplete) > 0 else unpaired
-        
+
         if len(all_singles) > 0:
-            single_tra = self._process_single_chain(all_singles[all_singles['gene'] == 'TRA'], 'tra')
-            single_trb = self._process_single_chain(all_singles[all_singles['gene'] == 'TRB'], 'trb')
+            single_tra = self._process_single_chain(all_singles[all_singles["gene"] == "TRA"], "tra")
+            single_trb = self._process_single_chain(all_singles[all_singles["gene"] == "TRB"], "trb")
             result_parts.extend([single_tra, single_trb])
-        
+
         # Combine all
         result_parts = [df for df in result_parts if len(df) > 0]
         return pd.concat(result_parts, ignore_index=True) if result_parts else df
@@ -152,24 +155,24 @@ class VDJDBAdapter(BaseAdapter):
         """Process single chain data (TRA or TRB only)."""
         if len(df) == 0:
             return df
-            
+
         result = df.copy()
-        if chain_type == 'tra':
-            result['cdr3_chain_1'] = result['cdr3']
-            result['v.segm_chain_1'] = result['v.segm'] 
-            result['j.segm_chain_1'] = result['j.segm']
-            result['cdr3_chain_2'] = None
-            result['v.segm_chain_2'] = None
-            result['j.segm_chain_2'] = None
+        if chain_type == "tra":
+            result["cdr3_chain_1"] = result["cdr3"]
+            result["v.segm_chain_1"] = result["v.segm"]
+            result["j.segm_chain_1"] = result["j.segm"]
+            result["cdr3_chain_2"] = None
+            result["v.segm_chain_2"] = None
+            result["j.segm_chain_2"] = None
         else:  # trb
-            result['cdr3_chain_2'] = result['cdr3']
-            result['v.segm_chain_2'] = result['v.segm']
-            result['j.segm_chain_2'] = result['j.segm'] 
-            result['cdr3_chain_1'] = None
-            result['v.segm_chain_1'] = None
-            result['j.segm_chain_1'] = None
-            
-        return result.drop(columns=['cdr3', 'v.segm', 'j.segm'])
+            result["cdr3_chain_2"] = result["cdr3"]
+            result["v.segm_chain_2"] = result["v.segm"]
+            result["j.segm_chain_2"] = result["j.segm"]
+            result["cdr3_chain_1"] = None
+            result["v.segm_chain_1"] = None
+            result["j.segm_chain_1"] = None
+
+        return result.drop(columns=["cdr3", "v.segm", "j.segm"])
 
     def get_nodes(self):
         # chain 1
@@ -285,4 +288,3 @@ class VDJDBAdapter(BaseAdapter):
             source_unique_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
             target_unique_cols=REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
         )
-        

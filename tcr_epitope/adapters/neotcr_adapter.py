@@ -1,15 +1,13 @@
-
 import os
 import tempfile
-from pathlib import Path
 
 import pandas as pd
 import requests
-from biocypher import BioCypher, FileDownload
+from biocypher import BioCypher
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import harmonize_sequences, get_iedb_ids_batch
+from .utils import harmonize_sequences
 
 
 class NeoTCRAdapter(BaseAdapter):
@@ -44,11 +42,9 @@ class NeoTCRAdapter(BaseAdapter):
             "TRA_CDR3": REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
             "TRAV": REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
             "TRAJ": REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
-
             "TRB_CDR3": REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
             "TRBV": REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
             "TRBJ": REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
-
             "Neoepitope": REGISTRY_KEYS.EPITOPE_KEY,
             "Antigen": REGISTRY_KEYS.ANTIGEN_KEY,
             "HLA Allele": REGISTRY_KEYS.MHC_GENE_1_KEY,
@@ -62,7 +58,7 @@ class NeoTCRAdapter(BaseAdapter):
         table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY] = "Homo sapiens"
         table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY] = "Homo sapiens"
         table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY] = "Homo sapiens"
-        
+
         table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.TRA_KEY
         table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
 
@@ -73,7 +69,9 @@ class NeoTCRAdapter(BaseAdapter):
         table = table.explode(REGISTRY_KEYS.EPITOPE_KEY).reset_index(drop=True)
 
         # Trim Pubmed IDs
-        table[REGISTRY_KEYS.PUBLICATION_KEY] = table[REGISTRY_KEYS.PUBLICATION_KEY].astype(str).str.replace("PMID:", "").str.strip()
+        table[REGISTRY_KEYS.PUBLICATION_KEY] = (
+            table[REGISTRY_KEYS.PUBLICATION_KEY].astype(str).str.replace("PMID:", "").str.strip()
+        )
 
         table = harmonize_sequences(bc, table)
 
@@ -183,4 +181,3 @@ class NeoTCRAdapter(BaseAdapter):
             source_unique_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
             target_unique_cols=REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
         )
-        

@@ -1,12 +1,13 @@
 import sys
-sys.path.append('..')
-sys.path.append('../..')
+
+sys.path.append("..")
+sys.path.append("../..")
 import pandas as pd
 from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_iedb_ids_batch, harmonize_sequences
+from .utils import harmonize_sequences
 
 
 class TCR3DAdapter(BaseAdapter):
@@ -40,7 +41,7 @@ class TCR3DAdapter(BaseAdapter):
 
     def read_table(self, bc: BioCypher, table_path: str, test: bool = False) -> pd.DataFrame:
         table = pd.read_csv(table_path, sep="\t")
-    
+
         if test:
             table = table.sample(frac=0.01, random_state=42)
 
@@ -73,11 +74,10 @@ class TCR3DAdapter(BaseAdapter):
             lambda x: x.split(",") if x is not None and "," in x else x
         )
         table = table.explode(REGISTRY_KEYS.EPITOPE_KEY).reset_index(drop=True)
-        
 
         # Create a column placeholder for the antigen species
         table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY] = None
-        
+
         table_preprocessed = harmonize_sequences(bc, table)
 
         return table_preprocessed
