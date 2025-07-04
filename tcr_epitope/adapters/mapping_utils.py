@@ -1,11 +1,12 @@
 import sys
-sys.path.append('..')
+
+sys.path.append("..")
 
 import re
+from urllib.parse import quote
+
 import requests
 
-from tqdm import tqdm
-from urllib.parse import quote
 
 def map_species_terms(terms: list[str]) -> dict:
     manual_disambiguation = {
@@ -26,26 +27,30 @@ def map_species_terms(terms: list[str]) -> dict:
         "M. tuberculosis": "Mycobacterium tuberculosis",
         "SARS-CoV2": "Severe acute respiratory syndrome coronavirus 2",
         "InfluenzaA": "Influenza A virus",
+        "H5N1 subtype": "Influenza A virus",
     }
 
     def normalize_species(term: str) -> str:
         term = term.strip()
-        term = re.sub(r'^([a-zA-Z]+)(\d+)(?![a-zA-Z])', r'\1 \2', term)
+        term = re.sub(r"^([a-zA-Z]+)(\d+)(?![a-zA-Z])", r"\1 \2", term)
         for prefix in manual_disambiguation:
             if term.startswith(prefix):
-                suffix = term[len(prefix):]
+                suffix = term[len(prefix) :]
                 query_term = manual_disambiguation[prefix] + suffix
                 break
         else:
             query_term = term
         query_term = query_term.replace("_", " ")
-        query_term = re.sub(r'\s*[\(\[].*[\)\]]', '', query_term)
-        query_term = re.sub(r'\bstrain\s.*', '', query_term).strip()
+        query_term = re.sub(r"\s*[\(\[].*[\)\]]", "", query_term)
+        query_term = re.sub(r"\bstrain\s.*", "", query_term).strip()
 
         if "-" not in query_term:
-            query_term = re.sub(r'(?<=[a-z])(?=[A-Z])', ' ', query_term)
-        
-        if "severe acute respiratory syndrome coronavirus 2" in query_term.lower():
+            query_term = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", query_term)
+
+        if (
+            "severe acute respiratory syndrome coronavirus 2" in query_term.lower()
+            or "severe acute respiratory coronavirus 2" in query_term.lower()
+        ):
             query_term = "Severe acute respiratory syndrome coronavirus 2"
 
         words = query_term.split()
@@ -56,7 +61,7 @@ def map_species_terms(terms: list[str]) -> dict:
                     normalized_words.append(word.lower())
                 else:
                     normalized_words.append(word)
-        return ' '.join(normalized_words)
+        return " ".join(normalized_words)
 
     def get_label_from_semantic_tag(uri: str):
         try:
@@ -65,7 +70,7 @@ def map_species_terms(terms: list[str]) -> dict:
             term = uri.split("obo/")[-1]
             ontology = term.split("_")[0].lower()
             full_uri = f"http://purl.obolibrary.org/obo/{term}"
-            encoded_uri = quote(quote(full_uri, safe=''), safe='')
+            encoded_uri = quote(quote(full_uri, safe=""), safe="")
             ols_url = f"https://www.ebi.ac.uk/ols4/api/ontologies/{ontology}/terms/{encoded_uri}"
             res = requests.get(ols_url, timeout=10)
             res.raise_for_status()
@@ -108,20 +113,20 @@ def map_species_terms(terms: list[str]) -> dict:
     # print("Normalized terms:", normalized_terms)
 
     # Step 2: Get Zooma mappings for normalized terms
-    zooma_output = {}
-    for original_term, normalized_term in tqdm(normalized_terms.items(), desc="Getting Zooma mappings"):
-        zooma_result = get_zooma_label(normalized_term)
-        zooma_output[original_term] = zooma_result
-    
-    # print("Zooma output:", zooma_output)
+    # zooma_output = {}
+    # for original_term, normalized_term in tqdm(normalized_terms.items(), desc="Getting Zooma mappings"):
+    #     zooma_result = get_zooma_label(normalized_term)
+    #     zooma_output[original_term] = zooma_result
 
-    # Step 3: Create final results - use Zooma output if available, otherwise use normalized term
-    results = {}
-    for original_term in terms:
-        zooma_result = zooma_output[original_term]
-        if zooma_result is not None:
-            results[original_term] = zooma_result
-        else:
-            results[original_term] = normalized_terms[original_term]
+    # # print("Zooma output:", zooma_output)
 
-    return results
+    # # Step 3: Create final results - use Zooma output if available, otherwise use normalized term
+    # results = {}
+    # for original_term in terms:
+    #     zooma_result = zooma_output[original_term]
+    #     if zooma_result is not None:
+    #         results[original_term] = zooma_result
+    #     else:
+    #         results[original_term] = normalized_terms[original_term]
+
+    return normalized_terms

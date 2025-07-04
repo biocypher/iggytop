@@ -34,19 +34,19 @@ class MCPASAdapter(BaseAdapter):
         if not mcpas_path:
             raise FileNotFoundError(f"Failed to download McPAS-TCR database from {self.DB_URL}")
 
+        # mcpas_path = "../data/McPAS-TCR1.csv"
+
         return mcpas_path[0]
 
     def read_table(self, bc: BioCypher, table_path: str, test: bool = False) -> pd.DataFrame:
         table = pd.read_csv(table_path, encoding="utf-8-sig")
         if test:
-            table = table.sample(frac=0.01, random_state=42)
+            table = table.sample(frac=0.001, random_state=42)
         # Replace NaN and empty strings with None
         table = table.replace(["", "nan"], None).where(pd.notnull, None)
 
         table["Pathology"] = table.apply(
-            lambda row: "HomoSapiens"
-            if row["Category"] == "Autoimmune" or row["Category"] == "Cancer"
-            else row["Pathology"],
+            lambda row: "HomoSapiens" if row["Category"] == "Autoimmune" else row["Pathology"],
             axis=1,
         )
 
