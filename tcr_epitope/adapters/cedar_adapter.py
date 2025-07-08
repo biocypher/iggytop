@@ -72,10 +72,15 @@ class CEDARAdapter(BaseAdapter):
 
         # Fill curated columns with calculated values if curated is empty
         for chain_num in [1, 2]:
-            table[f"Chain {chain_num} CDR3 Calculated"] = table[f"Chain {chain_num} CDR3 Calculated"].fillna(table[f"Chain {chain_num} CDR3 Curated"])
-            table[f"Chain {chain_num} Calculated V Gene"] = table[f"Chain {chain_num} Calculated V Gene"].fillna(table[f"Chain {chain_num} Curated V Gene"])
-            table[f"Chain {chain_num} Calculated J Gene"] = table[f"Chain {chain_num} Calculated J Gene"].fillna(table[f"Chain {chain_num} Curated J Gene"])
-
+            table[f"Chain {chain_num} CDR3 Calculated"] = table[f"Chain {chain_num} CDR3 Calculated"].fillna(
+                table[f"Chain {chain_num} CDR3 Curated"]
+            )
+            table[f"Chain {chain_num} Calculated V Gene"] = table[f"Chain {chain_num} Calculated V Gene"].fillna(
+                table[f"Chain {chain_num} Curated V Gene"]
+            )
+            table[f"Chain {chain_num} Calculated J Gene"] = table[f"Chain {chain_num} Calculated J Gene"].fillna(
+                table[f"Chain {chain_num} Curated J Gene"]
+            )
 
         rename_cols = {
             "Epitope Name": REGISTRY_KEYS.EPITOPE_KEY,
@@ -98,11 +103,15 @@ class CEDARAdapter(BaseAdapter):
         table = table.rename(columns=rename_cols)
         table = table[list(rename_cols.values())]
 
+        # Extract iedb ID from the url
+        table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = (
+            "iedb:" + table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY].str.extract(r"/epitope/(\d+)$")[0]
+        )
+
         # Preprocesses CDR3 sequences, epitope sequences, and gene names
-        table_preprocessed = harmonize_sequences(table)
+        table_preprocessed = harmonize_sequences(bc, table)
 
         return table_preprocessed
-
 
     def get_nodes(self):
         # chain 1

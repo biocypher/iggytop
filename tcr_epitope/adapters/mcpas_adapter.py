@@ -3,7 +3,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_iedb_ids_batch, harmonize_sequences
+from .utils import harmonize_sequences
 
 
 class MCPASAdapter(BaseAdapter):
@@ -34,18 +34,20 @@ class MCPASAdapter(BaseAdapter):
         if not mcpas_path:
             raise FileNotFoundError(f"Failed to download McPAS-TCR database from {self.DB_URL}")
 
+        # mcpas_path = "../data/McPAS-TCR1.csv"
+
         return mcpas_path[0]
 
     def read_table(self, bc: BioCypher, table_path: str, test: bool = False) -> pd.DataFrame:
         table = pd.read_csv(table_path, encoding="utf-8-sig")
         if test:
-            table = table.sample(frac=0.01, random_state=42)
+            table = table.sample(frac=0.001, random_state=42)
         # Replace NaN and empty strings with None
         table = table.replace(["", "nan"], None).where(pd.notnull, None)
 
         table["Pathology"] = table.apply(
-            lambda row: "HomoSapiens" if row["Category"] == "Autoimmune" or row["Category"] == "Cancer" else row["Pathology"],
-            axis=1
+            lambda row: "HomoSapiens" if row["Category"] == "Autoimmune" else row["Pathology"],
+            axis=1,
         )
 
         rename_cols = {
@@ -69,16 +71,8 @@ class MCPASAdapter(BaseAdapter):
         table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
         table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY] = table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY]
 
-        # Map epitope sequences to IEDB IDs
-        valid_epitopes = table[REGISTRY_KEYS.EPITOPE_KEY].dropna().drop_duplicates().tolist()
-        if len(valid_epitopes) > 0:
-            epitope_map = get_iedb_ids_batch(bc, valid_epitopes)
-
-        # Apply the mapping to create the IEDB ID column
-        table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].map(epitope_map)
-
         # Preprocesses CDR3 sequences, epitope sequences, and gene names
-        table_preprocessed = harmonize_sequences(table)
+        table_preprocessed = harmonize_sequences(bc, table)
 
         return table_preprocessed
 

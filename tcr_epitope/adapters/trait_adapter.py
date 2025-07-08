@@ -1,10 +1,11 @@
 import os
+
 import pandas as pd
 from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_iedb_ids_batch, harmonize_sequences
+from .utils import harmonize_sequences
 
 
 class TRAITAdapter(BaseAdapter):
@@ -19,6 +20,7 @@ class TRAITAdapter(BaseAdapter):
     """
 
     DB_URL = "https://pgx.zju.edu.cn/download.trait/Interactive_TCR-pMHC_Pairs.zip_20250312.zip"
+
     DB_DIR = "trait_latest"
 
     def get_latest_release(self, bc: BioCypher) -> str:
@@ -33,7 +35,7 @@ class TRAITAdapter(BaseAdapter):
         trait_path = os.path.join(trait_parent_path[0], os.listdir(trait_parent_path[0])[0])
 
         if not trait_path:
-            raise FileNotFoundError(f"Failed to download McPAS-TCR database from {self.DB_URL}")
+            raise FileNotFoundError(f"Failed to download TRAIT database from {self.DB_URL}")
 
         return trait_path
 
@@ -67,16 +69,8 @@ class TRAITAdapter(BaseAdapter):
         table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
         table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY] = table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY]
 
-        # Map epitope sequences to IEDB IDs
-        valid_epitopes = table[REGISTRY_KEYS.EPITOPE_KEY].dropna().drop_duplicates().tolist()
-        if len(valid_epitopes) > 0:
-            epitope_map = get_iedb_ids_batch(bc, valid_epitopes)
-
-        # Apply the mapping to create the IEDB ID column
-        table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].map(epitope_map)
-
         # Preprocesses CDR3 sequences, epitope sequences, and gene names
-        table_preprocessed = harmonize_sequences(table)
+        table_preprocessed = harmonize_sequences(bc, table)
 
         return table_preprocessed
 
