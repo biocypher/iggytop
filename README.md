@@ -21,17 +21,6 @@ These include data from both, original sources, extracting data directly from st
 A script is provided to build a knowledge graph with all these adapters. On a consumer laptop, building the full graph typically takes 20-30 mins.
 
 The final output is the **IggyTop** database, which integrates immunoreceptor-epitope matching information from all supported data sources in the unified list of [AIRR cells](https://scirpy.scverse.org/en/stable/generated/scirpy.io.AirrCell.html).
-[comment]: <> (..and is accessible on zenodo.)
-
-## Table of Contents
-- [Overview](#overview)
-- [Node and Edge Types](#node-and-edge-types)
-  - [Nodes](#nodes)
-  - [Edges](#edges)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Contributing](#contributing)
-- [License](#license)
 
 ## Node and Edge Types
 ### Nodes
