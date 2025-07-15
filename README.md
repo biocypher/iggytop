@@ -5,7 +5,7 @@
 
 ![figure1](./overview.png)
 
-This repository uses [BioCypher](https://biocypher.org) framework for hamonization of databases with existing immunoreceptor-epitope matching information.
+This repository uses [BioCypher](https://biocypher.org) framework for harmonization of databases with existing immunoreceptor-epitope matching information.
 
 BioCypher is designed to facilitate the standardized integration of heterogeneous data sources through a regulated framework. The BioCypher framework implements a modular architecture where each data source is processed through dedicated transformation scripts called adapters. These adapters serve as the primary interface between raw data sources and the BioCypher knowledge graph infrastructure. This project provides adapters for the following databases:
 
