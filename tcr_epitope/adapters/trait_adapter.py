@@ -28,16 +28,27 @@ class TRAITAdapter(BaseAdapter):
             name=self.DB_DIR,
             url_s=self.DB_URL,
             lifetime=30,
-            is_dir=False,
+            # is_dir=False,
         )
 
-        trait_parent_path = bc.download(trait_resource)
-        trait_path = os.path.join(trait_parent_path[0], os.listdir(trait_parent_path[0])[0])
+        trait_paths = bc.download(trait_resource)
 
-        if not trait_path:
+        if not trait_paths:
             raise FileNotFoundError(f"Failed to download TRAIT database from {self.DB_URL}")
 
-        return trait_path
+        # Flatten to actual file(s), not just the top-level dir
+        final_files = []
+        for path in trait_paths:
+            if os.path.isdir(path):
+                # walk recursively to get files inside
+                for root, _, files in os.walk(path):
+                    for file in files:
+                        final_files.append(os.path.join(root, file))
+            else:
+                if not path.endswith(".zip"):
+                    final_files.append(path)
+
+        return final_files[0]
 
     def read_table(self, bc: BioCypher, table_path: str, test: bool = False) -> pd.DataFrame:
         table = pd.read_excel(table_path)

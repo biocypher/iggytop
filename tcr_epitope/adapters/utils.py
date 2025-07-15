@@ -1,3 +1,5 @@
+""" This module contains utility functions for harmonizing data for iggytop """
+
 import gzip
 import hashlib
 import json
@@ -11,12 +13,12 @@ from biocypher import APIRequest, BioCypher
 from scirpy.io._datastructures import AirrCell
 
 from .constants import REGISTRY_KEYS
-from .mapping_utils import map_species_terms
+from .mapping_utils import map_antigen_names, map_species_terms
 
 AMINO_ACIDS = set("ACDEFGHIKLMNPQRSTVWY")
 
 
-def is_valid_peptide_sequence(seq: str) -> bool:
+def _is_valid_peptide_sequence(seq: str) -> bool:
     """Checks if a given sequence is a valid peptide sequence."""
     if isinstance(seq, str) and len(seq) > 2:
         return all([aa in AMINO_ACIDS for aa in seq])
@@ -24,7 +26,7 @@ def is_valid_peptide_sequence(seq: str) -> bool:
         return False
 
 
-def process_cdr3_sequence(seq: str, is_igh: bool = False) -> str | None:
+def _process_cdr3_sequence(seq: str, is_igh: bool = False) -> str | None:
     if seq is None:
         return None
 
@@ -32,7 +34,7 @@ def process_cdr3_sequence(seq: str, is_igh: bool = False) -> str | None:
     seq = str(seq).upper().strip().replace(" ", "").replace("\n", "")
 
     # Validate that the sequence contains only valid amino acids (optional: define valid AAs if needed)
-    if not is_valid_peptide_sequence(seq):
+    if not _is_valid_peptide_sequence(seq):
         return None
 
     # Check if sequence has a valid CDR3 format
@@ -52,8 +54,8 @@ def process_cdr3_sequence(seq: str, is_igh: bool = False) -> str | None:
         return f"C{seq}F"
 
 
-def process_epitope_sequence(seq: str | None) -> str | None:
-    """Process a sequence string to remove non-peptidic characters and validate it."""
+def _process_epitope_sequence(seq: str | None) -> str | None:
+    """Remove flanking residues in epitope sequences."""
     if seq is None:
         return None
     seq = str(seq)
@@ -64,7 +66,8 @@ def process_epitope_sequence(seq: str | None) -> str | None:
     return result
 
 
-def normalise_gene_name(gene: str) -> str:
+def _normalize_gene_name(gene: str) -> str:
+    """Process VDJ-gene names to align with IMGT standards, skip alleles information"""
     if pd.isna(gene):
         return None
     gene = gene.strip()
@@ -76,7 +79,16 @@ def normalise_gene_name(gene: str) -> str:
 
 
 def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
-    """Preprocesses CDR3 sequences, epitope sequences, and gene names in a harmonized way."""
+    """
+    Preprocesses CDR3 sequences, epitope sequences, and gene names in a harmonized way.
+    The following steps are performed:
+    1. Clean CDR3 sequences (normalizes junction_aas)
+    2. Clean epitope sequences (remove flanking residues)
+    3. Normalize VDJ-gene names to IMGT standards
+    4. Add IEDB IRI and corresponding antigen information (species and antigen name) where missing
+    5. Harmonize species terms for antigen species and receptor chain species
+
+    """
     # Clean CDR3 sequences (normalize junction_aas)
     for i in [1, 2]:
         cdr3_col = getattr(REGISTRY_KEYS, f"CHAIN_{i}_CDR3_KEY")
@@ -84,12 +96,12 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
 
         if cdr3_col in table.columns and type_col in table.columns:
             table[cdr3_col] = table.apply(
-                lambda row: process_cdr3_sequence(row[cdr3_col], is_igh=(row[type_col] == "IGH")), axis=1
+                lambda row: _process_cdr3_sequence(row[cdr3_col], is_igh=(row[type_col] == "IGH")), axis=1
             )
 
     # Clean epitope sequences
     if REGISTRY_KEYS.EPITOPE_KEY in table.columns:
-        table[REGISTRY_KEYS.EPITOPE_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].apply(process_epitope_sequence)
+        table[REGISTRY_KEYS.EPITOPE_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].apply(_process_epitope_sequence)
 
     # Normalize V and J genes
     vj_genes_cols = [
@@ -100,41 +112,61 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
     ]
     for col in vj_genes_cols:
         if col in table.columns:
-            table[col] = table[col].apply(normalise_gene_name)
+            table[col] = table[col].apply(_normalize_gene_name)
 
-    #####################################################################
-    # Add iedb-epitopes mapping + species names
-    # Map epitope sequences to IEDB IDs
+    # Map epitope sequences to IEDB-IRI mapping + extract species names
     if REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY not in table.columns:
         valid_epitopes = table[REGISTRY_KEYS.EPITOPE_KEY].dropna().drop_duplicates().tolist()
         if len(valid_epitopes) > 0:
+            # Sent API request to get IEDB IRIss and antigen infirmation for epitopes
             epitope_map = get_iedb_ids_batch(bc, valid_epitopes)
 
-        # Apply the mapping to create the IEDB ID column
+        # Add column with IEDB IRIs corresponding to the epitope AA sequence
         iri_mapping = {epitope: data["iri"] for epitope, data in epitope_map.items()}
+        table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].map(iri_mapping)
 
+        # Fill missing antigen species entries using antigen species information from IEDB
         organism_mapping = {
             epitope: data["organism"] for epitope, data in epitope_map.items() if data["organism"] is not None
         }
-
-        # Apply IRI mapping
-        table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].map(iri_mapping)
-
-        # Apply organism mapping - this will only update rows where mapping exists and is not None
-        # Original values are preserved for epitopes not in organism_mapping
         mapped_organisms = table[REGISTRY_KEYS.EPITOPE_KEY].map(organism_mapping)
-        table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY] = mapped_organisms.fillna(table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY])
+        if REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY not in table.columns:
+            table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY] = mapped_organisms
+        else:
+            table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY] = table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY].fillna(
+                mapped_organisms
+            )
 
-    # Apply manual mapping for antigen species keys
+        # Fill missing antigen entries using antigen names  from IEDB
+        antigen_mapping = {
+            epitope: data["antigen"] for epitope, data in epitope_map.items() if data["antigen"] is not None
+        }
+        mapped_antigens = table[REGISTRY_KEYS.EPITOPE_KEY].map(antigen_mapping)
+        if REGISTRY_KEYS.ANTIGEN_KEY not in table.columns:
+            table[REGISTRY_KEYS.ANTIGEN_KEY] = mapped_antigens
+        else:
+            table[REGISTRY_KEYS.ANTIGEN_KEY] = table[REGISTRY_KEYS.ANTIGEN_KEY].fillna(mapped_antigens)
+
+    # Harmonize/clean species terms for both, antigen species and receptor chain species, using rules defined in map_species_terms
     if REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY in table.columns:
-        antigen_species_map = map_species_terms(table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY].dropna().unique().tolist())
-        table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY] = table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY].map(antigen_species_map)
-
-    # Delete brackets from the antigen name
-    if REGISTRY_KEYS.ANTIGEN_KEY in table.columns:
-        table[REGISTRY_KEYS.ANTIGEN_KEY] = (
-            table[REGISTRY_KEYS.ANTIGEN_KEY].str.replace(r"\[.*?\]|\(.*?\)", "", regex=True).str.strip()
+        antigen_species_harmonized_map = map_species_terms(
+            table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY].dropna().unique().tolist()
         )
+        table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY] = table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY].map(
+            antigen_species_harmonized_map
+        )
+
+    if REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY in table.columns:
+        chain_1_species_map = map_species_terms(table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY].dropna().unique().tolist())
+        table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY] = table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY].map(chain_1_species_map)
+
+    if REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY in table.columns:
+        chain_2_species_map = map_species_terms(table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY].dropna().unique().tolist())
+        table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY] = table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY].map(chain_2_species_map)
+
+    # Clean/delete brackets from the antigen names
+    antigen_names_clean = map_antigen_names(table[REGISTRY_KEYS.ANTIGEN_KEY].dropna().unique().tolist())
+    table[REGISTRY_KEYS.ANTIGEN_KEY] = table[REGISTRY_KEYS.ANTIGEN_KEY].map(antigen_names_clean)
 
     return table
 
@@ -168,6 +200,7 @@ def get_iedb_ids_batch(bc: BioCypher, epitopes: list[str], chunk_size: int = 150
         for epitope in chunk:
             epitope_to_iedb[epitope] = {
                 "iri": f"seq:{epitope}",
+                "antigen": None,
                 "organism": None,
             }  # Default value if not found
 
@@ -181,13 +214,17 @@ def get_iedb_ids_batch(bc: BioCypher, epitopes: list[str], chunk_size: int = 150
                 continue
 
             if epitope_seq in epitope_to_iedb:  # Only update if it's one we requested
-                if match.get("source_organism_name"):
-                    organism = match.get("source_organism_name").split("|")[0].strip()
+                antigens = match.get("curated_source_antigens")
+                if antigens:
+                    antigen = antigens.get("name")
+                    organism = antigens.get("source_organism_name")
                 else:
+                    antigen = None
                     organism = None
 
                 epitope_to_iedb[epitope_seq] = {
-                    "iri": f"iedb:{match['structure_id']}",
+                    "iri": f"iedb:{match.get('structure_id')}",
+                    "antigen": antigen,
                     "organism": organism,
                 }
 
@@ -217,13 +254,17 @@ def get_iedb_ids_batch(bc: BioCypher, epitopes: list[str], chunk_size: int = 150
 
                 # Update the dictionary if a match was found
                 if best_match:
-                    if best_match.get("source_organism_name"):
-                        organism = best_match.get("source_organism_name").split("|")[0].strip()
+                    antigens = best_match.get("curated_source_antigens")
+                    if antigens:
+                        antigen = best_match.get("curated_source_antigens")[0].get("name")
+                        organism = best_match.get("curated_source_antigens")[0].get("source_organism_name")
                     else:
+                        antigen = None
                         organism = None
 
                     epitope_to_iedb[epitope_seq] = {
-                        "iri": f"iedb:{best_match['structure_id']}",
+                        "iri": f"iedb:{best_match.get('structure_id')}",
+                        "antigen": antigen,
                         "organism": organism,
                     }
 
@@ -252,7 +293,7 @@ def _get_epitope_data(bc: BioCypher, epitopes: list[str], base_url: str, match_t
         request_name = f"iedb_exact_matches_{request_hash}"
         epitope_list = f"({','.join([f'{e}' for e in epitopes])})"
         check = f"linear_sequence=in.{epitope_list}"
-        url = f"{base_url}?{check}&select=structure_id,structure_descriptions,linear_sequence,source_organism_name&order=structure_id"
+        url = f"{base_url}?{check}&select=structure_id,structure_descriptions,linear_sequence,curated_source_antigens&order=structure_id"
         print(f"Request URL: {url[:100]}..." if len(url) > 100 else f"Request URL: {url}")
 
     else:
@@ -260,7 +301,7 @@ def _get_epitope_data(bc: BioCypher, epitopes: list[str], base_url: str, match_t
         request_name = f"iedb_substring_matches{request_hash}"
         conditions = [f"linear_sequence.ilike.*{e}*" for e in epitopes]
         check = f"or=({','.join(conditions)})"
-        url = f"{base_url}?{check}&select=structure_id,structure_descriptions,linear_sequence,source_organism_name&order=structure_id"
+        url = f"{base_url}?{check}&select=structure_id,structure_descriptions,linear_sequence,curated_source_antigens&order=structure_id"
 
     try:
         iedb_request = APIRequest(
