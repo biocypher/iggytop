@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tcr-epitope"
-version = "1.0.0"
+version = "0.2.0"
 description = "Immune repertoire information retrieval and integration"
 authors = [
     "Sebastian Lobentanzer <sebastian.lobentanzer@gmail.com>",
@@ -22,10 +22,11 @@ tqdm = "^4.65.0"
 ipykernel = "^6.29.5"
 matplotlib = "^3.10.0"
 matplotlib-venn = "^1.1.1"
-numpy = "2.1"
+numpy = "1.26.4"
 bio = "^1.7.1"
 muon = "^0.1.7"
 parasail = "^1.3.4"
+text2term = "^4.5.0"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.2.0"
