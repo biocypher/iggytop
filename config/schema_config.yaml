@@ -1,5 +1,3 @@
-# add your desired knowledge graph components here
-
 immune receptor sequence:
   is_a: polypeptide
 
@@ -9,12 +7,19 @@ t cell receptor sequence:
       junction_aa: str
       v_call : str
       j_call : str
-      CDR1 : str
-      CDR2 : str
+      cdr1_aa : str
+      cdr2_aa : str
       species : str
 
 b cell receptor sequence:
   is_a: immune receptor sequence
+  properties:
+    junction_aa: str
+    v_call : str
+    j_call : str
+    cdr1_aa : str
+    cdr2_aa : str
+    species : str
 
 tra sequence:
   is_a: t cell receptor sequence

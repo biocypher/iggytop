@@ -71,7 +71,7 @@ class TRAITAdapter(BaseAdapter):
             "TRBV": REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
             "TRBJ": REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             "Species": REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
-            # "PubMed.ID": REGISTRY_KEYS.PUBLICATION_KEY,
+            "PubMed.ID": REGISTRY_KEYS.PUBLICATION_KEY,
         }
 
         table = table.rename(columns=rename_cols)
@@ -138,6 +138,7 @@ class TRAITAdapter(BaseAdapter):
                 REGISTRY_KEYS.MHC_CLASS_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
                 REGISTRY_KEYS.MHC_GENE_2_KEY,
+                REGISTRY_KEYS.PUBLICATION_KEY,
             ],
             unique_cols=[
                 REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
@@ -150,6 +151,7 @@ class TRAITAdapter(BaseAdapter):
                 REGISTRY_KEYS.MHC_CLASS_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
                 REGISTRY_KEYS.MHC_GENE_2_KEY,
+                REGISTRY_KEYS.PUBLICATION_KEY,
             ],
         )
 
