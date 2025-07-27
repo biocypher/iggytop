@@ -19,7 +19,6 @@ from tcr_epitope.adapters.vdjdb_adapter import VDJDBAdapter
 parser = ArgumentParser()
 parser.add_argument("--test", default=False)
 parser.add_argument("--cache_dir", default=None)
-parser.add_argument("--species_names", default=None, help="Path to save unique species names as csv")
 
 args = parser.parse_args()
 
@@ -42,6 +41,7 @@ for adapter in adapters:
     bc.add(adapter.get_edges())
 
 airr_cells = bc.get_kg()
+bc.summary()
 
 # This step required the final kg to be in the airr format (dbms specified in the biocypher config)
 save_airr_cells_json(airr_cells, args.cache_dir)

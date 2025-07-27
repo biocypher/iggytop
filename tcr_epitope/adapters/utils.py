@@ -66,7 +66,7 @@ def _process_epitope_sequence(seq: str | None) -> str | None:
     return result
 
 
-def _normalize_gene_name(gene: str) -> str:
+def _normalize_vdj_gene_name(gene: str) -> str:
     """Process VDJ-gene names to align with IMGT standards, skip alleles information"""
     if pd.isna(gene):
         return None
@@ -75,7 +75,8 @@ def _normalize_gene_name(gene: str) -> str:
     gene = re.sub(r"^TCR([ABGD])", r"TR\1", gene)
     # Remove allele annotation like *01 or *01_F
     gene = re.sub(r"\*.*$", "", gene)
-    return gene
+
+    return gene.strip()
 
 
 def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
@@ -112,11 +113,11 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
     ]
     for col in vj_genes_cols:
         if col in table.columns:
-            table[col] = table[col].apply(_normalize_gene_name)
+            table[col] = table[col].apply(_normalize_vdj_gene_name)
 
     # Map epitope sequences to IEDB-IRI mapping + extract species names
     if REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY not in table.columns:
-        valid_epitopes = table[REGISTRY_KEYS.EPITOPE_KEY].dropna().drop_duplicates().tolist()
+        valid_epitopes = table[REGISTRY_KEYS.EPITOPE_KEY].dropna().unique().tolist()
         if len(valid_epitopes) > 0:
             # Sent API request to get IEDB IRIss and antigen infirmation for epitopes
             epitope_map = get_iedb_ids_batch(bc, valid_epitopes)
@@ -125,27 +126,37 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
         iri_mapping = {epitope: data["iri"] for epitope, data in epitope_map.items()}
         table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].map(iri_mapping)
 
-        # Fill missing antigen species entries using antigen species information from IEDB
+        # Fill missing antigen and antigen species pairs if at least one is missing using information from IEDB
         organism_mapping = {
             epitope: data["organism"] for epitope, data in epitope_map.items() if data["organism"] is not None
         }
-        mapped_organisms = table[REGISTRY_KEYS.EPITOPE_KEY].map(organism_mapping)
-        if REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY not in table.columns:
-            table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY] = mapped_organisms
-        else:
-            table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY] = table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY].fillna(
-                mapped_organisms
-            )
-
-        # Fill missing antigen entries using antigen names  from IEDB
         antigen_mapping = {
             epitope: data["antigen"] for epitope, data in epitope_map.items() if data["antigen"] is not None
         }
-        mapped_antigens = table[REGISTRY_KEYS.EPITOPE_KEY].map(antigen_mapping)
+
+        # Check if columns exist, create them if they don't
+        if REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY not in table.columns:
+            table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY] = None
         if REGISTRY_KEYS.ANTIGEN_KEY not in table.columns:
-            table[REGISTRY_KEYS.ANTIGEN_KEY] = mapped_antigens
-        else:
-            table[REGISTRY_KEYS.ANTIGEN_KEY] = table[REGISTRY_KEYS.ANTIGEN_KEY].fillna(mapped_antigens)
+            table[REGISTRY_KEYS.ANTIGEN_KEY] = None
+
+        # Create boolean masks for missing values
+        antigen_missing = table[REGISTRY_KEYS.ANTIGEN_KEY].isna()
+        organism_missing = table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY].isna()
+        at_least_one_missing = antigen_missing | organism_missing
+
+        # Get epitopes where at least one value is missing
+        epitopes_to_fill = table[REGISTRY_KEYS.EPITOPE_KEY][at_least_one_missing]
+
+        # Fill both antigen and organism for rows where at least one is missing
+
+        for idx in epitopes_to_fill.index:
+            epitope = epitopes_to_fill.loc[idx]
+
+            # If antigen or antigen species is missing, fill both antigen and antigen species with IEDB values
+            if epitope in antigen_mapping:
+                table.loc[idx, REGISTRY_KEYS.ANTIGEN_KEY] = antigen_mapping[epitope]
+                table.loc[idx, REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY] = organism_mapping[epitope]
 
     # Harmonize/clean species terms for both, antigen species and receptor chain species, using rules defined in map_species_terms
     if REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY in table.columns:
@@ -216,8 +227,8 @@ def get_iedb_ids_batch(bc: BioCypher, epitopes: list[str], chunk_size: int = 150
             if epitope_seq in epitope_to_iedb:  # Only update if it's one we requested
                 antigens = match.get("curated_source_antigens")
                 if antigens:
-                    antigen = antigens.get("name")
-                    organism = antigens.get("source_organism_name")
+                    antigen = antigens[0].get("name")
+                    organism = antigens[0].get("source_organism_name")
                 else:
                     antigen = None
                     organism = None
@@ -271,7 +282,7 @@ def get_iedb_ids_batch(bc: BioCypher, epitopes: list[str], chunk_size: int = 150
     # Final statistics
     matched_count = sum(1 for ep, info in epitope_to_iedb.items() if info["iri"].startswith("iedb:"))
     print(
-        f"Final results: {matched_count} of {len(epitopes)} epitopes matched to IEDB IDs ({matched_count / len(epitopes) * 100:.1f}%)"
+        f"Epitope mapping results: {matched_count} of {len(epitopes)} epitopes matched to IEDB IDs ({matched_count / len(epitopes) * 100:.1f}%)"
     )
     return epitope_to_iedb
 
@@ -302,6 +313,94 @@ def _get_epitope_data(bc: BioCypher, epitopes: list[str], base_url: str, match_t
         conditions = [f"linear_sequence.ilike.*{e}*" for e in epitopes]
         check = f"or=({','.join(conditions)})"
         url = f"{base_url}?{check}&select=structure_id,structure_descriptions,linear_sequence,curated_source_antigens&order=structure_id"
+
+    try:
+        iedb_request = APIRequest(
+            name=request_name,
+            url_s=[url],
+            lifetime=30,
+        )
+        paths = bc.download(iedb_request)
+
+        # Load the cached JSON file
+        if paths and len(paths) > 0:
+            with open(paths[0]) as f:
+                return json.load(f)
+
+    except Exception as e:
+        print(f"API request failed: {e}")
+        return []
+
+
+def get_pmids_batch(bc: BioCypher, reference_urls: list[int], chunk_size: int = 150) -> dict[int, str]:
+    """Retrieve PubMed IDs for multiple IEDB reference IDs using batched requests.
+
+    Args:
+        bc: BioCypher instance for the download
+        reference_urls: List of IEDB reference URLs with IDs to query
+        chunk_size: Size of chunks to break reference IDs into (to avoid URL length limits)
+
+    Returns:
+        Dictionary mapping IEDB reference IDs to their PubMed IDs (None if not found)
+    """
+    reference_ids_dic = {url: re.findall(r"\d+", url)[-1] for url in reference_urls if re.findall(r"\d+", url)}
+    reference_ids = reference_ids_dic.values()
+
+    base_url = "https://query-api.iedb.org/reference_export"
+    reference_to_pmid = {}
+    reference_ids = [ref_id for ref_id in reference_ids if ref_id is not None]
+
+    print(f"Mapping {len(reference_ids)} IEDB reference IDs to PubMed IDs...")
+
+    for i in range(0, len(reference_ids), chunk_size):
+        chunk = reference_ids[i : i + chunk_size]
+        reference_data = _get_reference_data(bc, chunk, base_url)
+
+        # Initialize all reference IDs in chunk with None
+        for ref_id in chunk:
+            reference_to_pmid[ref_id] = f"no_pmid_{ref_id}"
+
+        # Update with found matches
+        for match in reference_data:
+            ref_id = match.get("reference_id")
+            pmid = match.get("reference__pmid")
+
+            if str(ref_id) in reference_to_pmid and pmid is not None:
+                # Only update if it's one we requested
+                reference_to_pmid[str(ref_id)] = str(pmid)
+
+    # Final statistics
+    matched_count = sum(1 for ref_id, pmid in reference_to_pmid.items() if pmid is not None)
+    print(
+        f"PMID mapping results: {matched_count} of {len(reference_ids)} reference IDs matched to PubMed IDs ({matched_count / len(reference_ids) * 100:.1f}%)"
+    )
+
+    urls_to_pmids = {
+        url: reference_to_pmid[id_val] for url, id_val in reference_ids_dic.items() if id_val in reference_to_pmid
+    }
+
+    return urls_to_pmids
+
+
+def _get_reference_data(bc: BioCypher, reference_ids: list[int], base_url: str) -> list[dict]:
+    """Get reference data for PubMed ID mapping.
+
+    Args:
+        bc: BioCypher instance for the download
+        reference_ids: List of IEDB reference IDs to query
+        base_url: Base URL for the API endpoint
+
+    Returns:
+        List of reference data dictionaries
+    """
+    request_hash = hashlib.md5("_".join(sorted(map(str, reference_ids))).encode()).hexdigest()
+    request_name = f"iedb_reference_pmids_{request_hash}"
+
+    reference_list = f"({','.join(map(str, reference_ids))})"
+    check = f"reference_id=in.{reference_list}"
+    url = f"{base_url}?{check}&select=reference_id,reference__pmid"
+
+    print(f"Request URL: {url[:100]}..." if len(url) > 100 else f"Request URL: {url}")
 
     try:
         iedb_request = APIRequest(

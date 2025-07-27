@@ -73,9 +73,9 @@ class NeoTCRAdapter(BaseAdapter):
             table[REGISTRY_KEYS.PUBLICATION_KEY].astype(str).str.replace("PMID:", "").str.strip()
         )
 
-        table = harmonize_sequences(bc, table)
+        table_preprocessed = harmonize_sequences(bc, table)
 
-        return table
+        return table_preprocessed
 
     def get_nodes(self):
         # chain 1

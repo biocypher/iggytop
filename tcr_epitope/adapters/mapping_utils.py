@@ -23,7 +23,7 @@ def map_species_terms(terms: list[str], zooma: bool = False) -> dict:
         "AdV": "Human adenovirus",
         "CMV": "Cytomegalovirus",
         "DENV": "Dengue virus",
-        "EBV": "Human gammaherpesvirus 4",
+        "EBV": "Epstein-Barr virus",
         "HCV": "Hepatitis C virus",
         "HHV": "Human herpesvirus",
         "HIV": "Human immunodeficiency virus",
