@@ -420,7 +420,7 @@ def _get_reference_data(bc: BioCypher, reference_ids: list[int], base_url: str) 
         return []
 
 
-def save_airr_cells_json(airrcells: List[AirrCell], directory: str) -> None:
+def save_airr_cells_json(airrcells: List[AirrCell], directory: str = "") -> None:
     """
     Save a list of AirrCell objects to a compressed JSON file with auto-generated filename.
 

@@ -1,0 +1,31 @@
+name: Generate JSON with AIRR and upload to Zenodo
+
+on:
+  schedule:
+    - cron: '0 0 1 */1 *'  # every 30 days (on 1st of the month)
+  workflow_dispatch:  # allow manual run too
+
+jobs:
+  run-and-upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'poetry'
+
+      - name: Install dependencies with Poetry
+        run: poetry install
+
+      - name: Run script to generate knowledge graph and upload it to zenodo directly
+        run: poetry run python zenodo_update.py --test

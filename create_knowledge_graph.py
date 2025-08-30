@@ -44,7 +44,7 @@ airr_cells = bc.get_kg()
 bc.summary()
 
 # This step required the final kg to be in the airr format (dbms specified in the biocypher config)
-save_airr_cells_json(airr_cells, args.cache_dir)
+save_airr_cells_json(airr_cells)
 
 # Usage example:
 # python3 create_knowledge_graph.py --test True --cache_dir ./cache
