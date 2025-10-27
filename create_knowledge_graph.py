@@ -5,6 +5,7 @@ with receptor-epitope matching information and saves it in JSON format.
 
 from argparse import ArgumentParser
 
+import platformdirs
 from biocypher import BioCypher
 
 from tcr_epitope.adapters.cedar_adapter import CEDARAdapter
@@ -18,7 +19,11 @@ from tcr_epitope.adapters.vdjdb_adapter import VDJDBAdapter
 
 parser = ArgumentParser()
 parser.add_argument("--test", default=False)
-parser.add_argument("--cache_dir", default=None)
+parser.add_argument(
+    "--cache_dir",
+    default=platformdirs.user_cache_dir("iggytop"),
+    help="Cache directory for BioCypher (default: system cache directory)",
+)
 
 args = parser.parse_args()
 
