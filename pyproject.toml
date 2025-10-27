@@ -1,11 +1,10 @@
 [tool.poetry]
-name = "tcr-epitope"
+name = "iggytop"
 version = "0.3.0"
 description = "Immune repertoire information retrieval and integration"
 authors = [
+    "Valeriia Dragan",
     "Sebastian Lobentanzer <sebastian.lobentanzer@gmail.com>",
-    "Lisa Dratva",
-    "Martin Kim",
 ]
 license = "MIT"
 readme = "README.md"
@@ -13,7 +12,7 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.10"
-biocypher = "0.9.3"
+biocypher = "^0.11.0"
 pandas = "^2.0.1"
 PyGithub = "^1"
 requests = "^2"
@@ -27,6 +26,7 @@ bio = "^1.7.1"
 muon = "^0.1.7"
 parasail = "^1.3.4"
 text2term = "^4.5.0"
+scirpy = "^0.22.3"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.2.0"
@@ -46,29 +46,32 @@ exclude = [".git", ".venv", "__pycache__", "*.pyc", "*.ipynb"]
 [tool.ruff.lint]
 # Start with a comprehensive set but not ALL
 select = [
-    "E",    # pycodestyle errors
-    "F",    # Pyflakes
-    "B",    # flake8-bugbear
-    "I",    # isort
-    "N",    # naming
-    "UP",   # pyupgrade
-    "PL",   # Pylint
-    "RUF",  # Ruff-specific rules
-    "D",    # pydocstyle
-    "C90",  # mccabe complexity
-    "S",    # flake8-bandit (security)
+    "E",   # pycodestyle errors
+    "F",   # Pyflakes
+    "B",   # flake8-bugbear
+    "I",   # isort
+    "N",   # naming
+    "UP",  # pyupgrade
+    "PL",  # Pylint
+    "RUF", # Ruff-specific rules
+    "D",   # pydocstyle
+    "C90", # mccabe complexity
+    "S",   # flake8-bandit (security)
 ]
 # Ignore rules that are too strict or conflict with each other
-ignore = ["D203", "D213", "D103"]  # Contradictory docstring rules
+ignore = ["D203", "D213", "D103"] # Contradictory docstring rules
 
 # Per-file rule exemptions
 [tool.ruff.lint.per-file-ignores]
-"test_*.py" = ["S101", "D103"]  # Allow assertions and missing docstrings in tests
-"__init__.py" = ["F401"]  # Allow unused imports in __init__.py
+"test_*.py" = [
+    "S101",
+    "D103",
+] # Allow assertions and missing docstrings in tests
+"__init__.py" = ["F401"] # Allow unused imports in __init__.py
 
 # Docstring settings
 [tool.ruff.lint.pydocstyle]
-convention = "google"  # Use Google-style docstrings
+convention = "google" # Use Google-style docstrings
 
 [tool.ruff.format]
 quote-style = "double"

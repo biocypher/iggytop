@@ -44,8 +44,8 @@ The final output is the **IggyTop** database, which integrates immunoreceptor-ep
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/biocypher/tcr-epitope.git
-   cd open-targets
+   git clone https://github.com/biocypher/iggytop.git
+   cd iggytop
    ```
 
 2. Install dependencies using Poetry:
