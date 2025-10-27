@@ -26,7 +26,8 @@ class VDJDBAdapter(BaseAdapter):
     DB_FNAME = "vdjdb.txt"
 
     def get_latest_release(self, bc: BioCypher) -> str:
-        repo = Github().get_repo(self.REPO_NAME)
+        github_token = os.getenv("GITHUB_TOKEN")
+        repo = Github(github_token).get_repo(self.REPO_NAME)
         db_url = repo.get_latest_release().get_assets()[0].browser_download_url
         # db_url = "https://github.com/antigenomics/vdjdb-db/releases/download/pyvdjdb-2025-02-21/vdjdb-2025-02-21.zip"
 
