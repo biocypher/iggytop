@@ -34,8 +34,6 @@ adapters = [
     MCPASAdapter(bc, args.test),
     TRAITAdapter(bc, args.test),
     IEDBAdapter(bc, args.test),
-    VDJDBAdapter(bc, args.test),
-    MCPASAdapter(bc, args.test),
     TCR3DAdapter(bc, args.test),
     NeoTCRAdapter(bc, args.test),
     CEDARAdapter(bc, args.test),
