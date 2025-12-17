@@ -135,9 +135,6 @@ class VDJDBAdapter(BaseAdapter):
                     on=merge_cols,
                     suffixes=("_chain_1", "_chain_2"),
                 )
-                paired_result = paired_result.rename(
-                    columns={"cdr3": "cdr3_tra", "v.segm": "v.segm_tra", "j.segm": "j.segm_tra"}
-                )
                 result_parts.append(paired_result)
 
         # Process all single chains (unpaired + incomplete pairs)
