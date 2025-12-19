@@ -49,6 +49,7 @@ class TCR3DAdapter(BaseAdapter):
         table = table.replace(["", "nan", "n.a.", "null"], None).where(pd.notnull, None)
 
         rename_cols = {
+            "TCR_complex": REGISTRY_KEYS.MHC_CLASS_KEY,
             "CDR3_alpha": REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
             "TRAV_gene": REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
             "CDR3_beta": REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
@@ -128,6 +129,7 @@ class TCR3DAdapter(BaseAdapter):
         # epitope
         yield from self._generate_nodes_from_table(
             subset_cols=[
+                REGISTRY_KEYS.MHC_CLASS_KEY,
                 REGISTRY_KEYS.EPITOPE_KEY,
                 REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
@@ -139,6 +141,7 @@ class TCR3DAdapter(BaseAdapter):
                 REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
             ],
             property_cols=[
+                REGISTRY_KEYS.MHC_CLASS_KEY,
                 REGISTRY_KEYS.EPITOPE_KEY,
                 REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
