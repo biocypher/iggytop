@@ -12,6 +12,7 @@ import pandas as pd
 from biocypher import APIRequest, BioCypher
 from scirpy.io._datastructures import AirrCell
 
+from logging import getLogger
 from .constants import REGISTRY_KEYS
 from .mapping_utils import map_antigen_names, map_species_terms
 
@@ -201,7 +202,7 @@ def get_iedb_ids_batch(bc: BioCypher, epitopes: list[str], chunk_size: int = 150
     epitopes = [e for e in epitopes if e is not None]
 
     # Step 1: Try exact matches first
-    print("Mapping AA epitope sequences to IEDB IDs: exact matches...")
+    getLogger("biocypher").info("Mapping AA epitope sequences to IEDB IDs: exact matches...")
 
     for i in range(0, len(epitopes), chunk_size):
         chunk = epitopes[i : i + chunk_size]
@@ -243,9 +244,9 @@ def get_iedb_ids_batch(bc: BioCypher, epitopes: list[str], chunk_size: int = 150
     unmatched_epitopes = [ep for ep, info in epitope_to_iedb.items() if info["iri"] == f"seq:{ep}"]
 
     if unmatched_epitopes:
-        print(
-            f"Found {len(epitopes) - len(unmatched_epitopes)} exact IEDB ID matches.",
-            f"Trying substring matches for {len(unmatched_epitopes)} remaining epitopes...",
+        getLogger("biocypher").info(
+            f"Found {len(epitopes) - len(unmatched_epitopes)} exact IEDB ID matches. "
+            f"Trying substring matches for {len(unmatched_epitopes)} remaining epitopes..."
         )
         chunk_size = chunk_size // 2
 
@@ -281,7 +282,7 @@ def get_iedb_ids_batch(bc: BioCypher, epitopes: list[str], chunk_size: int = 150
 
     # Final statistics
     matched_count = sum(1 for ep, info in epitope_to_iedb.items() if info["iri"].startswith("iedb:"))
-    print(
+    getLogger("biocypher").info(
         f"Epitope mapping results: {matched_count} of {len(epitopes)} epitopes matched to IEDB IDs ({matched_count / len(epitopes) * 100:.1f}%)"
     )
     return epitope_to_iedb
@@ -305,7 +306,7 @@ def _get_epitope_data(bc: BioCypher, epitopes: list[str], base_url: str, match_t
         epitope_list = f"({','.join([f'{e}' for e in epitopes])})"
         check = f"linear_sequence=in.{epitope_list}"
         url = f"{base_url}?{check}&select=structure_id,structure_descriptions,linear_sequence,curated_source_antigens&order=structure_id"
-        print(f"Request URL: {url[:100]}..." if len(url) > 100 else f"Request URL: {url}")
+        getLogger("biocypher").info(f"Request URL: {url[:100]}..." if len(url) > 100 else f"Request URL: {url}")
 
     else:
         request_hash = hashlib.md5("_".join(sorted(epitopes)).encode()).hexdigest()
@@ -328,7 +329,7 @@ def _get_epitope_data(bc: BioCypher, epitopes: list[str], base_url: str, match_t
                 return json.load(f)
 
     except Exception as e:
-        print(f"API request failed: {e}")
+        getLogger("biocypher").info(f"API request failed: {e}")
         return []
 
 
@@ -350,7 +351,7 @@ def get_pmids_batch(bc: BioCypher, reference_urls: list[int], chunk_size: int = 
     reference_to_pmid = {}
     reference_ids = [ref_id for ref_id in reference_ids if ref_id is not None]
 
-    print(f"Mapping {len(reference_ids)} IEDB reference IDs to PubMed IDs...")
+    getLogger("biocypher").info(f"Mapping {len(reference_ids)} IEDB reference IDs to PubMed IDs...")
 
     for i in range(0, len(reference_ids), chunk_size):
         chunk = reference_ids[i : i + chunk_size]
@@ -371,7 +372,7 @@ def get_pmids_batch(bc: BioCypher, reference_urls: list[int], chunk_size: int = 
 
     # Final statistics
     matched_count = sum(1 for ref_id, pmid in reference_to_pmid.items() if pmid is not None)
-    print(
+    getLogger("biocypher").info(
         f"PMID mapping results: {matched_count} of {len(reference_ids)} reference IDs matched to PubMed IDs ({matched_count / len(reference_ids) * 100:.1f}%)"
     )
 
@@ -386,7 +387,7 @@ def _get_reference_data(bc: BioCypher, reference_ids: list[int], base_url: str) 
     """Get reference data for PubMed ID mapping.
 
     Args:
-        bc: BioCypher instance for the download
+        bc: Biocypher instance for the download
         reference_ids: List of IEDB reference IDs to query
         base_url: Base URL for the API endpoint
 
@@ -400,7 +401,7 @@ def _get_reference_data(bc: BioCypher, reference_ids: list[int], base_url: str) 
     check = f"reference_id=in.{reference_list}"
     url = f"{base_url}?{check}&select=reference_id,reference__pmid"
 
-    print(f"Request URL: {url[:100]}..." if len(url) > 100 else f"Request URL: {url}")
+    getLogger("biocypher").info(f"Request URL: {url[:100]}..." if len(url) > 100 else f"Request URL: {url}")
 
     try:
         iedb_request = APIRequest(
@@ -416,7 +417,7 @@ def _get_reference_data(bc: BioCypher, reference_ids: list[int], base_url: str) 
                 return json.load(f)
 
     except Exception as e:
-        print(f"API request failed: {e}")
+        getLogger("biocypher").info(f"API request failed: {e}")
         return []
 
 
@@ -456,7 +457,7 @@ def save_airr_cells_json(airrcells: List[AirrCell], directory: str) -> None:
     with gzip.open(filepath, "wt", encoding="utf-8") as f:
         json.dump(serialized_data, f, indent=2, ensure_ascii=False)
 
-    print(f"Compressed JSON saved to: {filepath}")
+    getLogger("biocypher").info(f"Compressed JSON saved to: {filepath}")
 
 
 def save_airr_cells_csv(airr_cells: List, directory: str) -> None:
@@ -528,5 +529,5 @@ def save_airr_cells_csv(airr_cells: List, directory: str) -> None:
     # Save to compressed CSV
     df.to_csv(filepath, index=False, compression="gzip")
 
-    print(f"Compressed CSV saved to: {filepath}")
-    print(f"Shape: {df.shape}")
+    getLogger("biocypher").info(f"Compressed CSV saved to: {filepath}")
+    getLogger("biocypher").info(f"Shape: {df.shape}")
