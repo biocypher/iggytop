@@ -76,6 +76,11 @@ class TCR3DAdapter(BaseAdapter):
         )
         table = table.explode(REGISTRY_KEYS.EPITOPE_KEY).reset_index(drop=True)
 
+        # Replace "CLASS" with "MHC" in the REGISTRY_KEYS.MHC_CLASS_KEY column
+        table[REGISTRY_KEYS.MHC_CLASS_KEY] = table[REGISTRY_KEYS.MHC_CLASS_KEY].replace(
+            to_replace=r"CLASS", value="MHC", regex=True
+        )
+
         # Create a column placeholder for the antigen species
         table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY] = None
 
