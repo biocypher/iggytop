@@ -44,6 +44,10 @@ class BaseAdapter:
         unique_cols: list[str] | None = None,
         property_cols: list[str] | None = None,
     ):
+        ''' The unique_cols are used for selecting the rows which contain relevant information. 
+            They do NOT correspond to the unique identifier.
+            To create the unique identifier, we use unique_cols + V gene (if available) for TCR chains.
+        '''
         if not isinstance(subset_cols, list):
             subset_cols = [subset_cols]
 
@@ -102,6 +106,10 @@ class BaseAdapter:
         source_unique_cols: list[str] | None = None,
         target_unique_cols: list[str] | None = None,
     ):
+        ''' The unique_cols are used for selecting the rows which contain relevant information. 
+            They do NOT correspond to the unique identifier.
+            To create the unique identifier, we use unique_cols + V gene (if available) for TCR chains.
+        '''
         source_subset_cols = source_subset_cols or []
         if not isinstance(source_subset_cols, list):
             source_subset_cols = [source_subset_cols]
@@ -120,7 +128,6 @@ class BaseAdapter:
 
         subset_table = (
             self.table[source_subset_cols + target_subset_cols]
-            .drop_duplicates(subset=source_unique_cols + target_unique_cols)
             .dropna(subset=source_unique_cols + target_unique_cols)
         )
 
