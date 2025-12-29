@@ -11,14 +11,26 @@ from .utils import harmonize_sequences
 
 
 class VDJDBAdapter(BaseAdapter):
-    """BioCypher adapter for the VDJdb database (https://vdjdb.cdr3.net/).
+    """
+    BioCypher adapter for the VDJdb database (https://vdjdb.cdr3.net/).
 
-    Parameters
+    This adapter handles the downloading, reading, and processing of the VDJdb database.
+
+    Attributes
     ----------
-    bc
-        BioCypher instance for DB download.
-    test
-        If `True`, only a subset of the data will be loaded for testing purposes.
+    REPO_NAME : str
+        GitHub repository name for the VDJdb database.
+    DB_DIR : str
+        Directory name for the downloaded database.
+    DB_FNAME : str
+        File name of the database.
+
+    Methods
+    -------
+    get_latest_release(bc)
+        Retrieves the latest release of the VDJdb database from GitHub.
+    read_table(bc, table_path, test)
+        Reads and processes the VDJdb table from the downloaded database file.
     """
 
     REPO_NAME = "antigenomics/vdjdb-db"
@@ -26,6 +38,24 @@ class VDJDBAdapter(BaseAdapter):
     DB_FNAME = "vdjdb.txt"
 
     def get_latest_release(self, bc: BioCypher) -> str:
+        """
+        Retrieves the latest release of the VDJdb database from GitHub.
+
+        Parameters
+        ----------
+        bc : BioCypher
+            An instance of the BioCypher class.
+
+        Returns
+        -------
+        str
+            The file path of the downloaded database.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the database file cannot be found after downloading.
+        """
         github_token = os.getenv("GITHUB_TOKEN")
         repo = Github(github_token).get_repo(self.REPO_NAME)
         db_url = repo.get_latest_release().get_assets()[0].browser_download_url
@@ -52,6 +82,28 @@ class VDJDBAdapter(BaseAdapter):
         return db_path
 
     def read_table(self, bc: BioCypher, table_path: str, test: bool = False) -> pd.DataFrame:
+        """
+        Reads and processes the VDJdb table from the downloaded database file.
+
+        Parameters
+        ----------
+        bc : BioCypher
+            An instance of the BioCypher class.
+        table_path : str
+            Path to the table file.
+        test : bool, optional
+            If `True`, loads only a subset of the data for testing (default is False).
+
+        Returns
+        -------
+        pd.DataFrame
+            A DataFrame containing the processed table data.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the table file cannot be found.
+        """
         table = pd.read_csv(table_path, sep="\t")
         if test:
             table = table.sample(frac=0.01, random_state=42)
@@ -93,7 +145,15 @@ class VDJDBAdapter(BaseAdapter):
         return table_preprocessed
 
     def _transform_paired_data_efficient(self, df):
-        """Efficient transformation that handles ALL cases correctly."""
+        """
+        Efficient transformation that handles ALL cases correctly.
+
+        Args:
+            df (pd.DataFrame): The input DataFrame containing the VDJdb data.
+
+        Returns:
+            pd.DataFrame: A DataFrame with the transformed paired data.
+        """
 
         # 1. Separate unpaired (complex.id == 0)
         unpaired = df[df["complex.id"] == 0].copy()
@@ -150,7 +210,16 @@ class VDJDBAdapter(BaseAdapter):
         return pd.concat(result_parts, ignore_index=True) if result_parts else df
 
     def _process_single_chain(self, df, chain_type):
-        """Process single chain data (TRA or TRB only)."""
+        """
+        Process single chain data (TRA or TRB only).
+
+        Args:
+            df (pd.DataFrame): The input DataFrame containing the single chain data.
+            chain_type (str): The type of chain, either "tra" or "trb".
+
+        Returns:
+            pd.DataFrame: A DataFrame with the processed single chain data.
+        """
         if len(df) == 0:
             return df
 
@@ -173,6 +242,12 @@ class VDJDBAdapter(BaseAdapter):
         return result.drop(columns=["cdr3", "v.segm", "j.segm"])
 
     def get_nodes(self):
+        """
+        Generates nodes for the VDJdb data.
+
+        This method yields node data for chain 1, chain 2, and epitopes.
+        """
+
         # chain 1
         yield from self._generate_nodes_from_table(
             subset_cols=[
@@ -243,6 +318,12 @@ class VDJDBAdapter(BaseAdapter):
         )
 
     def get_edges(self):
+        """
+        Generates edges for the VDJdb data.
+
+        This method yields edge data for chain 1 to chain 2, chain 1 to epitope, and chain 2 to epitope.
+        """
+
         # chain 1 to chain 2
         yield from self._generate_edges_from_table(
             [
