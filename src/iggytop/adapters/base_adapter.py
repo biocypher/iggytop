@@ -13,29 +13,80 @@ if TYPE_CHECKING:
 
 
 class BaseAdapter:
-    """Base class for all adapters. This class is responsible for downloading and reading the data from the source.
+    """
+    Base class for all adapters.
+
+    This class is responsible for downloading and reading the data from the source.
     It also provides methods for generating BioCypher nodes and edges from the data.
+
+    Attributes:
+        table (pd.DataFrame): The data table read from the source.
+    
+    Args:
+        bc (BioCypher): An instance of the BioCypher class.
+        cache_dir (str | None, optional): Directory to cache data. Defaults to None.
+        test (bool, optional): Whether to run in test mode. Defaults to False.
     """
 
     def __init__(self, bc: BioCypher, cache_dir: str | None = None, test: bool = False):
+        """
+        Initializes the BaseAdapter instance.
+
+        Args:
+            bc (BioCypher): An instance of the BioCypher class.
+            cache_dir (str | None, optional): Directory to cache data. Defaults to None.
+            test (bool, optional): Whether to run in test mode. Defaults to False.
+        """
         cache_dir = cache_dir or TemporaryDirectory().name
         table_path = self.get_latest_release(bc)
         self.table = self.read_table(bc, table_path, test)
 
     @abstractmethod
     def get_latest_release(self, bc: BioCypher, cache_dir: str) -> str:
+        """
+        Abstract method to get the latest release of the data.
+
+        Args:
+            bc (BioCypher): An instance of the BioCypher class.
+            cache_dir (str): Directory to cache data.
+
+        Returns:
+            str: Path to the latest release.
+        """
         pass
 
     @abstractmethod
     def read_table(self, table_path: str, test: bool = False) -> pd.DataFrame:
+        """
+        Abstract method to read the data table from the source.
+
+        Args:
+            table_path (str): Path to the data table.
+            test (bool, optional): Whether to run in test mode. Defaults to False.
+
+        Returns:
+            pd.DataFrame: The data table.
+        """
         pass
 
     @abstractmethod
     def get_nodes(self):
+        """
+        Abstract method to generate BioCypher nodes from the data.
+
+        Returns:
+            Iterable: An iterable of BioCypher nodes.
+        """
         pass
 
     @abstractmethod
     def get_edges(self):
+        """
+        Abstract method to generate BioCypher edges from the data.
+
+        Returns:
+            Iterable: An iterable of BioCypher edges.
+        """
         pass
 
     def _generate_nodes_from_table(
