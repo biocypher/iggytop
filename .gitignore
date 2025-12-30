@@ -140,3 +140,4 @@ dmypy.json
 
 # But allow ipynb files in notebooks folder
 !notebooks/*.ipynb
+!docs/source/notebooks/*.ipynb

@@ -6,9 +6,8 @@
 :hidden: true
 :maxdepth: 1
 
-installation.md
-usage.md
 data_structure.md
+usage.md
 tutorials.md
 api
 contributing.md

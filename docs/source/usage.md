@@ -1,11 +1,19 @@
 # Usage
 
-This section provides examples and tutorials on how to use the IggyTop project.
+## Using Iggyptop
 
-## Creating a Knowledge Graph
-To create a knowledge graph, run the following command:
-```bash
-python iggytop/create_knowledge_graph.py
-```
+The iggytop package is not yet published so if it was not installed automatically when running 'uv sync' you can install it with 
+
+`pip install .`
+
+to get started right away, try running 
+
+`uv run create_knowledge_graph.py`
+
+which will create a knowledge graph with all available databases, convert it to AIRR format and save it to a json file.
+
+To use just a subset of the available databases, you can just comment out adapters in the "adapters" list (in create_knowledge_graph.py)
+
 
 ## Additional Examples
+Please check out the tutorials for more use cases.
