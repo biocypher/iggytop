@@ -17,10 +17,10 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
     'sphinx.ext.autosummary',
-    'sphinx_autodoc_typehints',
     'myst_nb',
     'sphinxcontrib.bibtex',
     'sphinx_copybutton',
+    'sphinx.ext.intersphinx',
 ]
 
 templates_path = ['_templates']
@@ -43,6 +43,21 @@ nb_execution_mode = "off"  # Disable notebook execution during build
 
 # Specify the BibTeX file for citations
 bibtex_bibfiles = ['references.bib']
+
+# Intersphinx configuration
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3', None),
+    'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
+    'biocypher': ('https://biocypher.org/', None),
+}
+
+# Autodoc configuration
+autodoc_typehints = "signature"
+autodoc_default_options = {
+    "members": True,
+    "undoc-members": True,
+    "private-members": True,
+}
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

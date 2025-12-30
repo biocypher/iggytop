@@ -95,10 +95,21 @@ class BaseAdapter:
         unique_cols: list[str] | None = None,
         property_cols: list[str] | None = None,
     ):
-        ''' The unique_cols are used for selecting the rows which contain relevant information. 
-            They do NOT correspond to the unique identifier.
-            To create the unique identifier, we use unique_cols + V gene (if available) for TCR chains.
-        '''
+        """
+        Generates BioCypher nodes from the data table.
+
+        The unique_cols are used for selecting the rows which contain relevant information.
+        They do NOT correspond to the unique identifier.
+        To create the unique identifier, we use unique_cols + V gene (if available) for TCR chains.
+
+        Args:
+            subset_cols (list[str]): List of columns to subset the table.
+            unique_cols (list[str] | None, optional): List of columns to check for uniqueness. Defaults to None.
+            property_cols (list[str] | None, optional): List of columns to include as properties. Defaults to None.
+
+        Yields:
+            tuple: A tuple containing the node ID, node type, and properties.
+        """
         if not isinstance(subset_cols, list):
             subset_cols = [subset_cols]
 
@@ -157,10 +168,22 @@ class BaseAdapter:
         source_unique_cols: list[str] | None = None,
         target_unique_cols: list[str] | None = None,
     ):
-        ''' The unique_cols are used for selecting the rows which contain relevant information. 
-            They do NOT correspond to the unique identifier.
-            To create the unique identifier, we use unique_cols + V gene (if available) for TCR chains.
-        '''
+        """
+        Generates BioCypher edges from the data table.
+
+        The unique_cols are used for selecting the rows which contain relevant information.
+        They do NOT correspond to the unique identifier.
+        To create the unique identifier, we use unique_cols + V gene (if available) for TCR chains.
+
+        Args:
+            source_subset_cols (list[str]): List of columns for the source node.
+            target_subset_cols (list[str]): List of columns for the target node.
+            source_unique_cols (list[str] | None, optional): List of unique columns for the source node. Defaults to None.
+            target_unique_cols (list[str] | None, optional): List of unique columns for the target node. Defaults to None.
+
+        Yields:
+            tuple: A tuple containing the edge ID, source ID, target ID, edge type, and properties.
+        """
         source_subset_cols = source_subset_cols or []
         if not isinstance(source_subset_cols, list):
             source_subset_cols = [source_subset_cols]
