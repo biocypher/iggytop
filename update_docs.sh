@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Regenerate API documentation, excluding specific files
-uv run sphinx-apidoc -o docs/source/api . --exclude create_knowledge_graph.py --exclude create_knowledge_graphx.py
+# Regenerate API documentation, pointing to the package source
+uv run sphinx-apidoc -f -o docs/source/api src/iggytop
 
 # Build the documentation
 uv run sphinx-build -b html docs/source docs/build

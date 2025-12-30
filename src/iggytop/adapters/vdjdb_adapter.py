@@ -15,27 +15,16 @@ class VDJDBAdapter(BaseAdapter):
     BioCypher adapter for the VDJdb database (https://vdjdb.cdr3.net/).
 
     This adapter handles the downloading, reading, and processing of the VDJdb database.
-
-    Attributes
-    ----------
-    REPO_NAME : str
-        GitHub repository name for the VDJdb database.
-    DB_DIR : str
-        Directory name for the downloaded database.
-    DB_FNAME : str
-        File name of the database.
-
-    Methods
-    -------
-    get_latest_release(bc)
-        Retrieves the latest release of the VDJdb database from GitHub.
-    read_table(bc, table_path, test)
-        Reads and processes the VDJdb table from the downloaded database file.
     """
 
     REPO_NAME = "antigenomics/vdjdb-db"
+    """GitHub repository name for the VDJdb database."""
+
     DB_DIR = "vdjdb_latest"
+    """Directory name for the downloaded database."""
+
     DB_FNAME = "vdjdb.txt"
+    """File name of the database."""
 
     def get_latest_release(self, bc: BioCypher) -> str:
         """
