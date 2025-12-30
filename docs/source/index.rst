@@ -17,12 +17,6 @@ Contents
 
    installation.md
    usage.md
-   api.md
+   api
    contributing.md
-
-.. toctree::
-   :maxdepth: 2
-   :caption: API Documentation:
-
-   api/modules
 
