@@ -4,6 +4,7 @@ This section contains tutorials on how to use IggyTop.
 
 ```{toctree}
 :maxdepth: 1
+:titlesonly:
 :caption: Available Tutorials
 
 notebooks/1_create_and_save_kg.ipynb
