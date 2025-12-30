@@ -28,8 +28,6 @@ exclude_patterns = [
     '_build',
     'Thumbs.db',
     '.DS_Store',
-    'notebooks/1_create_and_save_kg.ipynb',
-    'notebooks/2_scirpy_test_notebook.ipynb',
 ]
 
 myst_enable_extensions = [
