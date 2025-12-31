@@ -9,7 +9,7 @@ The outputs aim to be compatible with the AIRR standards.
 We aim to be integrated into scirpy, which offers a standardized way of analyzing T cell receptor (TCR) or B cell receptor (BCR) repertoires.
 
 ## Design Choices
-
+(ontology)=
 ### Ontology
 
 BioCypher uses the Biolink ontology and allows custom modifications. This is done using configuration files.
@@ -34,7 +34,7 @@ entity
                     ├── tra sequence
                     └── trb sequence
 ```
-
+(uniquenes)=
 ### Uniqueness
 
 Immune receptor sequences are represented as nodes labeled according to their type (`tra`, `trb`, `igh`, `igl`): CDR3 sequence: and if available their V gene (see [base-adapter](./generated/iggytop.adapters.base_adapter.BaseAdapter.rst)).
