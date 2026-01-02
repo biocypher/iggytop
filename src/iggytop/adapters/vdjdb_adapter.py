@@ -4,6 +4,8 @@ from pathlib import Path
 import pandas as pd
 from biocypher import BioCypher, FileDownload
 from github import Github
+from tqdm.auto import tqdm
+from scirpy.io._datastructures import AirrCell
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
@@ -132,6 +134,97 @@ class VDJDBAdapter(BaseAdapter):
         table_preprocessed = harmonize_sequences(bc, table)
 
         return table_preprocessed
+    
+    def raw_airr_cells(self, bc: BioCypher) -> list:
+        """
+        Converts the VDJdb data to AIRR cell format.
+        This function is adopted from the Scirpy repository.
+        Parameters
+
+        Dev Notes: The scirpy.datasets.vdjdb() function therefore would: 
+            - create a bc object with the Iggytop config
+            - initialize the VDJDBAdapter with that bc object
+            - use the cache path given as arg
+            - run this function
+            - convert to adata
+            - index
+            - write to adata file
+        ----------
+        table_path : str
+            Path to the table file.
+
+        Returns
+        -------
+        list
+            A list of AIRR cell dictionaries.
+        """
+        table_path = self.get_latest_release(bc)
+        table_path = table_path.replace("vdjdb.txt", "vdjdb_full.txt")
+        df = pd.read_csv(table_path, sep="\t")
+
+        tcr_cells = []
+        for idx, row in tqdm(df.iterrows(), total=df.shape[0], desc="Processing VDJDB entries"):
+            cell = AirrCell(cell_id=str(idx))
+            if not pd.isnull(row["cdr3.alpha"]):
+                alpha_chain = AirrCell.empty_chain_dict()
+                alpha_chain.update(
+                    {
+                        "locus": "TRA",
+                        "junction_aa": row["cdr3.alpha"],
+                        "v_call": row["v.alpha"],
+                        "j_call": row["j.alpha"],
+                        "consensus_count": 0,
+                        "productive": True,
+                    }
+                )
+                cell.add_chain(alpha_chain)
+
+            if not pd.isnull(row["cdr3.beta"]):
+                beta_chain = AirrCell.empty_chain_dict()
+                beta_chain.update(
+                    {
+                        "locus": "TRB",
+                        "junction_aa": row["cdr3.beta"],
+                        "v_call": row["v.beta"],
+                        "d_call": row["d.beta"],
+                        "j_call": row["j.beta"],
+                        "consensus_count": 0,
+                        "productive": True,
+                    }
+                )
+                cell.add_chain(beta_chain)
+
+            INCLUDE_CELL_METADATA_FIELDS = [
+                "species",
+                "mhc.a",
+                "mhc.b",
+                "mhc.class",
+                "antigen.epitope",
+                "antigen.gene",
+                "antigen.species",
+                "reference.id",
+                "method.identification",
+                "method.frequency",
+                "method.singlecell",
+                "method.sequencing",
+                "method.verification",
+                "meta.study.id",
+                "meta.cell.subset",
+                "meta.subject.cohort",
+                "meta.subject.id",
+                "meta.replica.id",
+                "meta.clone.id",
+                "meta.epitope.id",
+                "meta.tissue",
+                "meta.donor.MHC",
+                "meta.donor.MHC.method",
+                "meta.structure.id",
+            ]
+            for f in INCLUDE_CELL_METADATA_FIELDS:
+                cell[f] = row[f]
+            tcr_cells.append(cell)
+
+        return tcr_cells
 
     def _transform_paired_data_efficient(self, df):
         """
