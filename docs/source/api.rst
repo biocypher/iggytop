@@ -31,3 +31,8 @@ Utilities
 
    mapping_utils
    utils
+
+References
+----------
+
+.. bibliography::

@@ -246,7 +246,7 @@ class IEDBAdapter(BaseAdapter):
         return table_preprocessed
     def raw_airr_cells(self, bc: BioCypher) -> list:
         """\
-        Download IEBD v3 and process it into an AnnData object.
+        Download IEDB v3 and process it into an AnnData object.
         Adopted from scirpy.datasets.iedb() function.
 
         :cite:`iedb` is a curated database of

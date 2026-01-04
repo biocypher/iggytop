@@ -157,6 +157,7 @@ class VDJDBAdapter(BaseAdapter):
         -------
         list
             A list of AIRR cell dictionaries.
+
         """
         table_path = self.get_latest_release(bc)
         table_path = table_path.replace("vdjdb.txt", "vdjdb_full.txt")
