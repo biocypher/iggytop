@@ -1,0 +1,14 @@
+# add your settings here (overriding the defaults)
+
+biocypher:
+  offline: true
+  debug: true
+  schema_config_path: config/schema_config.yaml
+  dbms: networkx
+
+neo4j:
+  delimiter: '\t'
+  array_delimiter: '|'
+  quote_character: '"'
+  skip_duplicate_nodes: true
+  skip_bad_relationships: true

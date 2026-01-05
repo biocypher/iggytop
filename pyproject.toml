@@ -44,6 +44,12 @@ dev = [
     "bump2version>=1.0.1",
 ]
 
+[tool.setuptools]
+include-package-data = true 
+
+[tool.setuptools.package-data]
+"iggytop" = ["config/*.yaml"]  
+
 [tool.poetry]
 name = "iggytop"
 version = "0.3.0"
