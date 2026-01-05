@@ -1,3 +1,49 @@
+[project]
+name = "iggytop"
+version = "0.3.0"
+description = "Immune repertoire information retrieval and integration"
+authors = [
+    { name = "Valeriia Dragan" },
+    { name = "Sebastian Lobentanzer", email = "sebastian.lobentanzer@gmail.com" },
+]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "biocypher>=0.11.0",
+    "pandas>=2.0.1",
+    "PyGithub>=1",
+    "requests>=2",
+    "pooch>=1",
+    "tqdm>=4.65.0",
+    "ipykernel>=6.29.5",
+    "matplotlib>=3.10.0",
+    "matplotlib-venn>=1.1.1",
+    "numpy==1.26.4",
+    "bio>=1.7.1",
+    "muon>=0.1.7",
+    "parasail>=1.3.4",
+    "text2term>=4.5.0",
+    "scirpy>=0.22.3",
+    "openpyxl>=3.1.5,<4.0.0",
+    "ijson>=3.4.0.post0",
+    "sphinx>=8.1.3",
+    "sphinx-rtd-theme>=3.0.2",
+    "sphinx-autodoc-typehints>=3.0.1",
+    "myst-parser>=4.0.1",
+    "myst-nb>=1.3.0",
+    "sphinxcontrib-bibtex>=2.6.5",
+    "sphinx-book-theme>=1.1.4",
+    "sphinx-copybutton>=0.5.2",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.2.0",
+    "ruff>=0.11.0",
+    "bump2version>=1.0.1",
+]
+
 [tool.poetry]
 name = "iggytop"
 version = "0.3.0"
@@ -8,7 +54,7 @@ authors = [
 ]
 license = "MIT"
 readme = "README.md"
-package-mode = false
+packages = [{include = "iggytop", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"

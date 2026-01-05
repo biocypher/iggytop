@@ -8,14 +8,14 @@ from argparse import ArgumentParser
 import platformdirs
 from biocypher import BioCypher
 
-from tcr_epitope.adapters.cedar_adapter import CEDARAdapter
-from tcr_epitope.adapters.iedb_adapter import IEDBAdapter
-from tcr_epitope.adapters.mcpas_adapter import MCPASAdapter
-from tcr_epitope.adapters.neotcr_adapter import NeoTCRAdapter
-from tcr_epitope.adapters.tcr3d_adapter import TCR3DAdapter
-from tcr_epitope.adapters.trait_adapter import TRAITAdapter
-from tcr_epitope.adapters.utils import save_airr_cells_json
-from tcr_epitope.adapters.vdjdb_adapter import VDJDBAdapter
+from iggytop.adapters.cedar_adapter import CEDARAdapter
+from iggytop.adapters.iedb_adapter import IEDBAdapter
+from iggytop.adapters.mcpas_adapter import MCPASAdapter
+from iggytop.adapters.neotcr_adapter import NeoTCRAdapter
+from iggytop.adapters.tcr3d_adapter import TCR3DAdapter
+from iggytop.adapters.trait_adapter import TRAITAdapter
+from iggytop.adapters.utils import save_airr_cells_json
+from iggytop.adapters.vdjdb_adapter import VDJDBAdapter
 
 parser = ArgumentParser()
 parser.add_argument("--test", default=False)
