@@ -17,6 +17,7 @@
       ~IEDBAdapter.get_edges
       ~IEDBAdapter.get_latest_release
       ~IEDBAdapter.get_nodes
+      ~IEDBAdapter.raw_airr_cells
       ~IEDBAdapter.read_table
    
    

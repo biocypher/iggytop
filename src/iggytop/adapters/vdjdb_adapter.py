@@ -46,6 +46,7 @@ class VDJDBAdapter(BaseAdapter):
         ------
         FileNotFoundError
             If the database file cannot be found after downloading.
+
         """
         github_token = os.getenv("GITHUB_TOKEN")
         repo = Github(github_token).get_repo(self.REPO_NAME)
@@ -149,6 +150,7 @@ class VDJDBAdapter(BaseAdapter):
             - convert to adata
             - index
             - write to adata file
+
         ----------
         table_path : str
             Path to the table file.

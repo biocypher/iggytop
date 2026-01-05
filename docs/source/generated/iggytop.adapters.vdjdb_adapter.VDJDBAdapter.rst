@@ -17,6 +17,7 @@
       ~VDJDBAdapter.get_edges
       ~VDJDBAdapter.get_latest_release
       ~VDJDBAdapter.get_nodes
+      ~VDJDBAdapter.raw_airr_cells
       ~VDJDBAdapter.read_table
    
    
