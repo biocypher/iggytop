@@ -4,6 +4,8 @@ from pathlib import Path
 import pandas as pd
 from biocypher import BioCypher, FileDownload
 from github import Github
+from tqdm.auto import tqdm
+from scirpy.io._datastructures import AirrCell
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
@@ -11,21 +13,41 @@ from .utils import harmonize_sequences
 
 
 class VDJDBAdapter(BaseAdapter):
-    """BioCypher adapter for the VDJdb database (https://vdjdb.cdr3.net/).
+    """
+    BioCypher adapter for the VDJdb database (https://vdjdb.cdr3.net/).
 
-    Parameters
-    ----------
-    bc
-        BioCypher instance for DB download.
-    test
-        If `True`, only a subset of the data will be loaded for testing purposes.
+    This adapter handles the downloading, reading, and processing of the VDJdb database.
     """
 
     REPO_NAME = "antigenomics/vdjdb-db"
+    """GitHub repository name for the VDJdb database."""
+
     DB_DIR = "vdjdb_latest"
+    """Directory name for the downloaded database."""
+
     DB_FNAME = "vdjdb.txt"
+    """File name of the database."""
 
     def get_latest_release(self, bc: BioCypher) -> str:
+        """
+        Retrieves the latest release of the VDJdb database from GitHub.
+
+        Parameters
+        ----------
+        bc : BioCypher
+            An instance of the BioCypher class.
+
+        Returns
+        -------
+        str
+            The file path of the downloaded database.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the database file cannot be found after downloading.
+
+        """
         github_token = os.getenv("GITHUB_TOKEN")
         repo = Github(github_token).get_repo(self.REPO_NAME)
         db_url = repo.get_latest_release().get_assets()[0].browser_download_url
@@ -52,6 +74,28 @@ class VDJDBAdapter(BaseAdapter):
         return db_path
 
     def read_table(self, bc: BioCypher, table_path: str, test: bool = False) -> pd.DataFrame:
+        """
+        Reads and processes the VDJdb table from the downloaded database file.
+
+        Parameters
+        ----------
+        bc : BioCypher
+            An instance of the BioCypher class.
+        table_path : str
+            Path to the table file.
+        test : bool, optional
+            If `True`, loads only a subset of the data for testing (default is False).
+
+        Returns
+        -------
+        pd.DataFrame
+            A DataFrame containing the processed table data.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the table file cannot be found.
+        """
         table = pd.read_csv(table_path, sep="\t")
         if test:
             table = table.sample(frac=0.01, random_state=42)
@@ -91,9 +135,110 @@ class VDJDBAdapter(BaseAdapter):
         table_preprocessed = harmonize_sequences(bc, table)
 
         return table_preprocessed
+    
+    def raw_airr_cells(self, bc: BioCypher) -> list:
+        """
+        Converts the VDJdb data to AIRR cell format.
+        This function is adopted from the Scirpy repository.
+        Parameters
+
+        Dev Notes: The scirpy.datasets.vdjdb() function therefore would: 
+            - create a bc object with the Iggytop config
+            - initialize the VDJDBAdapter with that bc object
+            - use the cache path given as arg
+            - run this function
+            - convert to adata
+            - index
+            - write to adata file
+
+        ----------
+        table_path : str
+            Path to the table file.
+
+        Returns
+        -------
+        list
+            A list of AIRR cell dictionaries.
+
+        """
+        table_path = self.get_latest_release(bc)
+        table_path = table_path.replace("vdjdb.txt", "vdjdb_full.txt")
+        df = pd.read_csv(table_path, sep="\t")
+
+        tcr_cells = []
+        for idx, row in tqdm(df.iterrows(), total=df.shape[0], desc="Processing VDJDB entries"):
+            cell = AirrCell(cell_id=str(idx))
+            if not pd.isnull(row["cdr3.alpha"]):
+                alpha_chain = AirrCell.empty_chain_dict()
+                alpha_chain.update(
+                    {
+                        "locus": "TRA",
+                        "junction_aa": row["cdr3.alpha"],
+                        "v_call": row["v.alpha"],
+                        "j_call": row["j.alpha"],
+                        "consensus_count": 0,
+                        "productive": True,
+                    }
+                )
+                cell.add_chain(alpha_chain)
+
+            if not pd.isnull(row["cdr3.beta"]):
+                beta_chain = AirrCell.empty_chain_dict()
+                beta_chain.update(
+                    {
+                        "locus": "TRB",
+                        "junction_aa": row["cdr3.beta"],
+                        "v_call": row["v.beta"],
+                        "d_call": row["d.beta"],
+                        "j_call": row["j.beta"],
+                        "consensus_count": 0,
+                        "productive": True,
+                    }
+                )
+                cell.add_chain(beta_chain)
+
+            INCLUDE_CELL_METADATA_FIELDS = [
+                "species",
+                "mhc.a",
+                "mhc.b",
+                "mhc.class",
+                "antigen.epitope",
+                "antigen.gene",
+                "antigen.species",
+                "reference.id",
+                "method.identification",
+                "method.frequency",
+                "method.singlecell",
+                "method.sequencing",
+                "method.verification",
+                "meta.study.id",
+                "meta.cell.subset",
+                "meta.subject.cohort",
+                "meta.subject.id",
+                "meta.replica.id",
+                "meta.clone.id",
+                "meta.epitope.id",
+                "meta.tissue",
+                "meta.donor.MHC",
+                "meta.donor.MHC.method",
+                "meta.structure.id",
+            ]
+            for f in INCLUDE_CELL_METADATA_FIELDS:
+                cell[f] = row[f]
+            tcr_cells.append(cell)
+
+        return tcr_cells
 
     def _transform_paired_data_efficient(self, df):
-        """Efficient transformation that handles ALL cases correctly."""
+        """
+        Efficient transformation that handles ALL cases correctly.
+
+        Args:
+            df (pd.DataFrame): The input DataFrame containing the VDJdb data.
+
+        Returns:
+            pd.DataFrame: A DataFrame with the transformed paired data.
+        """
 
         # 1. Separate unpaired (complex.id == 0)
         unpaired = df[df["complex.id"] == 0].copy()
@@ -135,9 +280,6 @@ class VDJDBAdapter(BaseAdapter):
                     on=merge_cols,
                     suffixes=("_chain_1", "_chain_2"),
                 )
-                paired_result = paired_result.rename(
-                    columns={"cdr3": "cdr3_tra", "v.segm": "v.segm_tra", "j.segm": "j.segm_tra"}
-                )
                 result_parts.append(paired_result)
 
         # Process all single chains (unpaired + incomplete pairs)
@@ -153,7 +295,16 @@ class VDJDBAdapter(BaseAdapter):
         return pd.concat(result_parts, ignore_index=True) if result_parts else df
 
     def _process_single_chain(self, df, chain_type):
-        """Process single chain data (TRA or TRB only)."""
+        """
+        Process single chain data (TRA or TRB only).
+
+        Args:
+            df (pd.DataFrame): The input DataFrame containing the single chain data.
+            chain_type (str): The type of chain, either "tra" or "trb".
+
+        Returns:
+            pd.DataFrame: A DataFrame with the processed single chain data.
+        """
         if len(df) == 0:
             return df
 
@@ -176,6 +327,12 @@ class VDJDBAdapter(BaseAdapter):
         return result.drop(columns=["cdr3", "v.segm", "j.segm"])
 
     def get_nodes(self):
+        """
+        Generates nodes for the VDJdb data.
+
+        This method yields node data for chain 1, chain 2, and epitopes.
+        """
+
         # chain 1
         yield from self._generate_nodes_from_table(
             subset_cols=[
@@ -246,6 +403,12 @@ class VDJDBAdapter(BaseAdapter):
         )
 
     def get_edges(self):
+        """
+        Generates edges for the VDJdb data.
+
+        This method yields edge data for chain 1 to chain 2, chain 1 to epitope, and chain 2 to epitope.
+        """
+
         # chain 1 to chain 2
         yield from self._generate_edges_from_table(
             [

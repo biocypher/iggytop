@@ -3,7 +3,10 @@ import os
 from pathlib import Path
 
 import pandas as pd
+from tqdm.auto import tqdm
 from biocypher import BioCypher
+from scirpy.io._io import _infer_locus_from_gene_names
+from scirpy.io._datastructures import AirrCell
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
@@ -36,7 +39,7 @@ class IEDBAdapter(BaseAdapter):
 
     def get_latest_release(self, bc: BioCypher) -> tuple[str, str]:
         # Create cache directory manually
-        cache_dir = Path(bc._cache_directory) / "iedb_latest"
+        cache_dir = Path(bc._cache_directory) / self.DB_DIR
         cache_dir.mkdir(parents=True, exist_ok=True)
 
         zip_file_path = cache_dir / "receptor_full_v3.zip"
@@ -241,7 +244,143 @@ class IEDBAdapter(BaseAdapter):
         )
 
         return table_preprocessed
+    def raw_airr_cells(self, bc: BioCypher) -> list:
+        """\
+        Download IEDB v3 and process it into an AnnData object.
+        Adopted from scirpy.datasets.iedb() function.
 
+        :cite:`iedb` is a curated database of
+        T-cell receptor (TCR) sequences with known antigen specificities.
+
+        Dev Notes: The scirpy.datasets.vdjdb() function therefore would: 
+            - create a bc object with the Iggytop config
+            - initialize the VDJDBAdapter with that bc object
+            - use the cache path given as arg
+            - caching of airr cells is handled by scirpy (keep that part)
+            - run this function
+            - convert to adata
+            - index
+            - write to adata file
+
+        Parameters
+        ----------
+        cached
+            If `True`, attempt to read from the `data` directory before downloading
+        cache_path
+            Location where the h5ad object will be saved
+
+        Returns
+        -------
+        An anndata object containing all entries from IEDB in `obsm["airr"]`.
+        Each entry is represented as if it was a cell, but without gene expression.
+        Metadata is stored in `adata.uns["DB"]`.
+        """
+
+        iedb_df = pd.concat(
+            [
+                pd.read_csv(
+                    filepath,
+                    index_col=None,
+                    header=[0, 1],
+                    sep=",",
+                    na_values=["None"],
+                    true_values=["True"],
+                    low_memory=False,
+                )
+                for filepath in self.get_latest_release(bc)
+            ]
+        ).reset_index(drop=True)
+
+        # deal with multiindex (join by " " to single index). This is how columns were
+        # named before an IEDB update in 2023-04
+        iedb_df.columns = iedb_df.columns.to_series().apply(lambda x: " ".join(x))
+        iedb_df = iedb_df.drop_duplicates()
+        iedb_df = iedb_df.drop_duplicates(
+            [
+                "Chain 1 CDR3 Curated",
+                "Chain 2 CDR3 Curated",
+                "Epitope Source Organism",
+                "Epitope Source Molecule",
+                "Receptor Reference Name",
+                "Chain 1 Type",
+                "Chain 2 Type",
+            ]
+        )
+
+        # If no curated CDR3 sequence or V/D/J gene is available, the calculated one is used.
+        def replace_curated(input_1, input_2):
+            calculated_1 = input_1.replace("Curated", "Calculated")
+            iedb_df.loc[iedb_df[input_1].isna(), input_1] = iedb_df[calculated_1]
+            iedb_df[input_1] = iedb_df[input_1].str.upper()
+            calculated_2 = input_2.replace("Curated", "Calculated")
+            iedb_df.loc[iedb_df[input_2].isna(), input_2] = iedb_df[calculated_2]
+            iedb_df[input_2] = iedb_df[input_2].str.upper()
+
+        replace_curated("Chain 1 CDR3 Curated", "Chain 2 CDR3 Curated")
+        replace_curated("Chain 1 Curated V Gene", "Chain 2 Curated V Gene")
+        replace_curated("Chain 1 Curated D Gene", "Chain 2 Curated D Gene")
+        replace_curated("Chain 1 Curated J Gene", "Chain 2 Curated J Gene")
+
+        iedb_df["cell_id"] = iedb_df.reset_index(drop=True).index
+
+        accepted_chains = ["alpha", "beta", "heavy", "light", "gamma", "delta"]
+        iedb_df = iedb_df[(iedb_df["Chain 1 Type"].isin(accepted_chains)) & (iedb_df["Chain 2 Type"].isin(accepted_chains))]
+
+        receptor_dict = {
+            "alpha": "TRA",
+            "beta": "TRB",
+            "heavy": "IGH",
+            # IEDB does not distinguish between lambda and kappa
+            "light": None,
+            "gamma": "TRG",
+            "delta": "TRD",
+        }
+
+        tcr_cells = []
+        for _, row in tqdm(iedb_df.iterrows(), total=iedb_df.shape[0], desc="Processing IEDB entries"):
+            cell = AirrCell(cell_id=row["cell_id"], logger=logger)
+            chain1 = AirrCell.empty_chain_dict()
+            chain2 = AirrCell.empty_chain_dict()
+            cell["Receptor IEDB Receptor ID"] = row["Receptor IEDB Receptor ID"]
+            cell["Epitope Source Molecule"] = row["Epitope Source Molecule"]
+            cell["Epitope Source Organism"] = row["Epitope Source Organism"]
+            cell["Receptor Reference Namee"] = row["Receptor Reference Name"]
+            cell["Reference IEDB IRI"] = row["Reference IEDB IRI"]
+            cell["Epitope IEDB IRI"] = row["Epitope IEDB IRI"]
+            chain1.update(
+                {
+                    "locus": receptor_dict[row["Chain 1 Type"]],
+                    "junction_aa": row["Chain 1 CDR3 Curated"],
+                    "junction": None,
+                    "consensus_count": None,
+                    "v_call": row["Chain 1 Curated V Gene"],
+                    "d_call": None,
+                    "j_call": row["Chain 1 Curated J Gene"],
+                    "productive": True,
+                }
+            )
+            chain2.update(
+                {
+                    "locus": receptor_dict[row["Chain 2 Type"]],
+                    "junction_aa": row["Chain 2 CDR3 Curated"],
+                    "junction": None,
+                    "consensus_count": None,
+                    "v_call": row["Chain 2 Curated V Gene"],
+                    "d_call": row["Chain 2 Curated D Gene"],
+                    "j_call": row["Chain 2 Curated J Gene"],
+                    "productive": True,
+                }
+            )
+            for chain_dict in [chain1, chain2]:
+                # Since IEDB does not distinguish between lambda and kappa light chains, we need
+                # to call them from the gene names
+                if chain_dict["locus"] is None:
+                    chain_dict["locus"] = _infer_locus_from_gene_names(chain_dict, keys=("v_call", "d_call", "j_call"))
+                cell.add_chain(chain_dict)
+
+            tcr_cells.append(cell)
+        return tcr_cells
+    
     def get_nodes(self):
         # chain 1
         yield from self._generate_nodes_from_table(

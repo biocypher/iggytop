@@ -1,0 +1,33 @@
+﻿iggytop.adapters.mcpas\_adapter.MCPASAdapter
+============================================
+
+.. currentmodule:: iggytop.adapters.mcpas_adapter
+
+.. autoclass:: MCPASAdapter
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~MCPASAdapter.__init__
+      ~MCPASAdapter.get_edges
+      ~MCPASAdapter.get_latest_release
+      ~MCPASAdapter.get_nodes
+      ~MCPASAdapter.read_table
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~MCPASAdapter.DB_DIR
+      ~MCPASAdapter.DB_URL
+   
+   

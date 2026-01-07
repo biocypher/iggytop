@@ -49,6 +49,7 @@ class TCR3DAdapter(BaseAdapter):
         table = table.replace(["", "nan", "n.a.", "null"], None).where(pd.notnull, None)
 
         rename_cols = {
+            "TCR_complex": REGISTRY_KEYS.MHC_CLASS_KEY,
             "CDR3_alpha": REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
             "TRAV_gene": REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
             "CDR3_beta": REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
@@ -74,6 +75,11 @@ class TCR3DAdapter(BaseAdapter):
             lambda x: x.split(",") if x is not None and "," in x else x
         )
         table = table.explode(REGISTRY_KEYS.EPITOPE_KEY).reset_index(drop=True)
+
+        # Replace "CLASS" with "MHC" in the REGISTRY_KEYS.MHC_CLASS_KEY column
+        table[REGISTRY_KEYS.MHC_CLASS_KEY] = table[REGISTRY_KEYS.MHC_CLASS_KEY].replace(
+            to_replace=r"CLASS", value="MHC", regex=True
+        )
 
         # Create a column placeholder for the antigen species
         table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY] = None
@@ -128,6 +134,7 @@ class TCR3DAdapter(BaseAdapter):
         # epitope
         yield from self._generate_nodes_from_table(
             subset_cols=[
+                REGISTRY_KEYS.MHC_CLASS_KEY,
                 REGISTRY_KEYS.EPITOPE_KEY,
                 REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
@@ -139,6 +146,7 @@ class TCR3DAdapter(BaseAdapter):
                 REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
             ],
             property_cols=[
+                REGISTRY_KEYS.MHC_CLASS_KEY,
                 REGISTRY_KEYS.EPITOPE_KEY,
                 REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,

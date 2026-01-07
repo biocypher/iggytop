@@ -59,9 +59,9 @@ The final output is the **IggyTop** database, which integrates immunoreceptor-ep
    ```
 
 4. You are ready to go!
-    ```{bash}
-    python create_knowledge_graph.py
-    ```
+   ```bash
+   python create_knowledge_graph.py
+   ```
 
 ## Pipeline
 
