@@ -1,3 +1,17 @@
+#-------------------------------------------------------------------
+#---- Title: Schema Configuration file example
+#---- Authors: <author 1>, <author 2>
+#---- Description: Schema to load information related to proteins, and
+#                  and their interactions.
+#
+#-------------------------------------------------------------------
+
+#-------------------------------------------------------------------
+#-------------------------      NODES      -------------------------
+#-------------------------------------------------------------------
+#=========    PARENT NODES
+# Parent nodes can be found in biolink
+#=========    INHERITED NODES
 immune receptor sequence:
   is_a: polypeptide
 
@@ -14,12 +28,12 @@ t cell receptor sequence:
 b cell receptor sequence:
   is_a: immune receptor sequence
   properties:
-    junction_aa: str
-    v_call : str
-    j_call : str
-    cdr1_aa : str
-    cdr2_aa : str
-    species : str
+      junction_aa: str
+      v_call : str
+      j_call : str
+      cdr1_aa : str
+      cdr2_aa : str
+      species : str
 
 tra sequence:
   is_a: t cell receptor sequence
@@ -48,6 +62,14 @@ epitope:
   properties:
     epitope_sequence: str
     iedb_iri: str
+
+#-------------------------------------------------------------------
+#------------------      RELATIONSHIPS (EDGES)     -----------------
+#-------------------------------------------------------------------
+#=========    PARENT EDGES
+immune receptor to epitope association:
+  is_a: association
+  properties:
     antigen_name: str
     antigen_species: str
     MHC_class: str
@@ -55,23 +77,52 @@ epitope:
     MHC_gene_2: str
     PMID: str
 
+#=========    INHERITED EDGES
+immune receptor to epitope association:
+  is_a: association
+  
+immune receptor pair to epitope association:
+  is_a: association
 
 t cell receptor sequence to epitope association:
-  is_a: association
+  is_a: immune receptor to epitope association
   represented_as: edge
   input_label: [tra_to_epitope, trb_to_epitope]
 
 b cell receptor sequence to epitope association:
-  is_a: association
+  is_a: immune receptor to epitope association
   represented_as: edge
   input_label: [igh_to_epitope, igl_to_epitope]
 
+t cell receptor pair to epitope association:
+  is_a: immune receptor pair to epitope association
+  represented_as: edge
+  source: alpha sequence to beta sequence association
+  target: epitope
+  input_label: tcr_pair_to_epitope
+
+b cell receptor pair to epitope association:
+  is_a: immune receptor pair to epitope association
+  represented_as: edge
+  source: heavy sequence to light sequence association
+  target: epitope
+  input_label: bcr_pair_to_epitope
+
+#=========    EDGES AS NODES
 alpha sequence to beta sequence association:
   is_a: association
   represented_as: node
+  source: tra sequence
+  target: trb sequence
   input_label: tra_to_trb
+  properties:
+    directed: false 
 
 heavy sequence to light sequence association:
   is_a: association
   represented_as: node
+  source: igh sequence
+  target: igl sequence
   input_label: igh_to_igl
+  properties:
+    directed: false 

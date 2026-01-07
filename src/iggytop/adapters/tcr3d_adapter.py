@@ -131,25 +131,15 @@ class TCR3DAdapter(BaseAdapter):
         # epitope
         yield from self._generate_nodes_from_table(
             subset_cols=[
-                REGISTRY_KEYS.MHC_CLASS_KEY,
                 REGISTRY_KEYS.EPITOPE_KEY,
                 REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
-                REGISTRY_KEYS.MHC_GENE_1_KEY,
-                REGISTRY_KEYS.ANTIGEN_KEY,
-                REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
-                REGISTRY_KEYS.PUBLICATION_KEY,
             ],
             unique_cols=[
                 REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
             ],
             property_cols=[
-                REGISTRY_KEYS.MHC_CLASS_KEY,
                 REGISTRY_KEYS.EPITOPE_KEY,
                 REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
-                REGISTRY_KEYS.MHC_GENE_1_KEY,
-                REGISTRY_KEYS.ANTIGEN_KEY,
-                REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
-                REGISTRY_KEYS.PUBLICATION_KEY,
             ],
         )
 
@@ -180,9 +170,24 @@ class TCR3DAdapter(BaseAdapter):
                 REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
             ],
-            [REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY],
+            [
+                REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
+                REGISTRY_KEYS.MHC_CLASS_KEY,
+                REGISTRY_KEYS.MHC_GENE_1_KEY,
+                REGISTRY_KEYS.ANTIGEN_KEY,
+                REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
+                REGISTRY_KEYS.PUBLICATION_KEY,
+            ],
             source_unique_cols=REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            source_exclude_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
             target_unique_cols=REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
+            property_cols=[
+                REGISTRY_KEYS.MHC_CLASS_KEY,
+                REGISTRY_KEYS.MHC_GENE_1_KEY,
+                REGISTRY_KEYS.ANTIGEN_KEY,
+                REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
+                REGISTRY_KEYS.PUBLICATION_KEY,
+            ],
         )
 
         # chain 2 to epitope
@@ -193,7 +198,50 @@ class TCR3DAdapter(BaseAdapter):
                 REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
                 REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             ],
-            [REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY],
+            [
+                REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
+                REGISTRY_KEYS.MHC_CLASS_KEY,
+                REGISTRY_KEYS.MHC_GENE_1_KEY,
+                REGISTRY_KEYS.ANTIGEN_KEY,
+                REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
+                REGISTRY_KEYS.PUBLICATION_KEY,
+            ],
             source_unique_cols=REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+            source_exclude_cols=REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
             target_unique_cols=REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
+            property_cols=[
+                REGISTRY_KEYS.MHC_CLASS_KEY,
+                REGISTRY_KEYS.MHC_GENE_1_KEY,
+                REGISTRY_KEYS.ANTIGEN_KEY,
+                REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
+                REGISTRY_KEYS.PUBLICATION_KEY,
+            ],
         )
+        
+        # pair to epitope
+        yield from self._generate_edges_from_table(
+            [
+                REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
+                REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+                REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_2_TYPE_KEY,
+                REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+                REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
+                REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
+            ],
+            [
+                REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
+                REGISTRY_KEYS.EPITOPE_KEY
+            ],
+            source_unique_cols=[REGISTRY_KEYS.CHAIN_2_CDR3_KEY, REGISTRY_KEYS.CHAIN_1_CDR3_KEY],
+            target_unique_cols=REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
+            property_cols=[
+                REGISTRY_KEYS.MHC_CLASS_KEY,
+                REGISTRY_KEYS.MHC_GENE_1_KEY,
+                REGISTRY_KEYS.ANTIGEN_KEY,
+                REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
+                REGISTRY_KEYS.PUBLICATION_KEY,
+            ],
+        )
+

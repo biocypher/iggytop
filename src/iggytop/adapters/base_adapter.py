@@ -169,7 +169,9 @@ class BaseAdapter:
         source_subset_cols: list[str],
         target_subset_cols: list[str],
         source_unique_cols: list[str] | None = None,
+        source_exclude_cols: list[str] | None = None,
         target_unique_cols: list[str] | None = None,
+        property_cols: list[str] | None = None,
     ):
         """
         Generates BioCypher edges from the data table.
@@ -182,6 +184,7 @@ class BaseAdapter:
             source_subset_cols (list[str]): List of columns for the source node.
             target_subset_cols (list[str]): List of columns for the target node.
             source_unique_cols (list[str] | None, optional): List of unique columns for the source node. Defaults to None.
+            source_exclude_cols (list[str] | None, optional): List of columns which must be NaN. Defaults to None.
             target_unique_cols (list[str] | None, optional): List of unique columns for the target node. Defaults to None.
 
         Yields:
@@ -195,6 +198,9 @@ class BaseAdapter:
         if not isinstance(source_unique_cols, list):
             source_unique_cols = [source_unique_cols]
 
+        if source_exclude_cols and not isinstance(source_exclude_cols, list):
+            source_exclude_cols = [source_exclude_cols]
+
         target_subset_cols = target_subset_cols or []
         if not isinstance(target_subset_cols, list):
             target_subset_cols = [target_subset_cols]
@@ -203,8 +209,12 @@ class BaseAdapter:
         if not isinstance(target_unique_cols, list):
             target_unique_cols = [target_unique_cols]
 
+        if source_exclude_cols:
+            subset_table = self.table[self.table[source_exclude_cols].isna().all(axis=1)]
+        else:
+            subset_table = self.table
         subset_table = (
-            self.table[source_subset_cols + target_subset_cols]
+            subset_table[source_subset_cols + target_subset_cols + (property_cols or [])]
             .dropna(subset=source_unique_cols + target_unique_cols)
         )
 
@@ -213,28 +223,43 @@ class BaseAdapter:
             node_data = {}
             for i in ["source", "target"]:
                 cols = locals()[f"{i}_subset_cols"]
-                if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in cols:
-                    node_type = row[REGISTRY_KEYS.CHAIN_1_TYPE_KEY]
-                    v_gene_key = REGISTRY_KEYS.CHAIN_1_V_GENE_KEY
-                elif REGISTRY_KEYS.CHAIN_2_TYPE_KEY in cols:
-                    node_type = row[REGISTRY_KEYS.CHAIN_2_TYPE_KEY]
-                    v_gene_key = REGISTRY_KEYS.CHAIN_2_V_GENE_KEY
-                else:
-                    node_type = "epitope"
-                    v_gene_key = None
 
-                id_components = [node_type.lower()]
-                id_components.extend(row[locals()[f"{i}_unique_cols"]].tolist())
 
-                if v_gene_key:
-                    v_gene = row[v_gene_key]
-                    if v_gene:
-                        id_components.append(v_gene)
+                if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in cols and REGISTRY_KEYS.CHAIN_2_TYPE_KEY in cols:
+                    chain1 = row[REGISTRY_KEYS.CHAIN_1_TYPE_KEY]+":"+row[locals()[f"{i}_unique_cols"][0]] 
+                    if  row[REGISTRY_KEYS.CHAIN_1_V_GENE_KEY]:
+                        chain1 += ":" + row[REGISTRY_KEYS.CHAIN_1_V_GENE_KEY]
+                    chain2 = row[REGISTRY_KEYS.CHAIN_2_TYPE_KEY]+":"+ row[locals()[f"{i}_unique_cols"][1]]
+                    if  row[REGISTRY_KEYS.CHAIN_2_V_GENE_KEY]:
+                        chain2 += ":" + row[REGISTRY_KEYS.CHAIN_2_V_GENE_KEY]
+                        
+                    node_data[i] = {
+                        "id":  f"pair:{chain1}-{chain2}",
+                        "type":  f"{row[REGISTRY_KEYS.CHAIN_1_TYPE_KEY][0].lower()}cr_pair" #bcr or tcr
+                    }
+                else:                    
+                    if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in cols:
+                        node_type = row[REGISTRY_KEYS.CHAIN_1_TYPE_KEY]
+                        v_gene_key = REGISTRY_KEYS.CHAIN_1_V_GENE_KEY
+                    elif REGISTRY_KEYS.CHAIN_2_TYPE_KEY in cols:
+                        node_type = row[REGISTRY_KEYS.CHAIN_2_TYPE_KEY]
+                        v_gene_key = REGISTRY_KEYS.CHAIN_2_V_GENE_KEY
+                    else:
+                        node_type = "epitope"
+                        v_gene_key = None
 
-                node_data[i] = {
-                    "id": ":".join(id_components),
-                    "type": node_type
-                }
+                    id_components = [node_type.lower()]
+                    id_components.extend(row[locals()[f"{i}_unique_cols"]].tolist())
+
+                    if v_gene_key:
+                        v_gene = row[v_gene_key]
+                        if v_gene:
+                            id_components.append(v_gene)
+
+                    node_data[i] = {
+                        "id": ":".join(id_components),
+                        "type": node_type
+                    }
 
             _source_id = node_data["source"]["id"]
             _target_id = node_data["target"]["id"]
@@ -243,5 +268,10 @@ class BaseAdapter:
 
             _id = f"{_source_id}-{_target_id}"
             _type = f"{_source_type.lower()}_to_{_target_type.lower()}"
+            if property_cols:
+                _props = {re.sub("chain_\d_", "", k): row[k] for k in property_cols}
+            else:
+                _props = {}
+            # _props["junction_aa"] = row[unique_cols[0]] if unique_cols else None
 
-            yield (_id, _source_id, _target_id, _type, {})
+            yield (_id, _source_id, _target_id, _type, _props)
