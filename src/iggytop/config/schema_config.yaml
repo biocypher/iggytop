@@ -68,10 +68,10 @@ b cell receptor sequence to epitope association:
 
 alpha sequence to beta sequence association:
   is_a: association
-  represented_as: edge
+  represented_as: node
   input_label: tra_to_trb
 
 heavy sequence to light sequence association:
   is_a: association
-  represented_as: edge
+  represented_as: node
   input_label: igh_to_igl
