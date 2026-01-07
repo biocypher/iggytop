@@ -9,14 +9,11 @@ from .utils import harmonize_sequences
 
 
 class TRAITAdapter(BaseAdapter):
-    """A Comprehensive Database for T-cell Receptor-Antigen Interactions (TRAIT)[https://pgx.zju.edu.cn/traitdb/].
+    """A Comprehensive Database for T-cell Receptor-Antigen Interactions `TRAIT <https://pgx.zju.edu.cn/traitdb/>`_.
 
-    Parameters
-    ----------
-    bc
-        BioCypher instance for DB download.
-    test
-        If `True`, only a subset of the data will be loaded for testing purposes.
+    Args:
+        bc (BioCypher): BioCypher instance for DB download.
+        test (bool, optional): If `True`, only a subset of the data will be loaded for testing purposes. Defaults to False.
     """
 
     DB_URL = "https://pgx.zju.edu.cn/download.trait/Interactive_TCR-pMHC_Pairs.zip_20250312.zip"

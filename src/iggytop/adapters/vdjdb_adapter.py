@@ -14,7 +14,7 @@ from .utils import harmonize_sequences
 
 class VDJDBAdapter(BaseAdapter):
     """
-    BioCypher adapter for the VDJdb database (https://vdjdb.cdr3.net/).
+    BioCypher adapter for the `VDJdb database <https://vdjdb.cdr3.net/>`_.
 
     This adapter handles the downloading, reading, and processing of the VDJdb database.
     """
@@ -32,21 +32,14 @@ class VDJDBAdapter(BaseAdapter):
         """
         Retrieves the latest release of the VDJdb database from GitHub.
 
-        Parameters
-        ----------
-        bc : BioCypher
-            An instance of the BioCypher class.
+        Args:
+            bc (BioCypher): An instance of the BioCypher class.
 
-        Returns
-        -------
-        str
-            The file path of the downloaded database.
+        Returns:
+            str: The file path of the downloaded database.
 
-        Raises
-        ------
-        FileNotFoundError
-            If the database file cannot be found after downloading.
-
+        Raises:
+            FileNotFoundError: If the database file cannot be found after downloading.
         """
         github_token = os.getenv("GITHUB_TOKEN")
         repo = Github(github_token).get_repo(self.REPO_NAME)
@@ -77,24 +70,16 @@ class VDJDBAdapter(BaseAdapter):
         """
         Reads and processes the VDJdb table from the downloaded database file.
 
-        Parameters
-        ----------
-        bc : BioCypher
-            An instance of the BioCypher class.
-        table_path : str
-            Path to the table file.
-        test : bool, optional
-            If `True`, loads only a subset of the data for testing (default is False).
+        Args:
+            bc (BioCypher): An instance of the BioCypher class.
+            table_path (str): Path to the table file.
+            test (bool, optional): If `True`, loads only a subset of the data for testing (default is False).
 
-        Returns
-        -------
-        pd.DataFrame
-            A DataFrame containing the processed table data.
+        Returns:
+            pd.DataFrame: A DataFrame containing the processed table data.
 
-        Raises
-        ------
-        FileNotFoundError
-            If the table file cannot be found.
+        Raises:
+            FileNotFoundError: If the table file cannot be found.
         """
         table = pd.read_csv(table_path, sep="\t")
         if test:
@@ -140,9 +125,15 @@ class VDJDBAdapter(BaseAdapter):
         """
         Converts the VDJdb data to AIRR cell format.
         This function is adopted from the Scirpy repository.
-        Parameters
 
-        Dev Notes: The scirpy.datasets.vdjdb() function therefore would: 
+        Args:
+            bc (BioCypher): An instance of the BioCypher class.
+
+        Returns:
+            list: A list of AIRR cell dictionaries.
+
+        Dev Notes:
+            The scirpy.datasets.vdjdb() function would:
             - create a bc object with the Iggytop config
             - initialize the VDJDBAdapter with that bc object
             - use the cache path given as arg
@@ -150,16 +141,6 @@ class VDJDBAdapter(BaseAdapter):
             - convert to adata
             - index
             - write to adata file
-
-        ----------
-        table_path : str
-            Path to the table file.
-
-        Returns
-        -------
-        list
-            A list of AIRR cell dictionaries.
-
         """
         table_path = self.get_latest_release(bc)
         table_path = table_path.replace("vdjdb.txt", "vdjdb_full.txt")

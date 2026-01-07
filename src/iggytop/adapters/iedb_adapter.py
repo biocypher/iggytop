@@ -20,16 +20,12 @@ import requests
 
 
 class IEDBAdapter(BaseAdapter):
-    """BioCypher adapter for the Immune Epitope Database (IEDB)[https://www.iedb.org/].
+    """BioCypher adapter for the Immune Epitope Database `IEDB <https://www.iedb.org/>`_.
 
-    Parameters
-    ----------
-    bc
-        BioCypher instance for DB download.
-    test
-        If `True`, only a subset of the data will be loaded for testing purposes.
-    prefer_calculated
-        If `True`, calculated values are preferred over curated values. If `False`, curated values are preferred.
+    Args:
+        bc (BioCypher): BioCypher instance for DB download.
+        test (bool, optional): If `True`, only a subset of the data will be loaded for testing purposes. Defaults to False.
+        prefer_calculated (bool, optional): If `True`, calculated values are preferred over curated values. If `False`, curated values are preferred. Defaults to True.
     """
 
     DB_URL = "https://www.iedb.org/downloader.php?file_name=doc/receptor_full_v3.zip"
@@ -252,7 +248,16 @@ class IEDBAdapter(BaseAdapter):
         :cite:`iedb` is a curated database of
         T-cell receptor (TCR) sequences with known antigen specificities.
 
-        Dev Notes: The scirpy.datasets.vdjdb() function therefore would: 
+        Args:
+            bc (BioCypher): An instance of the BioCypher class.
+
+        Returns:
+            list: An anndata object containing all entries from IEDB in `obsm["airr"]`.
+            Each entry is represented as if it was a cell, but without gene expression.
+            Metadata is stored in `adata.uns["DB"]`.
+
+        Dev Notes:
+            The scirpy.datasets.vdjdb() function would:
             - create a bc object with the Iggytop config
             - initialize the VDJDBAdapter with that bc object
             - use the cache path given as arg
@@ -261,19 +266,6 @@ class IEDBAdapter(BaseAdapter):
             - convert to adata
             - index
             - write to adata file
-
-        Parameters
-        ----------
-        cached
-            If `True`, attempt to read from the `data` directory before downloading
-        cache_path
-            Location where the h5ad object will be saved
-
-        Returns
-        -------
-        An anndata object containing all entries from IEDB in `obsm["airr"]`.
-        Each entry is represented as if it was a cell, but without gene expression.
-        Metadata is stored in `adata.uns["DB"]`.
         """
 
         iedb_df = pd.concat(

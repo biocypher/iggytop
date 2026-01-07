@@ -1,4 +1,4 @@
-# add your settings here (overriding the defaults)
+# this config is used to run iggytop with networkx as the dbms
 
 biocypher:
   offline: true

@@ -16,7 +16,8 @@ class BaseAdapter:
     """
     Base class for all adapters.
 
-    This class is responsible for downloading and reading the data from the source.
+    This class is responsible for the basic structure and function for Iggytop adapters.
+    It initializes any adapter by calling the corresponding function for downloading and reading the data from the source.
     It also provides methods for generating BioCypher nodes and edges from the data.
 
     Attributes:
@@ -58,7 +59,7 @@ class BaseAdapter:
     @abstractmethod
     def read_table(self, table_path: str, test: bool = False) -> pd.DataFrame:
         """
-        Abstract method to read the data table from the source.
+        Abstract method to read and harmonize the data table from the source.
 
         Args:
             table_path (str): Path to the data table.
@@ -72,7 +73,8 @@ class BaseAdapter:
     @abstractmethod
     def get_nodes(self):
         """
-        Abstract method to generate BioCypher nodes from the data.
+        Abstract method to generate BioCypher nodes from the data. 
+        This method is intended to use _generate_nodes_from_table with the right parameters for each edge type. This requires parameters depending on the adapter used.
 
         Returns:
             Iterable: An iterable of BioCypher nodes.
@@ -83,6 +85,7 @@ class BaseAdapter:
     def get_edges(self):
         """
         Abstract method to generate BioCypher edges from the data.
+        This method is intended to call _generate_edges_from_table with the right parameters for each edge type. This requires parameters depending on the adapter used.
 
         Returns:
             Iterable: An iterable of BioCypher edges.

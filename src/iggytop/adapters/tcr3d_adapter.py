@@ -11,14 +11,11 @@ from .utils import harmonize_sequences
 
 
 class TCR3DAdapter(BaseAdapter):
-    """BioCypher adapter for the TCR3d database (https://tcr3d.ibbr.umd.edu).
+    """BioCypher adapter for the `TCR3d <https://tcr3d.ibbr.umd.edu>`_ database.
 
-    Parameters
-    ----------
-    bc
-        BioCypher instance for DB download.
-    test
-        If `True`, only a subset of the data will be loaded for testing purposes.
+    Args:
+        bc (BioCypher): BioCypher instance for DB download.
+        test (bool, optional): If `True`, only a subset of the data will be loaded for testing purposes. Defaults to False.
     """
 
     DB_URL = "https://tcr3d.ibbr.umd.edu/static/download/tcr_complexes_data.tsv"

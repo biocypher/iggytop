@@ -2,7 +2,7 @@
 
 ## Using Iggyptop
 
-The iggytop package is not yet published so if it was not installed automatically when running 'uv sync' you can install it with 
+The iggytop package is not yet published so if it was not installed automatically when running `uv sync` you can manually install it with 
 
 `pip install .`
 
@@ -12,19 +12,17 @@ to get started right away, try running
 
 which will create a knowledge graph with all available databases, convert it to AIRR format and save it to a json file.
 
-To use just a subset of the available databases, you can just comment out adapters in the "adapters" list (in create_knowledge_graph.py)
+To use just a subset of the available databases, use the `adapters_to_include` parameter of {meth}`io.create_knowledge_graph()<iggytop.io.create_knowledge_graph>` (see below).
 
 ### In Detail
 
-This section goes through all the steps involved in the [create_knowledge_graph.py](https://github.com/biocypher/iggytop/blob/main/create_knowledge_graph.py) script execution. It also covers the most important components used.
+This section goes through all the steps involved in calling the {meth}`io.create_knowledge_graph()<iggytop.io.create_knowledge_graph>` function. this is in priciple all [create_knowledge_graph.py](https://github.com/biocypher/iggytop/blob/main/create_knowledge_graph.py) does. It also covers the most important components used.
 
 #### Imports
 Iggytop is built on top of BioCypher, therefore the BioCypher package as well as the iggytop package must be installed in the active python environment. Each adapter in Iggytop is defined in a separate class (e.g. {class}`VDJDBAdapter<iggytop.adapters.vdjdb_adapter.VDJDBAdapter>`, using {class}`Base adapter <iggytop.adapters.base_adapter.BaseAdapter>` as base class).
 
-#### Args
-`--test` is a boolean value which will lead to only using a 10th of the data if `True`
-
-`--cache_dir` points to a folder in which the downloaded data will be saved. Rerunning the pipeline with the same cache dir will use the cached files instead of re-downloading them. Output files (eg. json file containing AIRR Cells) will be regenerated.
+#### Parameters
+Please refer to the API section in the documentation to see and understand the available parameters for {meth}`io.create_knowledge_graph()<iggytop.io.create_knowledge_graph>`. These can be used to change the cache dir, change the scope of datasets being integrated as well as to set the output format.
 
 #### Biocypher Knowledge Graph
 A new BioCypher instance is initialized using the `config/biocypher_config.yaml` which contains the parameters needed, as well as `config/schema_config.yaml` which defines the [ontology](ontology) used for the Iggytop graph.
@@ -33,7 +31,7 @@ A new BioCypher instance is initialized using the `config/biocypher_config.yaml`
 Wen an instance of any adapter class is created, it will initialize by {meth}`downloading <iggytop.adapters.base_adapter.BaseAdapter.get_latest_release>` the data from the source database (if not in cache). The data in table format is then converted (still to table format) in order to match the iggytop requirements:
 - Each row represents a tcr-epitope pair
 - Missing values are `None`
-- The column names are converted to a [standardized set ](https://github.com/biocypher/iggytop/blob/main/tcr_epitope/adapters/constants.py)
+- The column names are converted to a [standardized set ](https://github.com/biocypher/iggytop/blob/main/src/iggytop/adapters/constants.py)
 - Only the columns with standardised names are kept
 - The Amino acid sequences and gene names are {meth}`harmonized<iggytop.adapters.utils.harmonize_sequences>` and
 - Epitopes are {meth}`labeled by their IRI<iggytop.adapters.utils.get_iedb_ids_batch>` if possible. This is done using the [IEDB Database API](https://help.iedb.org/hc/en-us/articles/4402872882189-Immune-Epitope-Database-Query-API-IQ-API)

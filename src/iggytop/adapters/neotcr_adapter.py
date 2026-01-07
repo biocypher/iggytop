@@ -11,7 +11,7 @@ from .utils import harmonize_sequences
 
 
 class NeoTCRAdapter(BaseAdapter):
-    """BioCypher adapter for the NeoTCR dataset."""
+    """BioCypher adapter for the `NeoTCR <http://neotcrdb.bioxai.cn/home>`_ dataset."""
 
     RAW_URL = "https://github.com/lyotvincent/NeoTCR/raw/main/data/NeoTCR%20data-20221220.xlsx"
     FILE_NAME = "NeoTCR_data-20221220.xlsx"

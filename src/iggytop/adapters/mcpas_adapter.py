@@ -8,14 +8,11 @@ from .utils import harmonize_sequences
 
 class MCPASAdapter(BaseAdapter):
     """BioCypher adapter for the manually-curated catalogue of pathology-associated T cell
-    receptor sequences (McPAS-TCR)[https://friedmanlab.weizmann.ac.il/McPAS-TCR.csv].
+    receptor sequences `McPAS-TCR <https://friedmanlab.weizmann.ac.il/McPAS-TCR.csv>`_.
 
-    Parameters
-    ----------
-    bc
-        BioCypher instance for DB download.
-    test
-        If `True`, only a subset of the data will be loaded for testing purposes.
+    Args:
+        bc (BioCypher): BioCypher instance for DB download.
+        test (bool, optional): If `True`, only a subset of the data will be loaded for testing purposes. Defaults to False.
     """
 
     DB_URL = "https://friedmanlab.weizmann.ac.il/McPAS-TCR.csv"

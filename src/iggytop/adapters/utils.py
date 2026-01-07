@@ -425,12 +425,9 @@ def save_airr_cells_json(airrcells: List[AirrCell], directory: str) -> None:
     """
     Save a list of AirrCell objects to a compressed JSON file with auto-generated filename.
 
-    Parameters
-    ----------
-    airrcells : List[AirrCell]
-        List of AirrCell objects to save
-    directory : str
-        Directory path where to save the JSON file (e.g., "../data")
+    Args:
+        airrcells (List[AirrCell]): List of AirrCell objects to save.
+        directory (str): Directory path where to save the JSON file (e.g., "../data").
     """
     serialized_data = []
 

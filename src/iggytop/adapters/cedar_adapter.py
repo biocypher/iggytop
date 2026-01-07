@@ -13,14 +13,11 @@ logger = logging.getLogger(__name__)
 
 
 class CEDARAdapter(BaseAdapter):
-    """BioCypher adapter for the Cancer Epitope Database and Analysis Resource (CEDAR)[https://cedar.iedb.org/].
+    """BioCypher adapter for the Cancer Epitope Database and Analysis Resource `CEDAR <https://cedar.iedb.org/>`_.
 
-    Parameters
-    ----------
-    bc
-        BioCypher instance for DB download.
-    test
-        If `True`, only a subset of the data will be loaded for testing purposes.
+    Args:
+        bc (BioCypher): BioCypher instance for DB download.
+        test (bool, optional): If `True`, only a subset of the data will be loaded for testing purposes. Defaults to False.
     """
 
     DB_URL = "https://cedar.iedb.org/downloader.php?file_name=doc/receptor_full_v3.zip"

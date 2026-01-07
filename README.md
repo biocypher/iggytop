@@ -1,6 +1,6 @@
 # IggyTop: **I**mmunolo**g**ical **G**raph **Y**ielding **Top** receptor-epitope pairings
 
-[![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ![figure1](./overview.png)
@@ -38,7 +38,7 @@ The final output is the **IggyTop** database, which integrates immunoreceptor-ep
 
 ## Prerequisites
 
-- [Poetry](https://python-poetry.org) for dependency management
+- [uv](https://docs.astral.sh/uv/) for dependency management
 
 ## Installation
 
@@ -50,42 +50,59 @@ The final output is the **IggyTop** database, which integrates immunoreceptor-ep
 
 2. Install dependencies using Poetry:
    ```bash
-   poetry install
+      uv sync
    ```
 
-3. Print the activate command of the virtual environment to the console and run it:
+3. You are ready to go!
    ```bash
-   poetry env activate
+   uv run create_knowledge_graph.py
    ```
-
-4. You are ready to go!
-   ```bash
-   python create_knowledge_graph.py
-   ```
-
+More information can be found in the documentation.
 ## Pipeline
 
 - `create_knowledge_graph.py`: the main script that orchestrates the pipeline.
-It brings together the BioCypher package with the data sources. To build a
-knowledge graph, you need at least one adapter (see below). For common
-resources, there may already be an adapter available in the BioCypher package or
-in a separate repository. You can also write your own adapter, should none be
-available for your data.
+It brings together the BioCypher package with the data sources. It calls the `io.create_knowledge_graph()` function which creates a knowledge graph including all available databases and saves it to airr format in a json file.
 
-- `tcr-epiotope.adapters` contains modules that define the adapter to the data source.
+- `adapters` contains modules that define the adapter to the data source.
 
 - `schema_config.yaml`: a configuration file (found in the `config` directory)
 that defines the schema of the knowledge graph. It is used by BioCypher to map
 the data source to the knowledge representation on the basis of ontology (see
-[this part of the BioCypher
-tutorial](https://biocypher.org/tutorial-ontology.html)).
+[this part of the BioCypher tutorial](https://biocypher.org/tutorial-ontology.html)).
 
 - `biocypher_config.yaml`: a configuration file (found in the `config`
 directory) that defines some BioCypher parameters, such as the mode, the
 separators used, and other options. More on its use can be found in the
 [Documentation](https://biocypher.org/installation.html#configuration).
 
+## Documentation
+
+This repository uses [Sphinx](https://www.sphinx-doc.org/) for documentation.
+
+### Building the Documentation
+
+To build the documentation, ensure you have `uv` installed and running. Then, execute the following command:
+
+```bash
+uv run update_docs.sh
+```
+
+This will generate the documentation in the `docs/build` directory.
+
+### Hosting the Documentation Locally
+
+To host the documentation locally, run:
+
+```bash
+uv run python3 -m http.server --directory docs/build 8000
+```
+
+You can then access the documentation in your browser at `http://localhost:8000`.
+
+Note for docstrings: The Sphinx's autodoc and napoleon extensions expect reStructuredText (reST) format by default, laso make sure to use Google-style headers (Args:, Returns:, Raises:).
+
 ## 🐳 Docker
+The docker workflow is currently not up to date. the corresponding files can be ignored.
 
 This repo also contains a `docker compose` workflow to create the example
 database using BioCypher and load it into a dockerised Neo4j instance

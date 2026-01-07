@@ -1,9 +1,12 @@
+""" this module contains the main pipeline for knowledge graph creation using iggytop adapters """
+
 import importlib.resources
 from typing import List, Optional
 
 import networkx as nx
 import platformdirs
 from biocypher import BioCypher
+
 import logging
 logger = logging.getLogger(__name__) #inherits the log config from biocypher
 
@@ -18,29 +21,6 @@ from iggytop.adapters.vdjdb_adapter import VDJDBAdapter
 import yaml
 import os
 
-def _set_up_config(output_format, cache_dir):
-    # Load the base configuration
-    with importlib.resources.open_text('iggytop.config', 'biocypher_config.yaml') as file:
-        config = yaml.safe_load(file)
-
-    # Check if the output format is allowed
-    allowed_formats = ['airr', 'networkx']
-    if output_format not in allowed_formats:
-        raise ValueError(f"Invalid output_format: {output_format}. Allowed formats are: {allowed_formats}")
-
-    # Modify the configuration
-    config['biocypher']['dbms'] = output_format
-
-    # Ensure the cache directory exists
-    os.makedirs(cache_dir, exist_ok=True)
-
-    # Save the modified configuration to the cache directory
-    modified_config_path = os.path.join(cache_dir, 'biocypher_config.yaml')
-    with open(modified_config_path, 'w') as file:
-        yaml.safe_dump(config, file)
-
-    return modified_config_path
-
 
 def create_knowledge_graph(
     cache_dir: str = platformdirs.user_cache_dir("iggytop"),
@@ -52,11 +32,12 @@ def create_knowledge_graph(
     Generates the knowledge graph using specified adapters and saves it in the requested format.
 
     Args:
-        cache_dir: Directory to store cache and output files.
-        test_mode: Whether to run in test mode (usually with a subset of data).
-        adapters_to_include: List of adapter names to run (out of ["VDJDB", "MCPAS", "TRAIT", "IEDB", "TCR3D", "NeoTCR", "CEDAR"]).
-                             Default is all available adapters are run.
-        output_format: Output format, either 'airr' or 'networkx'.
+        cache_dir (str, optional): Directory to store cache and output files. Includes raw datasets and generated knowledge graphs (see logs for filenames). Defaults to user cache directory.
+        test_mode (bool, optional): Test mode will use only 1% of the data for faster execution. Defaults to False.
+        adapters_to_include (List[str], optional): List of adapter names to run.
+                             Available adapters: ["VDJDB", "MCPAS", "TRAIT", "IEDB", "TCR3D", "NeoTCR", "CEDAR"].
+                             Defaults to providing all available adapters.
+        output_format (str, optional): Output format, currently either 'airr' or 'networkx'. Defaults to 'airr'.
     """
     config_path = _set_up_config(output_format, cache_dir)
 
@@ -119,4 +100,25 @@ def create_knowledge_graph(
         print(f"Knowledge graph saved to {output_file}")
 
 
+def _set_up_config(output_format, cache_dir):
+    # Load the base configuration
+    with importlib.resources.open_text('iggytop.config', 'biocypher_config.yaml') as file:
+        config = yaml.safe_load(file)
 
+    # Check if the output format is allowed
+    allowed_formats = ['airr', 'networkx']
+    if output_format not in allowed_formats:
+        raise ValueError(f"Invalid output_format: {output_format}. Allowed formats are: {allowed_formats}")
+
+    # Modify the configuration
+    config['biocypher']['dbms'] = output_format
+
+    # Ensure the cache directory exists
+    os.makedirs(cache_dir, exist_ok=True)
+
+    # Save the modified configuration to the cache directory
+    modified_config_path = os.path.join(cache_dir, 'biocypher_config.yaml')
+    with open(modified_config_path, 'w') as file:
+        yaml.safe_dump(config, file)
+
+    return modified_config_path

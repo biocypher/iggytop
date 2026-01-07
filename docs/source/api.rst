@@ -3,6 +3,17 @@ API Reference
 
 .. module:: iggytop
 
+IO
+--------
+.. module:: iggytop.io
+.. currentmodule:: iggytop.io
+
+.. autosummary::
+   :toctree: generated
+   :recursive:
+
+   create_knowledge_graph
+
 Adapters
 --------
 
