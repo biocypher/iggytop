@@ -110,8 +110,6 @@ def create_knowledge_graph(
         bc.write_import_call()
         bc.summary()
 
-
-
 def _set_up_config(output_format, cache_dir):
     # Load the base configuration
     with importlib.resources.open_text('iggytop.config', 'biocypher_config.yaml') as file:
@@ -125,11 +123,12 @@ def _set_up_config(output_format, cache_dir):
         if output_format == 'neo4j' or output_format == 'networkx':
             config['biocypher']['online_mode'] = False
 
+<<<<<<< HEAD
         config['biocypher']['dbms'] = output_format
         if output_format == 'docker':
                 with importlib.resources.open_text('iggytop.config', 'biocypher_docker_config.yaml') as d_file:
                     config = yaml.safe_load(d_file)
-        if output_format == 'networkx':
+        if output_format == 'networkx' or output_format == 'neo4j':
             config['biocypher']['offline'] = True
 
     # Ensure the cache directory exists
