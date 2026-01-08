@@ -97,32 +97,32 @@ b cell receptor sequence to epitope association:
 t cell receptor pair to epitope association:
   is_a: immune receptor pair to epitope association
   represented_as: edge
-  source: alpha sequence to beta sequence association
+  source: alpha sequence to beta sequence pair
   target: epitope
-  input_label: tcr_pair_to_epitope
+  input_label: tra_trb_pair_to_epitope
 
 b cell receptor pair to epitope association:
   is_a: immune receptor pair to epitope association
   represented_as: edge
-  source: heavy sequence to light sequence association
+  source: heavy sequence to light sequence pair
   target: epitope
-  input_label: bcr_pair_to_epitope
+  input_label: igh_igl_pair_to_epitope
 
 #=========    EDGES AS NODES
-alpha sequence to beta sequence association:
+alpha sequence to beta sequence pair:
   is_a: association
   represented_as: node
   source: tra sequence
   target: trb sequence
-  input_label: tra_to_trb
+  input_label: tra_trb_pair
   properties:
     directed: false 
 
-heavy sequence to light sequence association:
+heavy sequence to light sequence pair:
   is_a: association
   represented_as: node
   source: igh sequence
   target: igl sequence
-  input_label: igh_to_igl
+  input_label: igh_igl_pair
   properties:
     directed: false 

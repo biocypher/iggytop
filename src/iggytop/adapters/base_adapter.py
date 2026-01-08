@@ -124,8 +124,10 @@ class BaseAdapter:
         if not isinstance(property_cols, list):
             property_cols = [property_cols]
 
-        subset_table = self.table[subset_cols].dropna(subset=unique_cols)
-
+        subset_table = (
+            self.table[list(set(subset_cols).union(property_cols or []))]
+            .dropna(subset=unique_cols)
+        )
         for _, row in subset_table.iterrows():
             if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in subset_cols:
                 _type = row[REGISTRY_KEYS.CHAIN_1_TYPE_KEY]
@@ -169,7 +171,7 @@ class BaseAdapter:
         source_subset_cols: list[str],
         target_subset_cols: list[str],
         source_unique_cols: list[str] | None = None,
-        source_exclude_cols: list[str] | None = None,
+        exclude_cols: list[str] | None = None,
         target_unique_cols: list[str] | None = None,
         property_cols: list[str] | None = None,
     ):
@@ -181,11 +183,11 @@ class BaseAdapter:
         To create the unique identifier, we use unique_cols + V gene (if available) for TCR chains.
 
         Args:
-            source_subset_cols (list[str]): List of columns for the source node.
-            target_subset_cols (list[str]): List of columns for the target node.
-            source_unique_cols (list[str] | None, optional): List of unique columns for the source node. Defaults to None.
-            source_exclude_cols (list[str] | None, optional): List of columns which must be NaN. Defaults to None.
-            target_unique_cols (list[str] | None, optional): List of unique columns for the target node. Defaults to None.
+            source_subset_cols (list[str]): List of columns for the source node. Includes data used of the identifier.
+            target_subset_cols (list[str]): List of columns for the target node. Includes data used of the identifier.
+            source_unique_cols (list[str] | None, optional): List of unique columns for the source node. Used to filter rows with non-missing values. Not necessarily identical to the identifier columns, eg V gene is included in the id but only if it is available.
+            exclude_cols (list[str] | None, optional): List of columns which must be NaN. Can be used to aviod duplicating edges which are represented in other edge types.
+            target_unique_cols (list[str] | None, optional): List of unique columns for the target node. Used to filter rows with non-missing values. Not necessarily identical to the identifier columns, eg V gene is included in the id but only if it is available.
 
         Yields:
             tuple: A tuple containing the edge ID, source ID, target ID, edge type, and properties.
@@ -198,8 +200,8 @@ class BaseAdapter:
         if not isinstance(source_unique_cols, list):
             source_unique_cols = [source_unique_cols]
 
-        if source_exclude_cols and not isinstance(source_exclude_cols, list):
-            source_exclude_cols = [source_exclude_cols]
+        if exclude_cols and not isinstance(exclude_cols, list):
+            exclude_cols = [exclude_cols]
 
         target_subset_cols = target_subset_cols or []
         if not isinstance(target_subset_cols, list):
@@ -209,12 +211,12 @@ class BaseAdapter:
         if not isinstance(target_unique_cols, list):
             target_unique_cols = [target_unique_cols]
 
-        if source_exclude_cols:
-            subset_table = self.table[self.table[source_exclude_cols].isna().all(axis=1)]
+        if exclude_cols:
+            subset_table = self.table[self.table[exclude_cols].isna().all(axis=1)]
         else:
             subset_table = self.table
         subset_table = (
-            subset_table[source_subset_cols + target_subset_cols + (property_cols or [])]
+            subset_table[list(set(source_subset_cols + target_subset_cols + (property_cols or [])))]
             .dropna(subset=source_unique_cols + target_unique_cols)
         )
 
@@ -234,8 +236,8 @@ class BaseAdapter:
                         chain2 += ":" + row[REGISTRY_KEYS.CHAIN_2_V_GENE_KEY]
                         
                     node_data[i] = {
-                        "id":  f"pair:{chain1}-{chain2}",
-                        "type":  f"{row[REGISTRY_KEYS.CHAIN_1_TYPE_KEY][0].lower()}cr_pair" #bcr or tcr
+                        "id": f"pair:{chain1}-{chain2}",
+                        "type": row[REGISTRY_KEYS.CHAIN_1_TYPE_KEY].lower()+"_"+row[REGISTRY_KEYS.CHAIN_2_TYPE_KEY].lower()+"_pair"
                     }
                 else:                    
                     if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in cols:
@@ -268,6 +270,9 @@ class BaseAdapter:
 
             _id = f"{_source_id}-{_target_id}"
             _type = f"{_source_type.lower()}_to_{_target_type.lower()}"
+            if _type == "tra_to_trb" or _type == "igh_to_igl": #if the edge defines a pair
+                _id = f"pair:{_source_id}-{_target_id}"
+                _type =  row[REGISTRY_KEYS.CHAIN_1_TYPE_KEY].lower()+"_"+row[REGISTRY_KEYS.CHAIN_2_TYPE_KEY].lower()+"_pair"
             if property_cols:
                 _props = {re.sub("chain_\d_", "", k): row[k] for k in property_cols}
             else:

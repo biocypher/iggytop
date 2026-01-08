@@ -1,9 +1,11 @@
 """ this module contains the main pipeline for knowledge graph creation using iggytop adapters """
 
 import importlib.resources
+import math
 from typing import List, Optional
 
 import networkx as nx
+import pandas as pd
 import platformdirs
 from biocypher import BioCypher
 
@@ -79,6 +81,7 @@ def create_knowledge_graph(
         # This step required the final kg to be in the airr format (dbms specified in the biocypher config)
         save_airr_cells_json(airr_cells, cache_dir)
     elif output_format == "networkx":
+        #this is more of a hack, updates on BioCypher needed to make it work properly
         bc._in_memory_kg = bc._writer.in_memory_networkx_kg
         # Remove the 'nodes' attribute from the BioCypher instance if it exists, this is a workaround
         if hasattr(bc, '_nodes'):
@@ -92,7 +95,12 @@ def create_knowledge_graph(
         for n, data in iggytop_di_graph.nodes(data=True):
             # Get all keys where the value is None, else the file can not be saved
             keys_to_del = [k for k, v in data.items() if v is None]
-            print(f"Removing node attributes with None values for node {n}: {keys_to_del}")
+            for k in keys_to_del:
+                del data[k]
+
+        for s, t, data in iggytop_di_graph.edges(data=True):
+            # Get all keys where the value is None, else the file can not be saved
+            keys_to_del = [k for k, v in data.items() if v is None or (isinstance(v, float) and math.isnan(v))]
             for k in keys_to_del:
                 del data[k]
         
@@ -121,7 +129,8 @@ def _set_up_config(output_format, cache_dir):
         if output_format == 'docker':
                 with importlib.resources.open_text('iggytop.config', 'biocypher_docker_config.yaml') as d_file:
                     config = yaml.safe_load(d_file)
-
+        if output_format == 'networkx':
+            config['biocypher']['offline'] = True
 
     # Ensure the cache directory exists
     os.makedirs(cache_dir, exist_ok=True)
