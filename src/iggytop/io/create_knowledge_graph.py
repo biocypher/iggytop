@@ -26,7 +26,7 @@ def create_knowledge_graph(
     cache_dir: str = platformdirs.user_cache_dir("iggytop"),
     test_mode: bool = False,
     adapters_to_include: Optional[List[str]] = ["VDJDB", "MCPAS", "TRAIT", "IEDB", "TCR3D", "NeoTCR", "CEDAR"],
-    output_format: str = "airr",
+    output_format: str | None = None,
 ):
     """
     Generates the knowledge graph using specified adapters and saves it in the requested format.
@@ -37,7 +37,7 @@ def create_knowledge_graph(
         adapters_to_include (List[str], optional): List of adapter names to run.
                              Available adapters: ["VDJDB", "MCPAS", "TRAIT", "IEDB", "TCR3D", "NeoTCR", "CEDAR"].
                              Defaults to providing all available adapters.
-        output_format (str, optional): Output format, currently either 'airr' or 'networkx'. Defaults to 'airr'.
+        output_format (str, optional): Output format, currently either 'airr','neo4j' or 'networkx'
     """
     config_path = _set_up_config(output_format, cache_dir)
 
@@ -98,23 +98,30 @@ def create_knowledge_graph(
         
         nx.write_graphml(iggytop_di_graph, output_file)
         print(f"Knowledge graph saved to {output_file}")
-    elif output_format == "neo4j":
+    elif output_format == "neo4j" or output_format == "docker":
         bc.write_import_call()
         bc.summary()
+
 
 
 def _set_up_config(output_format, cache_dir):
     # Load the base configuration
     with importlib.resources.open_text('iggytop.config', 'biocypher_config.yaml') as file:
         config = yaml.safe_load(file)
+    if output_format:
+        # Check if the output format is allowed
+        allowed_formats = ['airr', 'networkx', 'neo4j', 'docker']
+        if output_format not in allowed_formats:
+            raise ValueError(f"Invalid output_format: {output_format}. Allowed formats are: {allowed_formats}")
+        # Modify the configuration 
+        if output_format == 'neo4j' or output_format == 'networkx':
+            config['biocypher']['online_mode'] = False
 
-    # Check if the output format is allowed
-    allowed_formats = ['airr', 'networkx', 'neo4j']
-    if output_format not in allowed_formats:
-        raise ValueError(f"Invalid output_format: {output_format}. Allowed formats are: {allowed_formats}")
+        config['biocypher']['dbms'] = output_format
+        if output_format == 'docker':
+                with importlib.resources.open_text('iggytop.config', 'biocypher_docker_config.yaml') as d_file:
+                    config = yaml.safe_load(d_file)
 
-    # Modify the configuration
-    config['biocypher']['dbms'] = output_format
 
     # Ensure the cache directory exists
     os.makedirs(cache_dir, exist_ok=True)
