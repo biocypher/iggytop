@@ -69,7 +69,7 @@ def create_knowledge_graph(
     for AdapterClass in selected_adapters:
         adapter = AdapterClass(bc, test_mode)
         bc.add(adapter.get_nodes())
-        bc.add(adapter.get_edges())
+        bc._add_edges(adapter.get_edges()) #or bc.add(adapter.get_edges()) if in online mode
         logger.info(f"Added data from {AdapterClass.__name__}")
 
     bc.summary()
@@ -98,6 +98,9 @@ def create_knowledge_graph(
         
         nx.write_graphml(iggytop_di_graph, output_file)
         print(f"Knowledge graph saved to {output_file}")
+    elif output_format == "neo4j":
+        bc.write_import_call()
+        bc.summary()
 
 
 def _set_up_config(output_format, cache_dir):
@@ -106,7 +109,7 @@ def _set_up_config(output_format, cache_dir):
         config = yaml.safe_load(file)
 
     # Check if the output format is allowed
-    allowed_formats = ['airr', 'networkx']
+    allowed_formats = ['airr', 'networkx', 'neo4j']
     if output_format not in allowed_formats:
         raise ValueError(f"Invalid output_format: {output_format}. Allowed formats are: {allowed_formats}")
 
