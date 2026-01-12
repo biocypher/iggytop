@@ -71,7 +71,7 @@ def create_knowledge_graph(
     for AdapterClass in selected_adapters:
         adapter = AdapterClass(bc, test_mode)
         bc.add(adapter.get_nodes())
-        bc._add_edges(adapter.get_edges()) #or bc.add(adapter.get_edges()) if in online mode
+        bc._add_edges(adapter.get_edges())
         logger.info(f"Added data from {AdapterClass.__name__}")
 
     bc.summary()
