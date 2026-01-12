@@ -180,6 +180,9 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
     antigen_names_clean = map_antigen_names(table[REGISTRY_KEYS.ANTIGEN_KEY].dropna().unique().tolist())
     table[REGISTRY_KEYS.ANTIGEN_KEY] = table[REGISTRY_KEYS.ANTIGEN_KEY].map(antigen_names_clean)
 
+    # Ensure no NaN values remain
+    table = table.astype(object).replace(["", "nan", "n.a.", "null"], None).where(pd.notnull, None)
+
     return table
 
 
