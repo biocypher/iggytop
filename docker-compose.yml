@@ -1,11 +1,9 @@
-version: '3.3'
-
 services:
   neo4j:
     build:
       context: .
       args:
-        - "BIOCYPHER_CONFIG=config/biocypher_docker_config.yaml"
+        - "BIOCYPHER_CONFIG=src/iggytop/config/biocypher_docker_config.yaml"
     container_name: biocypher-project-template-container
     env_file:
       - docker-variables.env
