@@ -212,7 +212,7 @@ class TCR3DAdapter(BaseAdapter):
             [
                 REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
             ],
-            source_unique_cols=[REGISTRY_KEYS.CHAIN_2_CDR3_KEY, REGISTRY_KEYS.CHAIN_1_CDR3_KEY],
+            source_unique_cols=[REGISTRY_KEYS.CHAIN_1_CDR3_KEY, REGISTRY_KEYS.CHAIN_2_CDR3_KEY],
             target_unique_cols=REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
             property_cols=[
                 REGISTRY_KEYS.MHC_CLASS_KEY,
