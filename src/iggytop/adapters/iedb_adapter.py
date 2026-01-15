@@ -29,9 +29,15 @@ class IEDBAdapter(BaseAdapter):
     """
 
     DB_URL = "https://www.iedb.org/downloader.php?file_name=doc/receptor_full_v3.zip"
+    """URL to download the IEDB database."""
     DB_DIR = "iedb_latest"
+    """Directory name for the downloaded database."""
+    DB_NAME = "IEDB"
+    """Name of the database."""
     TCR_FNAME = "tcr_full_v3.csv"
+    """File name of the TCR data in IEDB."""
     BCR_FNAME = "bcr_full_v3.csv"
+    """File name of the BCR data in IEDB."""
 
     def get_latest_release(self, bc: BioCypher) -> tuple[str, str]:
         # Create cache directory manually

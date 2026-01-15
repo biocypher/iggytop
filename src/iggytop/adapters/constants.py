@@ -1,5 +1,6 @@
-from typing import NamedTuple
+"""Constants used across the IggyTop adapters. These aim to correspond to the standards defined in the AIRR Community's Standards for Immune Receptor Repertoire Sequencing Data."""
 
+from typing import NamedTuple
 
 class _REGISTRY_KEYS_NT(NamedTuple):
     PREFERRED_ID_KEY: str = "preferred_id"

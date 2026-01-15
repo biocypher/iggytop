@@ -17,8 +17,13 @@ class TRAITAdapter(BaseAdapter):
     """
 
     DB_URL = "https://pgx.zju.edu.cn/download.trait/Interactive_TCR-pMHC_Pairs.zip_20250312.zip"
-
+    """URL to download the TRAIT database."""
+    
     DB_DIR = "trait_latest"
+    """Directory name for the downloaded database."""
+
+    DB_NAME = "TRAIT"
+    """Name of the database."""
 
     def get_latest_release(self, bc: BioCypher) -> str:
         trait_resource = FileDownload(
