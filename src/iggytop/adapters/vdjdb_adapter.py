@@ -1,15 +1,15 @@
 import os
-from pathlib import Path
-
 import pandas as pd
 from biocypher import BioCypher, FileDownload
 from github import Github
 from tqdm.auto import tqdm
+from pathlib import Path
 from scirpy.io._datastructures import AirrCell
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
 from .utils import harmonize_sequences
+
 
 
 class VDJDBAdapter(BaseAdapter):
@@ -27,6 +27,9 @@ class VDJDBAdapter(BaseAdapter):
 
     DB_FNAME = "vdjdb.txt"
     """File name of the database."""
+
+    DB_NAME = "VDJdb"
+    """Name of the database."""
 
     def get_latest_release(self, bc: BioCypher) -> str:
         """
@@ -84,20 +87,18 @@ class VDJDBAdapter(BaseAdapter):
         table = pd.read_csv(table_path, sep="\t")
         if test:
             table = table.sample(frac=0.01, random_state=42)
-        # Replace NaN and empty strings with None
+
         table = table.replace(["", "nan"], None).where(pd.notnull, None)
 
-        # WITH THIS OPTIMIZED METHOD:
         table = self._transform_paired_data_efficient(table)
 
-        # Rest of your code stays the same:
         rename_cols = {
-            "cdr3_chain_1": REGISTRY_KEYS.CHAIN_1_CDR3_KEY,  # Note: changed from cdr3_chain_1
-            "v.segm_chain_1": REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,  # Note: changed from v.segm_chain_1
-            "j.segm_chain_1": REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,  # Note: changed from j.segm_chain_1
-            "cdr3_chain_2": REGISTRY_KEYS.CHAIN_2_CDR3_KEY,  # Note: changed from cdr3_chain_2
-            "v.segm_chain_2": REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,  # Note: changed from v.segm_chain_2
-            "j.segm_chain_2": REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,  # Note: changed from j.segm_chain_2
+            "cdr3_chain_1": REGISTRY_KEYS.CHAIN_1_CDR3_KEY, 
+            "v.segm_chain_1": REGISTRY_KEYS.CHAIN_1_V_GENE_KEY, 
+            "j.segm_chain_1": REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,  
+            "cdr3_chain_2": REGISTRY_KEYS.CHAIN_2_CDR3_KEY,  
+            "v.segm_chain_2": REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,  
+            "j.segm_chain_2": REGISTRY_KEYS.CHAIN_2_J_GENE_KEY, 
             "species": REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
             "antigen.epitope": REGISTRY_KEYS.EPITOPE_KEY,
             "antigen.gene": REGISTRY_KEYS.ANTIGEN_KEY,
@@ -108,7 +109,6 @@ class VDJDBAdapter(BaseAdapter):
             "mhc.b": REGISTRY_KEYS.MHC_GENE_2_KEY,
         }
 
-        # Only rename columns that exist in the table
         table = table.rename(columns=rename_cols)
         table = table[list(rename_cols.values())]
 
@@ -121,99 +121,62 @@ class VDJDBAdapter(BaseAdapter):
 
         return table_preprocessed
     
-    def raw_airr_cells(self, bc: BioCypher) -> list:
+    def create_airr_cells(self) -> list:
         """
         Converts the VDJdb data to AIRR cell format.
         This function is adopted from the Scirpy repository.
 
-        Args:
-            bc (BioCypher): An instance of the BioCypher class.
-
         Returns:
             list: A list of AIRR cell dictionaries.
 
-        Dev Notes:
-            The scirpy.datasets.vdjdb() function would:
-            - create a bc object with the Iggytop config
-            - initialize the VDJDBAdapter with that bc object
-            - use the cache path given as arg
-            - run this function
-            - convert to adata
-            - index
-            - write to adata file
         """
-        table_path = self.get_latest_release(bc)
-        table_path = table_path.replace("vdjdb.txt", "vdjdb_full.txt")
-        df = pd.read_csv(table_path, sep="\t")
-
-        tcr_cells = []
+        if self.airr_cells is not None:
+            return True
+        
+        df = self.table
+        self.airr_cells = []
         for idx, row in tqdm(df.iterrows(), total=df.shape[0], desc="Processing VDJDB entries"):
             cell = AirrCell(cell_id=str(idx))
-            if not pd.isnull(row["cdr3.alpha"]):
+            if not pd.isnull(row[REGISTRY_KEYS.CHAIN_1_CDR3_KEY]):
                 alpha_chain = AirrCell.empty_chain_dict()
                 alpha_chain.update(
                     {
-                        "locus": "TRA",
-                        "junction_aa": row["cdr3.alpha"],
-                        "v_call": row["v.alpha"],
-                        "j_call": row["j.alpha"],
+                        "locus": REGISTRY_KEYS.TRA_KEY,
+                        "junction_aa": row[REGISTRY_KEYS.CHAIN_1_CDR3_KEY],
+                        "v_call": row[REGISTRY_KEYS.CHAIN_1_V_GENE_KEY],
+                        "j_call": row[REGISTRY_KEYS.CHAIN_1_J_GENE_KEY],
                         "consensus_count": 0,
                         "productive": True,
                     }
                 )
                 cell.add_chain(alpha_chain)
 
-            if not pd.isnull(row["cdr3.beta"]):
+            if not pd.isnull(row[REGISTRY_KEYS.CHAIN_2_CDR3_KEY]):
                 beta_chain = AirrCell.empty_chain_dict()
                 beta_chain.update(
                     {
-                        "locus": "TRB",
-                        "junction_aa": row["cdr3.beta"],
-                        "v_call": row["v.beta"],
-                        "d_call": row["d.beta"],
-                        "j_call": row["j.beta"],
+                        "locus": REGISTRY_KEYS.TRB_KEY,
+                        "junction_aa": row[REGISTRY_KEYS.CHAIN_2_CDR3_KEY],
+                        "v_call": row[REGISTRY_KEYS.CHAIN_2_V_GENE_KEY],
+                        "j_call": row[REGISTRY_KEYS.CHAIN_2_J_GENE_KEY],
                         "consensus_count": 0,
                         "productive": True,
                     }
                 )
                 cell.add_chain(beta_chain)
 
-            INCLUDE_CELL_METADATA_FIELDS = [
-                "species",
-                "mhc.a",
-                "mhc.b",
-                "mhc.class",
-                "antigen.epitope",
-                "antigen.gene",
-                "antigen.species",
-                "reference.id",
-                "method.identification",
-                "method.frequency",
-                "method.singlecell",
-                "method.sequencing",
-                "method.verification",
-                "meta.study.id",
-                "meta.cell.subset",
-                "meta.subject.cohort",
-                "meta.subject.id",
-                "meta.replica.id",
-                "meta.clone.id",
-                "meta.epitope.id",
-                "meta.tissue",
-                "meta.donor.MHC",
-                "meta.donor.MHC.method",
-                "meta.structure.id",
-            ]
-            for f in INCLUDE_CELL_METADATA_FIELDS:
+            for f in REGISTRY_KEYS:
+                if f not in row:
+                    continue
                 cell[f] = row[f]
-            tcr_cells.append(cell)
-
-        return tcr_cells
+            self.airr_cells.append(cell)
+        return True
+    
 
     def _transform_paired_data_efficient(self, df):
         """
         Efficient transformation that handles ALL cases correctly.
-
+        This is required to properly pair TRA and TRB chains based on complex.id. (They are on different rows in the raw database)
         Args:
             df (pd.DataFrame): The input DataFrame containing the VDJdb data.
 

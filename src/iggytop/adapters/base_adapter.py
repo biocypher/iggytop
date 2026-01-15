@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 import re
+import os
+from pathlib import Path
 from abc import abstractmethod
 from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING
-
+from datetime import datetime
+from typing import cast
+from scirpy.io._convert_anndata import from_airr_cells
+from scirpy.pp import index_chains
 from .constants import REGISTRY_KEYS
 
 if TYPE_CHECKING:
@@ -38,12 +43,16 @@ class BaseAdapter:
             cache_dir (str | None, optional): Directory to cache data. Defaults to None.
             test (bool, optional): Whether to run in test mode. Defaults to False.
         """
-        cache_dir = cache_dir or TemporaryDirectory().name
+        self.cache_dir = cache_dir or TemporaryDirectory().name
         table_path = self.get_latest_release(bc)
         self.table = self.read_table(bc, table_path, test)
+        self.airr_cells = None
 
+        if not hasattr(self.__class__, "DB_NAME"):
+            raise TypeError(f"Class {self.__class__.__name__} must define a 'DB_NAME' class attribute.")
+        
     @abstractmethod
-    def get_latest_release(self, bc: BioCypher, cache_dir: str) -> str:
+    def get_latest_release(self, bc: BioCypher) -> str:
         """
         Abstract method to get the latest release of the data.
 
@@ -57,7 +66,7 @@ class BaseAdapter:
         pass
 
     @abstractmethod
-    def read_table(self, table_path: str, test: bool = False) -> pd.DataFrame:
+    def read_table(self, bc: BioCypher, table_path: str, test: bool = False) -> pd.DataFrame:
         """
         Abstract method to read and harmonize the data table from the source.
 
@@ -91,6 +100,28 @@ class BaseAdapter:
             Iterable: An iterable of BioCypher edges.
         """
         pass
+    @abstractmethod
+    def create_airr_cells(self) -> bool:
+        """
+        Abstract method to create AIRR cells from the data.
+
+        Returns:
+            bool: True if AIRR cells were created successfully, False otherwise.
+        """
+        pass
+
+    def create_anndata(self) -> None:
+
+        self.create_airr_cells()   
+        adata = from_airr_cells(self.airr_cells)
+        index_chains(adata)
+
+        adata.uns["DB"] = {"name": self.DB_NAME, "date_downloaded": datetime.now().isoformat()}
+        anndata_path = Path(self.cache_dir+f"/{self.DB_NAME}_anndata.h5ad")
+        os.makedirs(os.path.dirname(os.path.abspath(anndata_path)), exist_ok=True)
+        adata.write_h5ad(cast(os.PathLike, anndata_path))
+        print(f"Saved Anndata to {anndata_path}")
+    
 
     def _generate_nodes_from_table(
         self,
