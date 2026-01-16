@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import re
 import os
+import pandas as pd
 from pathlib import Path
 from abc import abstractmethod
 from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING
 from datetime import datetime
 from typing import cast
+from tqdm.auto import tqdm
+from scirpy.io._datastructures import AirrCell
 from scirpy.io._convert_anndata import from_airr_cells
 from scirpy.pp import index_chains
 from .constants import REGISTRY_KEYS
@@ -100,21 +103,68 @@ class BaseAdapter:
             Iterable: An iterable of BioCypher edges.
         """
         pass
-    @abstractmethod
-    def create_airr_cells(self) -> bool:
+    def create_airr_cells(self) -> list:
         """
-        Abstract method to create AIRR cells from the data.
+        Converts the table data to AIRR cell format.
+        This function is adopted from the Scirpy repository.
 
         Returns:
-            bool: True if AIRR cells were created successfully, False otherwise.
+            list: A list of AIRR cell dictionaries.
+
         """
-        pass
+        if self.airr_cells is not None:
+            return True
+        
+        df = self.table
+        self.airr_cells = []
+
+        for idx, row in tqdm(df.iterrows(), total=df.shape[0], desc=f"Processing {self.DB_NAME} entries"):
+            cell = AirrCell(cell_id=str(idx))
+            if not pd.isnull(row[REGISTRY_KEYS.CHAIN_1_CDR3_KEY]):
+                alpha_chain = AirrCell.empty_chain_dict()
+                alpha_chain.update(
+                    {
+                        "locus": REGISTRY_KEYS.TRA_KEY,
+                        "junction_aa": row[REGISTRY_KEYS.CHAIN_1_CDR3_KEY],
+                        "v_call": row[REGISTRY_KEYS.CHAIN_1_V_GENE_KEY],
+                        "j_call": row[REGISTRY_KEYS.CHAIN_1_J_GENE_KEY],
+                        "consensus_count": 0,
+                        "productive": True,
+                    }
+                )
+                cell.add_chain(alpha_chain)
+
+            if not pd.isnull(row[REGISTRY_KEYS.CHAIN_2_CDR3_KEY]):
+                beta_chain = AirrCell.empty_chain_dict()
+                beta_chain.update(
+                    {
+                        "locus": REGISTRY_KEYS.TRB_KEY,
+                        "junction_aa": row[REGISTRY_KEYS.CHAIN_2_CDR3_KEY],
+                        "v_call": row[REGISTRY_KEYS.CHAIN_2_V_GENE_KEY],
+                        "j_call": row[REGISTRY_KEYS.CHAIN_2_J_GENE_KEY],
+                        "consensus_count": 0,
+                        "productive": True,
+                    }
+                )
+                cell.add_chain(beta_chain)
+
+            for f in REGISTRY_KEYS:
+                if f not in row:
+                    continue
+                cell[f] = row[f]
+            self.airr_cells.append(cell)
+        return True
 
     def create_anndata(self) -> None:
 
         self.create_airr_cells()   
         adata = from_airr_cells(self.airr_cells)
         index_chains(adata)
+
+        # Convert object columns to string to avoid serialization issues with h5py (e.g. for PMID)
+        for col in adata.obs.columns:
+            if adata.obs[col].dtype == object:
+                adata.obs[col] = adata.obs[col].astype(str)
 
         adata.uns["DB"] = {"name": self.DB_NAME, "date_downloaded": datetime.now().isoformat()}
         anndata_path = Path(self.cache_dir+f"/{self.DB_NAME}_anndata.h5ad")

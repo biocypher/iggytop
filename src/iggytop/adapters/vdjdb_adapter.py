@@ -121,57 +121,6 @@ class VDJDBAdapter(BaseAdapter):
 
         return table_preprocessed
     
-    def create_airr_cells(self) -> list:
-        """
-        Converts the VDJdb data to AIRR cell format.
-        This function is adopted from the Scirpy repository.
-
-        Returns:
-            list: A list of AIRR cell dictionaries.
-
-        """
-        if self.airr_cells is not None:
-            return True
-        
-        df = self.table
-        self.airr_cells = []
-        for idx, row in tqdm(df.iterrows(), total=df.shape[0], desc="Processing VDJDB entries"):
-            cell = AirrCell(cell_id=str(idx))
-            if not pd.isnull(row[REGISTRY_KEYS.CHAIN_1_CDR3_KEY]):
-                alpha_chain = AirrCell.empty_chain_dict()
-                alpha_chain.update(
-                    {
-                        "locus": REGISTRY_KEYS.TRA_KEY,
-                        "junction_aa": row[REGISTRY_KEYS.CHAIN_1_CDR3_KEY],
-                        "v_call": row[REGISTRY_KEYS.CHAIN_1_V_GENE_KEY],
-                        "j_call": row[REGISTRY_KEYS.CHAIN_1_J_GENE_KEY],
-                        "consensus_count": 0,
-                        "productive": True,
-                    }
-                )
-                cell.add_chain(alpha_chain)
-
-            if not pd.isnull(row[REGISTRY_KEYS.CHAIN_2_CDR3_KEY]):
-                beta_chain = AirrCell.empty_chain_dict()
-                beta_chain.update(
-                    {
-                        "locus": REGISTRY_KEYS.TRB_KEY,
-                        "junction_aa": row[REGISTRY_KEYS.CHAIN_2_CDR3_KEY],
-                        "v_call": row[REGISTRY_KEYS.CHAIN_2_V_GENE_KEY],
-                        "j_call": row[REGISTRY_KEYS.CHAIN_2_J_GENE_KEY],
-                        "consensus_count": 0,
-                        "productive": True,
-                    }
-                )
-                cell.add_chain(beta_chain)
-
-            for f in REGISTRY_KEYS:
-                if f not in row:
-                    continue
-                cell[f] = row[f]
-            self.airr_cells.append(cell)
-        return True
-    
 
     def _transform_paired_data_efficient(self, df):
         """
