@@ -5,6 +5,8 @@ import hashlib
 import json
 import os
 import re
+import yaml
+import importlib.resources
 from datetime import datetime
 from typing import List
 
@@ -18,6 +20,34 @@ from .mapping_utils import map_antigen_names, map_species_terms
 
 AMINO_ACIDS = set("ACDEFGHIKLMNPQRSTVWY")
 
+def _set_up_config(output_format, cache_dir):
+    # Load the base configuration
+    with importlib.resources.open_text('iggytop.config', 'biocypher_config.yaml') as file:
+        config = yaml.safe_load(file)
+    if output_format:
+        # Check if the output format is allowed
+        allowed_formats = ['airr', 'networkx', 'neo4j', 'docker']
+        if output_format not in allowed_formats:
+            raise ValueError(f"Invalid output_format: {output_format}. Allowed formats are: {allowed_formats}")
+        # Modify the configuration 
+        if output_format == 'neo4j' or output_format == 'networkx':
+            config['biocypher']['online_mode'] = False
+
+        config['biocypher']['dbms'] = output_format
+        if output_format == 'docker':
+                with importlib.resources.open_text('iggytop.config', 'biocypher_docker_config.yaml') as d_file:
+                    config = yaml.safe_load(d_file)
+
+
+    # Ensure the cache directory exists
+    os.makedirs(cache_dir, exist_ok=True)
+
+    # Save the modified configuration to the cache directory
+    modified_config_path = os.path.join(cache_dir, 'biocypher_config.yaml')
+    with open(modified_config_path, 'w') as file:
+        yaml.safe_dump(config, file)
+
+    return modified_config_path
 
 def _is_valid_peptide_sequence(seq: str) -> bool:
     """Checks if a given sequence is a valid peptide sequence."""
