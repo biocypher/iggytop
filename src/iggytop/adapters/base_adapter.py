@@ -4,7 +4,7 @@ import re
 import os
 import pandas as pd
 from pathlib import Path
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from tempfile import TemporaryDirectory
 from datetime import datetime
 from typing import cast
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from biocypher import BioCypher
 
 
-class BaseAdapter:
+class BaseAdapter(ABC):
     """
     Base class for all adapters.
 
