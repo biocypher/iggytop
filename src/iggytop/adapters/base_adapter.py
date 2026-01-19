@@ -103,13 +103,13 @@ class BaseAdapter:
             Iterable: An iterable of BioCypher edges.
         """
         pass
-    def create_airr_cells(self) -> list:
+
+    def create_airr_cells(self) -> bool:
         """
-        Converts the table data to AIRR cell format.
-        This function is adopted from the Scirpy repository.
+        Converts the table data to AIRR cell format. The list of AIRR cells is stored in self.airr_cells.
 
         Returns:
-            list: A list of AIRR cell dictionaries.
+            bool: True if successful, False otherwise.
 
         """
         if self.airr_cells is not None:
@@ -124,7 +124,7 @@ class BaseAdapter:
                 alpha_chain = AirrCell.empty_chain_dict()
                 alpha_chain.update(
                     {
-                        "locus": REGISTRY_KEYS.TRA_KEY,
+                        "locus": row[REGISTRY_KEYS.CHAIN_1_TYPE_KEY],
                         "junction_aa": row[REGISTRY_KEYS.CHAIN_1_CDR3_KEY],
                         "v_call": row[REGISTRY_KEYS.CHAIN_1_V_GENE_KEY],
                         "j_call": row[REGISTRY_KEYS.CHAIN_1_J_GENE_KEY],
@@ -138,7 +138,7 @@ class BaseAdapter:
                 beta_chain = AirrCell.empty_chain_dict()
                 beta_chain.update(
                     {
-                        "locus": REGISTRY_KEYS.TRB_KEY,
+                        "locus": row[REGISTRY_KEYS.CHAIN_2_TYPE_KEY],
                         "junction_aa": row[REGISTRY_KEYS.CHAIN_2_CDR3_KEY],
                         "v_call": row[REGISTRY_KEYS.CHAIN_2_V_GENE_KEY],
                         "j_call": row[REGISTRY_KEYS.CHAIN_2_J_GENE_KEY],
@@ -156,7 +156,9 @@ class BaseAdapter:
         return True
 
     def create_anndata(self) -> None:
-
+        """
+        Creates an Anndata object from the AIRR cell data and saves it to a file in the cache directory.
+        """
         self.create_airr_cells()   
         adata = from_airr_cells(self.airr_cells)
         index_chains(adata)
@@ -167,8 +169,8 @@ class BaseAdapter:
                 adata.obs[col] = adata.obs[col].astype(str)
 
         adata.uns["DB"] = {"name": self.DB_NAME, "date_downloaded": datetime.now().isoformat()}
-        anndata_path = Path(self.cache_dir+f"/{self.DB_NAME}_anndata.h5ad")
-        os.makedirs(os.path.dirname(os.path.abspath(anndata_path)), exist_ok=True)
+        anndata_path = Path(self.cache_dir) / f"{self.DB_NAME}_anndata.h5ad"
+        anndata_path.parent.mkdir(parents=True, exist_ok=True)
         adata.write_h5ad(cast(os.PathLike, anndata_path))
         print(f"Saved Anndata to {anndata_path}")
     

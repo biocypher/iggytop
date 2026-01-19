@@ -55,7 +55,7 @@ print(f"Initialization took {time.time() - start_time:.2f} seconds")
 
 for AdapterClass in selected_adapters:
     start_time = time.time()
-    adapter = AdapterClass(bc,cache_dir, test_mode)
+    adapter = AdapterClass(bc, cache_dir, test_mode)
     adapter.create_anndata()
     print(f"Execution took {time.time() - start_time:.2f} seconds")
 
