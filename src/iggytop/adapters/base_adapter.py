@@ -6,7 +6,6 @@ import pandas as pd
 from pathlib import Path
 from abc import abstractmethod
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING
 from datetime import datetime
 from typing import cast
 from tqdm.auto import tqdm
@@ -15,8 +14,8 @@ from scirpy.io._convert_anndata import from_airr_cells
 from scirpy.pp import index_chains
 from .constants import REGISTRY_KEYS
 
+from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    import pandas as pd
     from biocypher import BioCypher
 
 
@@ -118,30 +117,35 @@ class BaseAdapter:
         df = self.table
         self.airr_cells = []
 
-        for idx, row in tqdm(df.iterrows(), total=df.shape[0], desc=f"Processing {self.DB_NAME} entries"):
+        # Using itertuples() for better performance on large DataFrames
+        for row in tqdm(df.itertuples(), total=df.shape[0], desc=f"Processing {self.DB_NAME} entries"):
+            idx = row.Index
             cell = AirrCell(cell_id=str(idx))
-            if not pd.isnull(row[REGISTRY_KEYS.CHAIN_1_CDR3_KEY]):
+
+            c1_cdr3 = getattr(row, REGISTRY_KEYS.CHAIN_1_CDR3_KEY, None)
+            if not pd.isnull(c1_cdr3):
                 alpha_chain = AirrCell.empty_chain_dict()
                 alpha_chain.update(
                     {
-                        "locus": row[REGISTRY_KEYS.CHAIN_1_TYPE_KEY],
-                        "junction_aa": row[REGISTRY_KEYS.CHAIN_1_CDR3_KEY],
-                        "v_call": row[REGISTRY_KEYS.CHAIN_1_V_GENE_KEY],
-                        "j_call": row[REGISTRY_KEYS.CHAIN_1_J_GENE_KEY],
+                        "locus": getattr(row, REGISTRY_KEYS.CHAIN_1_TYPE_KEY, None),
+                        "junction_aa": c1_cdr3,
+                        "v_call": getattr(row, REGISTRY_KEYS.CHAIN_1_V_GENE_KEY, None),
+                        "j_call": getattr(row, REGISTRY_KEYS.CHAIN_1_J_GENE_KEY, None),
                         "consensus_count": 0,
                         "productive": True,
                     }
                 )
                 cell.add_chain(alpha_chain)
 
-            if not pd.isnull(row[REGISTRY_KEYS.CHAIN_2_CDR3_KEY]):
+            c2_cdr3 = getattr(row, REGISTRY_KEYS.CHAIN_2_CDR3_KEY, None)
+            if not pd.isnull(c2_cdr3):
                 beta_chain = AirrCell.empty_chain_dict()
                 beta_chain.update(
                     {
-                        "locus": row[REGISTRY_KEYS.CHAIN_2_TYPE_KEY],
-                        "junction_aa": row[REGISTRY_KEYS.CHAIN_2_CDR3_KEY],
-                        "v_call": row[REGISTRY_KEYS.CHAIN_2_V_GENE_KEY],
-                        "j_call": row[REGISTRY_KEYS.CHAIN_2_J_GENE_KEY],
+                        "locus": getattr(row, REGISTRY_KEYS.CHAIN_2_TYPE_KEY, None),
+                        "junction_aa": c2_cdr3,
+                        "v_call": getattr(row, REGISTRY_KEYS.CHAIN_2_V_GENE_KEY, None),
+                        "j_call": getattr(row, REGISTRY_KEYS.CHAIN_2_J_GENE_KEY, None),
                         "consensus_count": 0,
                         "productive": True,
                     }
@@ -149,9 +153,13 @@ class BaseAdapter:
                 cell.add_chain(beta_chain)
 
             for f in REGISTRY_KEYS:
-                if f not in row:
+                # f is a column name (value from REGISTRY_KEYS)
+                if "chain" in f:
                     continue
-                cell[f] = row[f]
+                
+                val = getattr(row, f, None)
+                if val is not None and not pd.isnull(val):
+                    cell[f] = val
             self.airr_cells.append(cell)
         return True
 
@@ -209,41 +217,35 @@ class BaseAdapter:
 
         subset_table = self.table[subset_cols].dropna(subset=unique_cols)
 
-        for _, row in subset_table.iterrows():
+        # Using itertuples() for better performance
+        for row in subset_table.itertuples(index=False):
             if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in subset_cols:
-                _type = row[REGISTRY_KEYS.CHAIN_1_TYPE_KEY]
+                _type = getattr(row, REGISTRY_KEYS.CHAIN_1_TYPE_KEY)
             elif REGISTRY_KEYS.CHAIN_2_TYPE_KEY in subset_cols:
-                _type = row[REGISTRY_KEYS.CHAIN_2_TYPE_KEY]
+                _type = getattr(row, REGISTRY_KEYS.CHAIN_2_TYPE_KEY)
             else:
                 _type = "epitope"
 
-            # _id = ":".join([_type.lower(), *row[unique_cols].to_list()])
-            
             # For TCR chains, use sequence + V gene + J gene as the identifier
             if _type.lower() != "epitope":
                 # Get V gene and J gene if available
                 v_gene_key = REGISTRY_KEYS.CHAIN_1_V_GENE_KEY if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in subset_cols else REGISTRY_KEYS.CHAIN_2_V_GENE_KEY
-                j_gene_key = REGISTRY_KEYS.CHAIN_1_J_GENE_KEY if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in subset_cols else REGISTRY_KEYS.CHAIN_2_J_GENE_KEY
                 
-                # Check if V and J genes are available in the row
-                v_gene = row.get(v_gene_key)
-                j_gene = row.get(j_gene_key)
+                # Check if V gene is available in the row
+                v_gene = getattr(row, v_gene_key, None)
                 
                 # Create an ID that includes V and J genes if available
                 id_components = [_type.lower()]
-                id_components.extend(row[unique_cols].to_list())
+                id_components.extend([str(getattr(row, col)) for col in unique_cols])
                 if v_gene:
-                    id_components.append(f"{v_gene}")
-                # if j_gene:
-                    # id_components.append(f"j_{j_gene}")
+                    id_components.append(str(v_gene))
                 
                 _id = ":".join(id_components)
             else:
                 # For epitopes and other types, keep the original ID format
-                _id = ":".join([_type.lower(), *row[unique_cols].to_list()])
+                _id = ":".join([_type.lower(), *[str(getattr(row, col)) for col in unique_cols]])
             
-            _props = {re.sub("chain_\d_", "", k): row[k] for k in property_cols}
-            # _props["junction_aa"] = row[unique_cols[0]] if unique_cols else None
+            _props = {re.sub(r"chain_\d_", "", k): getattr(row, k) for k in property_cols}
 
             yield _id, _type.lower(), _props
 
@@ -291,28 +293,31 @@ class BaseAdapter:
             .dropna(subset=source_unique_cols + target_unique_cols)
         )
 
-        for _, row in subset_table.iterrows():
+        # Using itertuples() for better performance
+        for row in subset_table.itertuples(index=False):
 
             node_data = {}
             for i in ["source", "target"]:
                 cols = locals()[f"{i}_subset_cols"]
+                unique_cols_list = locals()[f"{i}_unique_cols"]
+                
                 if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in cols:
-                    node_type = row[REGISTRY_KEYS.CHAIN_1_TYPE_KEY]
+                    node_type = getattr(row, REGISTRY_KEYS.CHAIN_1_TYPE_KEY)
                     v_gene_key = REGISTRY_KEYS.CHAIN_1_V_GENE_KEY
                 elif REGISTRY_KEYS.CHAIN_2_TYPE_KEY in cols:
-                    node_type = row[REGISTRY_KEYS.CHAIN_2_TYPE_KEY]
+                    node_type = getattr(row, REGISTRY_KEYS.CHAIN_2_TYPE_KEY)
                     v_gene_key = REGISTRY_KEYS.CHAIN_2_V_GENE_KEY
                 else:
                     node_type = "epitope"
                     v_gene_key = None
 
                 id_components = [node_type.lower()]
-                id_components.extend(row[locals()[f"{i}_unique_cols"]].tolist())
+                id_components.extend([str(getattr(row, col)) for col in unique_cols_list])
 
                 if v_gene_key:
-                    v_gene = row[v_gene_key]
+                    v_gene = getattr(row, v_gene_key, None)
                     if v_gene:
-                        id_components.append(v_gene)
+                        id_components.append(str(v_gene))
 
                 node_data[i] = {
                     "id": ":".join(id_components),

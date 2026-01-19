@@ -128,7 +128,7 @@ container.
 
 ## Scirpy integration
 
-This project helps generating the anndata versions of all the Scripy reference databases supported by Iggytop. The Anndata objects are stored in h5ad file format.
+This project helps generating the anndata versions of all the Scirpy reference databases supported by Iggytop. The Anndata objects are stored in h5ad file format.
 This can be replicated by running the `create_anndata` script (while selecting the databases of interest using the variable `adapters_to_include`)
 
 ```bash
