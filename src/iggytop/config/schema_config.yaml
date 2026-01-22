@@ -69,6 +69,7 @@ epitope:
 #=========    PARENT EDGES
 immune receptor to epitope association:
   is_a: association
+  represented_as: edge
   properties:
     antigen_name: str
     antigen_species: str
@@ -77,32 +78,30 @@ immune receptor to epitope association:
     MHC_gene_2: str
     PMID: str
 
-#=========    INHERITED EDGES
-immune receptor to epitope association:
-  is_a: association
-  
-immune receptor pair to epitope association:
-  is_a: association
-
+#=========    INHERITED EDGES  
 t cell receptor sequence to epitope association:
   is_a: immune receptor to epitope association
   represented_as: edge
+  source: t cell receptor sequence
+  target: epitope
   input_label: [tra_to_epitope, trb_to_epitope]
 
 b cell receptor sequence to epitope association:
   is_a: immune receptor to epitope association
   represented_as: edge
+  source: b cell receptor sequence
+  target: epitope
   input_label: [igh_to_epitope, igl_to_epitope]
 
 t cell receptor pair to epitope association:
-  is_a: immune receptor pair to epitope association
+  is_a: immune receptor to epitope association
   represented_as: edge
   source: alpha sequence to beta sequence pair
   target: epitope
   input_label: tra_trb_pair_to_epitope
 
 b cell receptor pair to epitope association:
-  is_a: immune receptor pair to epitope association
+  is_a: immune receptor to epitope association
   represented_as: edge
   source: heavy sequence to light sequence pair
   target: epitope
