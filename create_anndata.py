@@ -1,8 +1,7 @@
-import platformdirs
-
-from pathlib import Path
-import importlib.resources
 from biocypher import BioCypher
+from pathlib import Path
+import platformdirs
+import importlib.resources
 import anndata as ad
 import scirpy as ir
 
@@ -25,7 +24,7 @@ deduplicate = False  # whether to deduplicate the merged AnnData, set unique id'
 start_time = time.time()
 
 
-cache_dir = Path(platformdirs.user_cache_dir("iggytop_anndata_fresh"))
+cache_dir = Path(platformdirs.user_cache_dir("iggytop_anndata"))
 test_mode = False
 adapters_to_include = ["VDJDB", "IEDB", "MCPAS",  "TCR3D", "NeoTCR", "CEDAR", "TRAIT"]
 output_format = "airr"  # doesnt matter here
@@ -43,7 +42,7 @@ bc = BioCypher(biocypher_config_path=config_path,
 
 
 adapter_classes = {
-    "VDJDB": VDJDBAdapter,
+    "VDJdb": VDJDBAdapter,
     "MCPAS": MCPASAdapter,
     "TRAIT": TRAITAdapter,
     "IEDB": IEDBAdapter,
@@ -69,15 +68,7 @@ for AdapterClass in selected_adapters:
 
 if merge:
     # List of files to load
-    files = [
-        "VDJdb",
-        "IEDB",
-        "McPAS-TCR",
-        "TCR3d",
-        "NeoTCR",
-        "CEDAR",
-        "TRAIT"
-    ]
+    files = adapter_classes.keys()
     adatas = {}
 
     for f in files:
