@@ -1,18 +1,26 @@
 from __future__ import annotations
 
 import re
-from abc import abstractmethod
+import os
+import pandas as pd
+from pathlib import Path
+from abc import ABC, abstractmethod
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING
-
+from datetime import datetime
+from typing import cast
+from tqdm.auto import tqdm
+from scirpy.io._datastructures import AirrCell
+from scirpy.io._convert_anndata import from_airr_cells
+from scirpy.pp import index_chains
 from .constants import REGISTRY_KEYS
 
+from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    import pandas as pd
     from biocypher import BioCypher
+import platformdirs
 
 
-class BaseAdapter:
+class BaseAdapter(ABC):
     """
     Base class for all adapters.
 
@@ -38,12 +46,101 @@ class BaseAdapter:
             cache_dir (str | None, optional): Directory to cache data. Defaults to None.
             test (bool, optional): Whether to run in test mode. Defaults to False.
         """
-        cache_dir = cache_dir or TemporaryDirectory().name
-        table_path = self.get_latest_release(bc)
-        self.table = self.read_table(bc, table_path, test)
+        self._bc = bc
+        self._test = test
+        self._table_path = self.get_latest_release(bc)
+        self._table: pd.DataFrame | None = None       
+        self._cache_dir = cache_dir | None
+        self._airr_cells: list[AirrCell] | None = None
 
+        if not hasattr(self.__class__, "DB_NAME"):
+            raise TypeError(f"Class {self.__class__.__name__} must define a 'DB_NAME' class attribute.")
+        
+    @property
+    def table(self) -> pd.DataFrame:
+        """
+        Property to get the data table. Reads the table if not already read.
+
+        Returns:
+            pd.DataFrame: The data table.
+        """
+        if self._table is None:
+            self._table = self.read_table(self._bc, self._table_path, self._test)
+        return self._table
+    
+    @property
+    def cache_dir(self) -> str:
+        """
+        Property to get the cache directory.
+
+        Returns:
+            str: The cache directory.
+        """
+        if self._cache_dir is None:
+            self._cache_dir = platformdirs.user_cache_dir("iggytop")
+        return self._cache_dir  
+    
+    @property
+    def airr_cells(self) -> list[AirrCell] | None:
+        """
+        Property to get the list of AIRR cells.
+
+        Returns:
+            list[AirrCell] | None: The list of AIRR cells.
+        """
+        if self._airr_cells is None:
+            self._airr_cells = []
+
+            # Using itertuples() for better performance on large DataFrames
+            for row in tqdm( self.table.itertuples(), total=self.table.shape[0], desc=f"Processing {self.DB_NAME} entries"):
+                idx = row.Index
+                cell = AirrCell(cell_id=str(idx))
+
+                c1_cdr3 = getattr(row, REGISTRY_KEYS.CHAIN_1_CDR3_KEY, None)
+                if not pd.isnull(c1_cdr3):
+                    alpha_chain = AirrCell.empty_chain_dict()
+                    alpha_chain.update(
+                        {
+                            "locus": getattr(row, REGISTRY_KEYS.CHAIN_1_TYPE_KEY, None),
+                            "junction_aa": c1_cdr3,
+                            "v_call": getattr(row, REGISTRY_KEYS.CHAIN_1_V_GENE_KEY, None),
+                            "j_call": getattr(row, REGISTRY_KEYS.CHAIN_1_J_GENE_KEY, None),
+                            "consensus_count": 0,
+                            "productive": True,
+                        }
+                    )
+                    cell.add_chain(alpha_chain)
+
+                c2_cdr3 = getattr(row, REGISTRY_KEYS.CHAIN_2_CDR3_KEY, None)
+                if not pd.isnull(c2_cdr3):
+                    beta_chain = AirrCell.empty_chain_dict()
+                    beta_chain.update(
+                        {
+                            "locus": getattr(row, REGISTRY_KEYS.CHAIN_2_TYPE_KEY, None),
+                            "junction_aa": c2_cdr3,
+                            "v_call": getattr(row, REGISTRY_KEYS.CHAIN_2_V_GENE_KEY, None),
+                            "j_call": getattr(row, REGISTRY_KEYS.CHAIN_2_J_GENE_KEY, None),
+                            "consensus_count": 0,
+                            "productive": True,
+                        }
+                    )
+                    cell.add_chain(beta_chain)
+
+                for f in REGISTRY_KEYS:
+                    # f is a column name (value from REGISTRY_KEYS)
+                    if "chain" in f:
+                        continue
+                    
+                    val = getattr(row, f, None)
+                    if val is not None and not pd.isnull(val):
+                        cell[f] = val
+                self._airr_cells.append(cell)
+
+        return self._airr_cells
+        
+    
     @abstractmethod
-    def get_latest_release(self, bc: BioCypher, cache_dir: str) -> str:
+    def get_latest_release(self, bc: BioCypher) -> str:
         """
         Abstract method to get the latest release of the data.
 
@@ -57,7 +154,7 @@ class BaseAdapter:
         pass
 
     @abstractmethod
-    def read_table(self, table_path: str, test: bool = False) -> pd.DataFrame:
+    def read_table(self, bc: BioCypher, table_path: str, test: bool = False) -> pd.DataFrame:
         """
         Abstract method to read and harmonize the data table from the source.
 
@@ -91,6 +188,25 @@ class BaseAdapter:
             Iterable: An iterable of BioCypher edges.
         """
         pass
+
+    def create_anndata(self) -> None:
+        """
+        Creates an Anndata object from the AIRR cell data and saves it to a file in the cache directory.
+        """   
+        adata = from_airr_cells(self.airr_cells)
+        index_chains(adata)
+
+        # Convert object columns to string to avoid serialization issues with h5py (e.g. for PMID)
+        for col in adata.obs.columns:
+            if adata.obs[col].dtype == object:
+                adata.obs[col] = adata.obs[col].astype(str)
+
+        adata.uns["DB"] = {"name": self.DB_NAME, "date_downloaded": datetime.now().isoformat()}
+        anndata_path = Path(self.cache_dir) / f"{self.DB_NAME}_anndata.h5ad"
+        anndata_path.parent.mkdir(parents=True, exist_ok=True)
+        adata.write_h5ad(cast(os.PathLike, anndata_path))
+        print(f"Saved Anndata to {anndata_path}")
+    
 
     def _generate_nodes_from_table(
         self,
@@ -126,41 +242,35 @@ class BaseAdapter:
 
         subset_table = self.table[subset_cols].dropna(subset=unique_cols)
 
-        for _, row in subset_table.iterrows():
+        # Using itertuples() for better performance
+        for row in subset_table.itertuples(index=False):
             if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in subset_cols:
-                _type = row[REGISTRY_KEYS.CHAIN_1_TYPE_KEY]
+                _type = getattr(row, REGISTRY_KEYS.CHAIN_1_TYPE_KEY)
             elif REGISTRY_KEYS.CHAIN_2_TYPE_KEY in subset_cols:
-                _type = row[REGISTRY_KEYS.CHAIN_2_TYPE_KEY]
+                _type = getattr(row, REGISTRY_KEYS.CHAIN_2_TYPE_KEY)
             else:
                 _type = "epitope"
 
-            # _id = ":".join([_type.lower(), *row[unique_cols].to_list()])
-            
             # For TCR chains, use sequence + V gene + J gene as the identifier
             if _type.lower() != "epitope":
                 # Get V gene and J gene if available
                 v_gene_key = REGISTRY_KEYS.CHAIN_1_V_GENE_KEY if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in subset_cols else REGISTRY_KEYS.CHAIN_2_V_GENE_KEY
-                j_gene_key = REGISTRY_KEYS.CHAIN_1_J_GENE_KEY if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in subset_cols else REGISTRY_KEYS.CHAIN_2_J_GENE_KEY
                 
-                # Check if V and J genes are available in the row
-                v_gene = row.get(v_gene_key)
-                j_gene = row.get(j_gene_key)
+                # Check if V gene is available in the row
+                v_gene = getattr(row, v_gene_key, None)
                 
                 # Create an ID that includes V and J genes if available
                 id_components = [_type.lower()]
-                id_components.extend(row[unique_cols].to_list())
+                id_components.extend([str(getattr(row, col)) for col in unique_cols])
                 if v_gene:
-                    id_components.append(f"{v_gene}")
-                # if j_gene:
-                    # id_components.append(f"j_{j_gene}")
+                    id_components.append(str(v_gene))
                 
                 _id = ":".join(id_components)
             else:
                 # For epitopes and other types, keep the original ID format
-                _id = ":".join([_type.lower(), *row[unique_cols].to_list()])
+                _id = ":".join([_type.lower(), *[str(getattr(row, col)) for col in unique_cols]])
             
-            _props = {re.sub("chain_\d_", "", k): row[k] for k in property_cols}
-            # _props["junction_aa"] = row[unique_cols[0]] if unique_cols else None
+            _props = {re.sub(r"chain_\d_", "", k): getattr(row, k) for k in property_cols}
 
             yield _id, _type.lower(), _props
 
@@ -208,28 +318,31 @@ class BaseAdapter:
             .dropna(subset=source_unique_cols + target_unique_cols)
         )
 
-        for _, row in subset_table.iterrows():
+        # Using itertuples() for better performance
+        for row in subset_table.itertuples(index=False):
 
             node_data = {}
             for i in ["source", "target"]:
                 cols = locals()[f"{i}_subset_cols"]
+                unique_cols_list = locals()[f"{i}_unique_cols"]
+                
                 if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in cols:
-                    node_type = row[REGISTRY_KEYS.CHAIN_1_TYPE_KEY]
+                    node_type = getattr(row, REGISTRY_KEYS.CHAIN_1_TYPE_KEY)
                     v_gene_key = REGISTRY_KEYS.CHAIN_1_V_GENE_KEY
                 elif REGISTRY_KEYS.CHAIN_2_TYPE_KEY in cols:
-                    node_type = row[REGISTRY_KEYS.CHAIN_2_TYPE_KEY]
+                    node_type = getattr(row, REGISTRY_KEYS.CHAIN_2_TYPE_KEY)
                     v_gene_key = REGISTRY_KEYS.CHAIN_2_V_GENE_KEY
                 else:
                     node_type = "epitope"
                     v_gene_key = None
 
                 id_components = [node_type.lower()]
-                id_components.extend(row[locals()[f"{i}_unique_cols"]].tolist())
+                id_components.extend([str(getattr(row, col)) for col in unique_cols_list])
 
                 if v_gene_key:
-                    v_gene = row[v_gene_key]
+                    v_gene = getattr(row, v_gene_key, None)
                     if v_gene:
-                        id_components.append(v_gene)
+                        id_components.append(str(v_gene))
 
                 node_data[i] = {
                     "id": ":".join(id_components),

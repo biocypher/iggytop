@@ -126,6 +126,18 @@ container installs and runs Neo4j. The files created by BioCypher in the first
 container are copied and automatically imported into the DB in the second
 container.
 
+## Scirpy integration
+
+This project helps generating the anndata versions of all the Scirpy reference databases supported by Iggytop. The Anndata objects are stored in h5ad file format.
+This can be replicated by running the `create_anndata` script (while selecting the databases of interest using the variable `adapters_to_include`)
+
+```bash
+uv run create_anndata.py
+```
+
+Note: this is a wip
+
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request or create

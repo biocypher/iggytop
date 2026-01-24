@@ -1,5 +1,6 @@
-from typing import NamedTuple
+"""Constants used across the IggyTop adapters. These aim to correspond to the standards defined in the AIRR Community's Standards for Immune Receptor Repertoire Sequencing Data."""
 
+from typing import NamedTuple
 
 class _REGISTRY_KEYS_NT(NamedTuple):
     PREFERRED_ID_KEY: str = "preferred_id"
@@ -21,10 +22,10 @@ class _REGISTRY_KEYS_NT(NamedTuple):
     CHAIN_2_ORGANISM_KEY: str = "chain_2_organism"
     CHAIN_1_TYPE_KEY: str = "chain_1_type"
     CHAIN_2_TYPE_KEY: str = "chain_2_type"
-    TRA_KEY: str = "tra"
-    TRB_KEY: str = "trb"
-    IGH_KEY: str = "igh"
-    IGL_KEY: str = "igl"
+    TRA_KEY: str = "TRA"
+    TRB_KEY: str = "TRB"
+    IGH_KEY: str = "IGH"
+    IGL_KEY: str = "IGL"
     MHC_CLASS_KEY: str = "MHC_class"
     MHC_GENE_1_KEY: str = "MHC_gene_1"
     MHC_GENE_2_KEY: str = "MHC_gene_2"

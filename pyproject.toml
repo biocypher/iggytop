@@ -36,6 +36,7 @@ dependencies = [
     "sphinxcontrib-bibtex>=2.6.5",
     "sphinx-book-theme>=1.1.4",
     "sphinx-copybutton>=0.5.2",
+    "ipywidgets>=8.1.8",
 ]
 
 [dependency-groups]

@@ -21,9 +21,15 @@ class CEDARAdapter(BaseAdapter):
     """
 
     DB_URL = "https://cedar.iedb.org/downloader.php?file_name=doc/receptor_full_v3.zip"
+    """URL to download the CEDAR database."""
     DB_DIR = "cedar_latest"
+    """Directory name for the downloaded database."""
+    DB_NAME = "CEDAR"
+    """Name of the database."""
     TCR_FNAME = "tcr_full_v3.csv"
+    """File name of the TCR data in CEDAR."""
     BCR_FNAME = "bcr_full_v3.csv"
+    """File name of the BCR data in CEDAR."""
 
     def get_latest_release(self, bc: BioCypher) -> str:
         # Download CEDAR

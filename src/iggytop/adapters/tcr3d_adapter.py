@@ -19,8 +19,11 @@ class TCR3DAdapter(BaseAdapter):
     """
 
     DB_URL = "https://tcr3d.ibbr.umd.edu/static/download/tcr_complexes_data.tsv"
+    """URL to download the TCR3d database."""
     DB_DIR = "tcr3d_latest"
-
+    """Directory name for the downloaded database."""
+    DB_NAME = "TCR3d"
+    """Name of the database."""
     def get_latest_release(self, bc: BioCypher) -> str:
         tcr3d_resource = FileDownload(
             name=self.DB_DIR,

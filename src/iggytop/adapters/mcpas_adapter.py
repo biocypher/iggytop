@@ -16,7 +16,11 @@ class MCPASAdapter(BaseAdapter):
     """
 
     DB_URL = "https://friedmanlab.weizmann.ac.il/McPAS-TCR.csv"
+    """URL to download the McPAS-TCR database."""
     DB_DIR = "mcpas_latest"
+    """Directory name for the downloaded database."""
+    DB_NAME = "McPAS-TCR"
+    """Name of the database."""
 
     def get_latest_release(self, bc: BioCypher) -> str:
         mcpas_resource = FileDownload(

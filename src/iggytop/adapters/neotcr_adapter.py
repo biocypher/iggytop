@@ -14,8 +14,11 @@ class NeoTCRAdapter(BaseAdapter):
     """BioCypher adapter for the `NeoTCR <http://neotcrdb.bioxai.cn/home>`_ dataset."""
 
     RAW_URL = "https://github.com/lyotvincent/NeoTCR/raw/main/data/NeoTCR%20data-20221220.xlsx"
+    """URL to download the NeoTCR database."""
     FILE_NAME = "NeoTCR_data-20221220.xlsx"
-
+    """File name of the NeoTCR database."""
+    DB_NAME = "NeoTCR"
+    """Name of the database."""
     def get_latest_release(self, bc: BioCypher) -> str:
         response = requests.get(self.RAW_URL)
         if response.status_code != 200:
