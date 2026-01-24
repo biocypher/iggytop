@@ -50,7 +50,7 @@ class BaseAdapter(ABC):
         self._test = test
         self._table_path = self.get_latest_release(bc)
         self._table: pd.DataFrame | None = None       
-        self._cache_dir = cache_dir | None
+        self._cache_dir = cache_dir
         self._airr_cells: list[AirrCell] | None = None
 
         if not hasattr(self.__class__, "DB_NAME"):
