@@ -1,4 +1,5 @@
 import platformdirs
+
 from pathlib import Path
 import importlib.resources
 from biocypher import BioCypher

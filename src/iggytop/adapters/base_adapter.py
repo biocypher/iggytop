@@ -45,14 +45,97 @@ class BaseAdapter(ABC):
             cache_dir (str | None, optional): Directory to cache data. Defaults to None.
             test (bool, optional): Whether to run in test mode. Defaults to False.
         """
-        self.cache_dir = cache_dir or TemporaryDirectory().name
-        table_path = self.get_latest_release(bc)
-        self.table = self.read_table(bc, table_path, test)
-        self.airr_cells = None
+        self._bc = bc
+        self._test = test
+        self._table_path = self.get_latest_release(bc)
+        self._table: pd.DataFrame | None = None       
+        self._cache_dir = cache_dir or TemporaryDirectory().name
+        self._airr_cells: list[AirrCell] | None = None
 
         if not hasattr(self.__class__, "DB_NAME"):
             raise TypeError(f"Class {self.__class__.__name__} must define a 'DB_NAME' class attribute.")
         
+    @property
+    def table(self) -> pd.DataFrame:
+        """
+        Property to get the data table. Reads the table if not already read.
+
+        Returns:
+            pd.DataFrame: The data table.
+        """
+        if self._table is None:
+            self._table = self.read_table(self._bc, self._table_path, self._test)
+        return self._table
+    
+    @property
+    def cache_dir(self) -> str:
+        """
+        Property to get the cache directory.
+
+        Returns:
+            str: The cache directory.
+        """
+        return self._cache_dir  
+    
+    @property
+    def airr_cells(self) -> list[AirrCell] | None:
+        """
+        Property to get the list of AIRR cells.
+
+        Returns:
+            list[AirrCell] | None: The list of AIRR cells.
+        """
+        if self._airr_cells is None:
+            self._airr_cells = []
+
+            # Using itertuples() for better performance on large DataFrames
+            for row in tqdm( self.table.itertuples(), total=self.table.shape[0], desc=f"Processing {self.DB_NAME} entries"):
+                idx = row.Index
+                cell = AirrCell(cell_id=str(idx))
+
+                c1_cdr3 = getattr(row, REGISTRY_KEYS.CHAIN_1_CDR3_KEY, None)
+                if not pd.isnull(c1_cdr3):
+                    alpha_chain = AirrCell.empty_chain_dict()
+                    alpha_chain.update(
+                        {
+                            "locus": getattr(row, REGISTRY_KEYS.CHAIN_1_TYPE_KEY, None),
+                            "junction_aa": c1_cdr3,
+                            "v_call": getattr(row, REGISTRY_KEYS.CHAIN_1_V_GENE_KEY, None),
+                            "j_call": getattr(row, REGISTRY_KEYS.CHAIN_1_J_GENE_KEY, None),
+                            "consensus_count": 0,
+                            "productive": True,
+                        }
+                    )
+                    cell.add_chain(alpha_chain)
+
+                c2_cdr3 = getattr(row, REGISTRY_KEYS.CHAIN_2_CDR3_KEY, None)
+                if not pd.isnull(c2_cdr3):
+                    beta_chain = AirrCell.empty_chain_dict()
+                    beta_chain.update(
+                        {
+                            "locus": getattr(row, REGISTRY_KEYS.CHAIN_2_TYPE_KEY, None),
+                            "junction_aa": c2_cdr3,
+                            "v_call": getattr(row, REGISTRY_KEYS.CHAIN_2_V_GENE_KEY, None),
+                            "j_call": getattr(row, REGISTRY_KEYS.CHAIN_2_J_GENE_KEY, None),
+                            "consensus_count": 0,
+                            "productive": True,
+                        }
+                    )
+                    cell.add_chain(beta_chain)
+
+                for f in REGISTRY_KEYS:
+                    # f is a column name (value from REGISTRY_KEYS)
+                    if "chain" in f:
+                        continue
+                    
+                    val = getattr(row, f, None)
+                    if val is not None and not pd.isnull(val):
+                        cell[f] = val
+                self._airr_cells.append(cell)
+
+        return self._airr_cells
+        
+    
     @abstractmethod
     def get_latest_release(self, bc: BioCypher) -> str:
         """
@@ -103,71 +186,10 @@ class BaseAdapter(ABC):
         """
         pass
 
-    def create_airr_cells(self) -> bool:
-        """
-        Converts the table data to AIRR cell format. The list of AIRR cells is stored in self.airr_cells.
-
-        Returns:
-            bool: True if successful, False otherwise.
-
-        """
-        if self.airr_cells is not None:
-            return True
-        
-        df = self.table
-        self.airr_cells = []
-
-        # Using itertuples() for better performance on large DataFrames
-        for row in tqdm(df.itertuples(), total=df.shape[0], desc=f"Processing {self.DB_NAME} entries"):
-            idx = row.Index
-            cell = AirrCell(cell_id=str(idx))
-
-            c1_cdr3 = getattr(row, REGISTRY_KEYS.CHAIN_1_CDR3_KEY, None)
-            if not pd.isnull(c1_cdr3):
-                alpha_chain = AirrCell.empty_chain_dict()
-                alpha_chain.update(
-                    {
-                        "locus": getattr(row, REGISTRY_KEYS.CHAIN_1_TYPE_KEY, None),
-                        "junction_aa": c1_cdr3,
-                        "v_call": getattr(row, REGISTRY_KEYS.CHAIN_1_V_GENE_KEY, None),
-                        "j_call": getattr(row, REGISTRY_KEYS.CHAIN_1_J_GENE_KEY, None),
-                        "consensus_count": 0,
-                        "productive": True,
-                    }
-                )
-                cell.add_chain(alpha_chain)
-
-            c2_cdr3 = getattr(row, REGISTRY_KEYS.CHAIN_2_CDR3_KEY, None)
-            if not pd.isnull(c2_cdr3):
-                beta_chain = AirrCell.empty_chain_dict()
-                beta_chain.update(
-                    {
-                        "locus": getattr(row, REGISTRY_KEYS.CHAIN_2_TYPE_KEY, None),
-                        "junction_aa": c2_cdr3,
-                        "v_call": getattr(row, REGISTRY_KEYS.CHAIN_2_V_GENE_KEY, None),
-                        "j_call": getattr(row, REGISTRY_KEYS.CHAIN_2_J_GENE_KEY, None),
-                        "consensus_count": 0,
-                        "productive": True,
-                    }
-                )
-                cell.add_chain(beta_chain)
-
-            for f in REGISTRY_KEYS:
-                # f is a column name (value from REGISTRY_KEYS)
-                if "chain" in f:
-                    continue
-                
-                val = getattr(row, f, None)
-                if val is not None and not pd.isnull(val):
-                    cell[f] = val
-            self.airr_cells.append(cell)
-        return True
-
     def create_anndata(self) -> None:
         """
         Creates an Anndata object from the AIRR cell data and saves it to a file in the cache directory.
-        """
-        self.create_airr_cells()   
+        """   
         adata = from_airr_cells(self.airr_cells)
         index_chains(adata)
 
