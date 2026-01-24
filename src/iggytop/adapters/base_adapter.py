@@ -17,6 +17,7 @@ from .constants import REGISTRY_KEYS
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from biocypher import BioCypher
+import platformdirs
 
 
 class BaseAdapter(ABC):
@@ -49,7 +50,7 @@ class BaseAdapter(ABC):
         self._test = test
         self._table_path = self.get_latest_release(bc)
         self._table: pd.DataFrame | None = None       
-        self._cache_dir = cache_dir or TemporaryDirectory().name
+        self._cache_dir = cache_dir | None
         self._airr_cells: list[AirrCell] | None = None
 
         if not hasattr(self.__class__, "DB_NAME"):
@@ -75,6 +76,8 @@ class BaseAdapter(ABC):
         Returns:
             str: The cache directory.
         """
+        if self._cache_dir is None:
+            self._cache_dir = platformdirs.user_cache_dir("iggytop")
         return self._cache_dir  
     
     @property
