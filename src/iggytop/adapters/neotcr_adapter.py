@@ -3,7 +3,7 @@ import tempfile
 
 import pandas as pd
 import requests
-from biocypher import BioCypher
+from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
@@ -19,21 +19,22 @@ class NeoTCRAdapter(BaseAdapter):
     """File name of the NeoTCR database."""
     DB_NAME = "NeoTCR"
     """Name of the database."""
+    DB_DIR = "neotcr_latest"
     def get_latest_release(self, bc: BioCypher) -> str:
-        response = requests.get(self.RAW_URL)
-        if response.status_code != 200:
-            raise ConnectionError(f"Failed to download NeoTCR file: {self.RAW_URL}")
+        # Download NEOTCR
+        cedar_resource = FileDownload(
+            name=self.DB_DIR,
+            url_s=self.RAW_URL,
+            lifetime=30,
+            is_dir=False,
+        )
 
-        tmp_dir = tempfile.mkdtemp()
-        file_path = os.path.join(tmp_dir, self.FILE_NAME)
-
-        with open(file_path, "wb") as f:
-            f.write(response.content)
+        file_path = bc.download(cedar_resource)
 
         return file_path
 
     def read_table(self, bc: BioCypher, table_path: str, test: bool = False) -> pd.DataFrame:
-        table = pd.read_excel(table_path)
+        table = pd.read_excel(table_path[0])
 
         if test:
             table = table.sample(frac=0.05, random_state=42)

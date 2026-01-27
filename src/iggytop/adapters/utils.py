@@ -31,7 +31,7 @@ def _set_up_config(output_format, cache_dir):
             raise ValueError(f"Invalid output_format: {output_format}. Allowed formats are: {allowed_formats}")
         # Modify the configuration 
         if output_format == 'neo4j' or output_format == 'networkx':
-            config['biocypher']['online_mode'] = False
+            config['biocypher']['offline'] = True
 
         config['biocypher']['dbms'] = output_format
         if output_format == 'docker':

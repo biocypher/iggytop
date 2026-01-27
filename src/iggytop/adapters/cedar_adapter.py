@@ -59,12 +59,13 @@ class CEDARAdapter(BaseAdapter):
     ) -> pd.DataFrame:
         tcr_table_path, bcr_table_path = table_path
 
-        tcr_table = pd.read_csv(tcr_table_path, header=[0, 1])
+        # We use dtype=str to avoid DtypeWarning and optimize memory usage for large files.
+        tcr_table = pd.read_csv(tcr_table_path, header=[0, 1], dtype=str)
         tcr_table.columns = tcr_table.columns.map(" ".join)
         tcr_table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.TRA_KEY
         tcr_table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
 
-        bcr_table = pd.read_csv(bcr_table_path, header=[0, 1])
+        bcr_table = pd.read_csv(bcr_table_path, header=[0, 1], dtype=str)
         bcr_table.columns = bcr_table.columns.map(" ".join)
         bcr_table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.IGH_KEY
         bcr_table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.IGL_KEY
