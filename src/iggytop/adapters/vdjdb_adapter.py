@@ -6,7 +6,7 @@ from pathlib import Path
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import harmonize_sequences
+from .utils import harmonize_sequences, get_mhc_class
 
 
 
@@ -121,6 +121,8 @@ class VDJDBAdapter(BaseAdapter):
         table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY] = table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY]
         table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.TRA_KEY
         table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
+
+        table[REGISTRY_KEYS.MHC_CLASS_KEY] = table[REGISTRY_KEYS.MHC_CLASS_KEY].apply(get_mhc_class)
 
         # Preprocesses CDR3 sequences, epitope sequences, and gene names
         table_preprocessed = harmonize_sequences(bc, table)

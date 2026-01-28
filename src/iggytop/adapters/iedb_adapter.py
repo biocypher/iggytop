@@ -6,7 +6,7 @@ from pathlib import Path
 from biocypher import BioCypher
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_pmids_batch, harmonize_sequences
+from .utils import get_pmids_batch, harmonize_sequences, get_mhc_class
 
 logger = logging.getLogger(__name__)
 
@@ -217,6 +217,10 @@ class IEDBAdapter(BaseAdapter):
             ref_map
         )
 
+        table_preprocessed[REGISTRY_KEYS.MHC_CLASS_KEY] = table_preprocessed[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(
+            get_mhc_class
+        )
+
         return table_preprocessed
 
     def get_nodes(self):
@@ -270,6 +274,7 @@ class IEDBAdapter(BaseAdapter):
                 REGISTRY_KEYS.ANTIGEN_KEY,
                 REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
+                REGISTRY_KEYS.MHC_CLASS_KEY,
                 REGISTRY_KEYS.PUBLICATION_KEY,
             ],
             unique_cols=[
@@ -281,6 +286,7 @@ class IEDBAdapter(BaseAdapter):
                 REGISTRY_KEYS.ANTIGEN_KEY,
                 REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
+                REGISTRY_KEYS.MHC_CLASS_KEY,
                 REGISTRY_KEYS.PUBLICATION_KEY,
             ],
         )

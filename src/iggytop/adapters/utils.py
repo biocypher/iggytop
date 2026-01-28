@@ -115,6 +115,49 @@ def _normalize_vdj_gene_name(gene: str) -> str:
     return gene.strip()
 
 
+def get_mhc_class(allele: str | None) -> str | None:
+    """Find MHC class information from the MHC gene (allele) names.
+
+    Args:
+        allele (str): MHC allele name.
+
+    Returns:
+        str: MHC class (I or II) or None if not found.
+    """
+    if allele is None or not isinstance(allele, str):
+        return None
+
+    allele = allele.upper().strip()
+    # trivial
+    if any(x in allele for x in ["I", "II"]):
+            return allele
+    # Human (HLA)
+    if any(x in allele for x in ["HLA-A", "HLA-B", "HLA-C", "HLA-E", "HLA-F", "HLA-G"]):
+        return "I"
+    if any(x in allele for x in ["HLA-DR", "HLA-DQ", "HLA-DP", "HLA-DM", "HLA-DO"]):
+        return "II"
+
+    # Mouse (H-2)
+    if any(x in allele for x in ["H2-K", "H2-D", "H2-L"]):
+        return "I"
+    if any(x in allele for x in ["H2-A", "H2-E"]):
+        return "II"
+
+    # Generic and structural shorthand
+    if any(x in allele for x in ["MHC I","MHCI", "CLASS I", "MH1", "MHC1", "MHC-I","CLASSI"]):
+        return "I"
+    if any(x in allele for x in ["MHC II","MHCII", "CLASS II", "MH2", "MHC2", "MHC-II", "CLASSII"]):
+        return "II"
+
+    # CD4/CD8 shorthand often used in cell type columns
+    if "CD8" in allele:
+        return "I"
+    if "CD4" in allele:
+        return "II"
+
+    return None
+
+
 def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
     """
     Preprocesses CDR3 sequences, epitope sequences, and gene names in a harmonized way.
@@ -563,3 +606,4 @@ def save_airr_cells_csv(airr_cells: List, directory: str) -> None:
 
     getLogger("biocypher").info(f"Compressed CSV saved to: {filepath}")
     getLogger("biocypher").info(f"Shape: {df.shape}")
+

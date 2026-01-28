@@ -22,7 +22,7 @@ import warnings
 merge = True  # whether to merge all datasets into a single AnnData
 deduplicate = True  # whether to deduplicate the merged AnnData, set unique id's below
 remove_entries_without_epitope  = True  # whether to remove entries without epitope info, this mainly affects MCPAS data (~24k entries)
-rebuild = False  # whether to rebuild the individual AnnData files from source
+rebuild = True  # whether to rebuild the individual AnnData files from source
 cache_dir = platformdirs.user_cache_dir("iggytop_anndata") #cachedir must be a string (biocypher requirement)
 
 adapters_to_include = ["VDJdb", "IEDB", "McPAS",  "TCR3d", "NeoTCR", "CEDAR", "TRAIT"]

@@ -3,7 +3,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import harmonize_sequences
+from .utils import harmonize_sequences, get_mhc_class
 
 
 class MCPASAdapter(BaseAdapter):
@@ -58,6 +58,7 @@ class MCPASAdapter(BaseAdapter):
             "Antigen.protein": REGISTRY_KEYS.ANTIGEN_KEY,
             "Pathology": REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
             "MHC": REGISTRY_KEYS.MHC_GENE_1_KEY,
+            "T.Cell.Type": REGISTRY_KEYS.MHC_CLASS_KEY,
             "TRAV": REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
             "TRAJ": REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
             "TRBV": REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
@@ -74,6 +75,10 @@ class MCPASAdapter(BaseAdapter):
 
         # Preprocesses CDR3 sequences, epitope sequences, and gene names
         table_preprocessed = harmonize_sequences(bc, table)
+
+        table_preprocessed[REGISTRY_KEYS.MHC_CLASS_KEY] = table_preprocessed[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(
+            get_mhc_class
+        )
 
         return table_preprocessed
 
@@ -128,6 +133,7 @@ class MCPASAdapter(BaseAdapter):
                 REGISTRY_KEYS.ANTIGEN_KEY,
                 REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
+                REGISTRY_KEYS.MHC_CLASS_KEY,
                 REGISTRY_KEYS.PUBLICATION_KEY,
             ],
             unique_cols=[
@@ -139,6 +145,7 @@ class MCPASAdapter(BaseAdapter):
                 REGISTRY_KEYS.ANTIGEN_KEY,
                 REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
+                REGISTRY_KEYS.MHC_CLASS_KEY,
                 REGISTRY_KEYS.PUBLICATION_KEY,
             ],
         )

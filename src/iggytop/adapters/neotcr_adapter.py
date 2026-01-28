@@ -3,7 +3,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import harmonize_sequences
+from .utils import get_mhc_class, harmonize_sequences
 
 
 class NeoTCRAdapter(BaseAdapter):
@@ -77,7 +77,10 @@ class NeoTCRAdapter(BaseAdapter):
         )
 
         table_preprocessed = harmonize_sequences(bc, table)
-
+        table_preprocessed[REGISTRY_KEYS.MHC_CLASS_KEY] = table_preprocessed[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(
+            get_mhc_class
+        )
+        
         return table_preprocessed
 
     def get_nodes(self):
@@ -122,6 +125,7 @@ class NeoTCRAdapter(BaseAdapter):
         # epitope
         yield from self._generate_nodes_from_table(
             subset_cols=[
+                REGISTRY_KEYS.MHC_CLASS_KEY,
                 REGISTRY_KEYS.EPITOPE_KEY,
                 REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
                 REGISTRY_KEYS.ANTIGEN_KEY,
@@ -131,6 +135,7 @@ class NeoTCRAdapter(BaseAdapter):
             ],
             unique_cols=[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY],
             property_cols=[
+                REGISTRY_KEYS.MHC_CLASS_KEY,
                 REGISTRY_KEYS.EPITOPE_KEY,
                 REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
                 REGISTRY_KEYS.ANTIGEN_KEY,
