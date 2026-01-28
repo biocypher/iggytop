@@ -6,7 +6,8 @@ from pathlib import Path
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import harmonize_sequences, get_mhc_class
+from .utils import harmonize_sequences, get_mhc_class, get_tissue_source
+import json
 
 
 
@@ -105,8 +106,11 @@ class VDJDBAdapter(BaseAdapter):
             "mhc.class": REGISTRY_KEYS.MHC_CLASS_KEY,
             "mhc.a": REGISTRY_KEYS.MHC_GENE_1_KEY,
             "mhc.b": REGISTRY_KEYS.MHC_GENE_2_KEY,
+            "meta.tissue": REGISTRY_KEYS.TISSUE_KEY,
         }
-
+        table['meta.tissue'] = table['meta'].apply(
+            lambda x: json.loads(x).get('tissue') if isinstance(x, str) else (x.get('tissue') if isinstance(x, dict) else None)
+        )
         table = table.rename(columns=rename_cols)
         table = table[list(rename_cols.values())]
 
@@ -123,6 +127,8 @@ class VDJDBAdapter(BaseAdapter):
         table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
 
         table[REGISTRY_KEYS.MHC_CLASS_KEY] = table[REGISTRY_KEYS.MHC_CLASS_KEY].apply(get_mhc_class)
+
+        table[REGISTRY_KEYS.TISSUE_KEY] = table[REGISTRY_KEYS.TISSUE_KEY].apply(get_tissue_source)
 
         # Preprocesses CDR3 sequences, epitope sequences, and gene names
         table_preprocessed = harmonize_sequences(bc, table)
@@ -286,6 +292,7 @@ class VDJDBAdapter(BaseAdapter):
                 REGISTRY_KEYS.MHC_CLASS_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
                 REGISTRY_KEYS.MHC_GENE_2_KEY,
+                REGISTRY_KEYS.TISSUE_KEY,
                 REGISTRY_KEYS.PUBLICATION_KEY,
             ],
             unique_cols=[
@@ -299,6 +306,7 @@ class VDJDBAdapter(BaseAdapter):
                 REGISTRY_KEYS.MHC_CLASS_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
                 REGISTRY_KEYS.MHC_GENE_2_KEY,
+                REGISTRY_KEYS.TISSUE_KEY,
                 REGISTRY_KEYS.PUBLICATION_KEY,
             ],
         )

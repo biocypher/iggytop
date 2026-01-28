@@ -165,6 +165,21 @@ def get_mhc_class(allele: str | None) -> str | None:
     return None
 
 
+def get_tissue_source(tissue: str | None) -> str:
+    """Standardize tissue source information while staying close to the original values.
+
+    Args:
+        tissue (str): Original tissue source from database.
+
+    Returns:
+        str: Standardized tissue name or original value.
+    """
+    if tissue is None or not isinstance(tissue, str):
+        return "nan"
+    else:
+        return tissue.upper().strip()
+
+
 def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
     """
     Preprocesses CDR3 sequences, epitope sequences, and gene names in a harmonized way.

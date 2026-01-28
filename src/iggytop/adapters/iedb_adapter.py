@@ -6,7 +6,7 @@ from pathlib import Path
 from biocypher import BioCypher
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_pmids_batch, harmonize_sequences, get_mhc_class
+from .utils import get_pmids_batch, harmonize_sequences, get_mhc_class, get_tissue_source
 
 logger = logging.getLogger(__name__)
 
@@ -220,7 +220,8 @@ class IEDBAdapter(BaseAdapter):
         table_preprocessed[REGISTRY_KEYS.MHC_CLASS_KEY] = table_preprocessed[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(
             get_mhc_class
         )
-
+        table_preprocessed[REGISTRY_KEYS.TISSUE_KEY] = "nan"
+        
         return table_preprocessed
 
     def get_nodes(self):

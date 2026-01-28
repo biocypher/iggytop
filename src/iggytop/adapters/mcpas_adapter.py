@@ -3,7 +3,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import harmonize_sequences, get_mhc_class
+from .utils import harmonize_sequences, get_mhc_class, get_tissue_source
 
 
 class MCPASAdapter(BaseAdapter):
@@ -64,6 +64,7 @@ class MCPASAdapter(BaseAdapter):
             "TRBV": REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
             "TRBJ": REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             "Species": REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
+            "Tissue": REGISTRY_KEYS.TISSUE_KEY,
             "PubMed.ID": REGISTRY_KEYS.PUBLICATION_KEY,
         }
 
@@ -78,6 +79,10 @@ class MCPASAdapter(BaseAdapter):
 
         table_preprocessed[REGISTRY_KEYS.MHC_CLASS_KEY] = table_preprocessed[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(
             get_mhc_class
+        )
+
+        table_preprocessed[REGISTRY_KEYS.TISSUE_KEY] = table_preprocessed[REGISTRY_KEYS.TISSUE_KEY].apply(
+            get_tissue_source
         )
 
         return table_preprocessed
@@ -134,6 +139,7 @@ class MCPASAdapter(BaseAdapter):
                 REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
                 REGISTRY_KEYS.MHC_CLASS_KEY,
+                REGISTRY_KEYS.TISSUE_KEY,
                 REGISTRY_KEYS.PUBLICATION_KEY,
             ],
             unique_cols=[
@@ -146,6 +152,7 @@ class MCPASAdapter(BaseAdapter):
                 REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
                 REGISTRY_KEYS.MHC_CLASS_KEY,
+                REGISTRY_KEYS.TISSUE_KEY,
                 REGISTRY_KEYS.PUBLICATION_KEY,
             ],
         )

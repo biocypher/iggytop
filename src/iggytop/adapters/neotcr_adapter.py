@@ -3,7 +3,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_mhc_class, harmonize_sequences
+from .utils import get_mhc_class, harmonize_sequences, get_tissue_source
 
 
 class NeoTCRAdapter(BaseAdapter):
@@ -51,6 +51,7 @@ class NeoTCRAdapter(BaseAdapter):
             "Neoepitope": REGISTRY_KEYS.EPITOPE_KEY,
             "Antigen": REGISTRY_KEYS.ANTIGEN_KEY,
             "HLA Allele": REGISTRY_KEYS.MHC_GENE_1_KEY,
+            "Source": REGISTRY_KEYS.TISSUE_KEY,
             "PubMed ID": REGISTRY_KEYS.PUBLICATION_KEY,
         }
 
@@ -79,6 +80,10 @@ class NeoTCRAdapter(BaseAdapter):
         table_preprocessed = harmonize_sequences(bc, table)
         table_preprocessed[REGISTRY_KEYS.MHC_CLASS_KEY] = table_preprocessed[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(
             get_mhc_class
+        )
+
+        table_preprocessed[REGISTRY_KEYS.TISSUE_KEY] = table_preprocessed[REGISTRY_KEYS.TISSUE_KEY].apply(
+            get_tissue_source
         )
         
         return table_preprocessed
@@ -131,6 +136,7 @@ class NeoTCRAdapter(BaseAdapter):
                 REGISTRY_KEYS.ANTIGEN_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
                 REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
+                REGISTRY_KEYS.TISSUE_KEY,
                 REGISTRY_KEYS.PUBLICATION_KEY,
             ],
             unique_cols=[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY],
@@ -141,6 +147,7 @@ class NeoTCRAdapter(BaseAdapter):
                 REGISTRY_KEYS.ANTIGEN_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
                 REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
+                REGISTRY_KEYS.TISSUE_KEY,
                 REGISTRY_KEYS.PUBLICATION_KEY,
             ],
         )

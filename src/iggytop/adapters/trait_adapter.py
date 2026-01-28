@@ -4,7 +4,7 @@ import pandas as pd
 from biocypher import BioCypher, FileDownload
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import harmonize_sequences
+from .utils import get_tissue_source, get_mhc_class, harmonize_sequences
 
 
 class TRAITAdapter(BaseAdapter):
@@ -73,6 +73,7 @@ class TRAITAdapter(BaseAdapter):
             "TRBJ": REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             "Species": REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
             "PubMed.ID": REGISTRY_KEYS.PUBLICATION_KEY,
+            "Tissue": REGISTRY_KEYS.TISSUE_KEY,
         }
 
         table = table.rename(columns=rename_cols)
@@ -90,6 +91,15 @@ class TRAITAdapter(BaseAdapter):
         table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
         table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY] = table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY]
 
+
+        table_preprocessed = harmonize_sequences(bc, table)
+        table_preprocessed[REGISTRY_KEYS.MHC_CLASS_KEY] = table_preprocessed[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(
+            get_mhc_class
+        )
+
+        table_preprocessed[REGISTRY_KEYS.TISSUE_KEY] = table_preprocessed[REGISTRY_KEYS.TISSUE_KEY].apply(
+            get_tissue_source
+        )
         # Preprocesses CDR3 sequences, epitope sequences, and gene names
         table_preprocessed = harmonize_sequences(bc, table)
 
