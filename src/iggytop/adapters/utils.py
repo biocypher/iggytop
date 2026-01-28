@@ -128,32 +128,39 @@ def get_mhc_class(allele: str | None) -> str | None:
         return None
 
     allele = allele.upper().strip()
-    # trivial
-    if any(x in allele for x in ["I", "II"]):
-            return allele
-    # Human (HLA)
-    if any(x in allele for x in ["HLA-A", "HLA-B", "HLA-C", "HLA-E", "HLA-F", "HLA-G"]):
-        return "I"
-    if any(x in allele for x in ["HLA-DR", "HLA-DQ", "HLA-DP", "HLA-DM", "HLA-DO"]):
+
+    # If the allele is already exactly "I" or "II", return it
+    if allele in ["I", "II", "1", "2"]:
+        return "I" if allele in ["I", "1"] else "II"
+
+    # Class II matches
+    class_ii_indicators = [
+        "HLA-DR", "HLA-DQ", "HLA-DP", "HLA-DM", "HLA-DO",
+        "DRB", "DRA", "DQB", "DQA", "DPB", "DPA",
+        "H-2A", "H-2E", "H2-A", "H2-E", "I-A", "I-E",
+        "CLASS II", "MH2", "MHC2", "MHC-II", "CLASSII", "MHCII", "MHC II", "CD4",
+        "DQ8", "DR3", "H-2G7"
+    ]
+    if any(x in allele for x in class_ii_indicators):
         return "II"
 
-    # Mouse (H-2)
-    if any(x in allele for x in ["H2-K", "H2-D", "H2-L"]):
+    # Class I matches
+    class_i_indicators = [
+        "HLA-A", "HLA-B", "HLA-C", "HLA-E", "HLA-F", "HLA-G",
+        "CD1", "MR1",
+        "H-2K", "H-2D", "H-2L", "H-2B", "H-2Q", # Added H-2B from list
+        "H2-K", "H2-D", "H2-L", "H2-Q", "H2-B",
+        "QA-", "QB-", "H2-M",
+        "MAMU-A", "MAMU-B", "MAMU-I",
+        "GAGA-BF",
+        "CLASS I", "MH1", "MHC1", "MHC-I", "CLASSI", "MHCI", "MHC I", "CD8"
+    ]
+    if any(x in allele for x in class_i_indicators):
         return "I"
-    if any(x in allele for x in ["H2-A", "H2-E"]):
-        return "II"
 
-    # Generic and structural shorthand
-    if any(x in allele for x in ["MHC I","MHCI", "CLASS I", "MH1", "MHC1", "MHC-I","CLASSI"]):
+    # Generic hyphenated H-2 (Mouse) or HLA (Human) patterns if not already caught
+    if any(x in allele for x in ["H-2", "H2", "HLA"]):
         return "I"
-    if any(x in allele for x in ["MHC II","MHCII", "CLASS II", "MH2", "MHC2", "MHC-II", "CLASSII"]):
-        return "II"
-
-    # CD4/CD8 shorthand often used in cell type columns
-    if "CD8" in allele:
-        return "I"
-    if "CD4" in allele:
-        return "II"
 
     return None
 
