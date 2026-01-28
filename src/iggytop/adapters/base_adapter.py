@@ -5,7 +5,6 @@ import os
 import pandas as pd
 from pathlib import Path
 from abc import ABC, abstractmethod
-from tempfile import TemporaryDirectory
 from datetime import datetime
 from typing import cast
 from tqdm.auto import tqdm
@@ -47,15 +46,16 @@ class BaseAdapter(ABC):
             test (bool, optional): Whether to run in test mode. Defaults to False.
         """
         self._bc = bc
-        self._test = test
-        self._table_path = self.get_latest_release(bc)
-        self._table: pd.DataFrame | None = None       
+        self._test = test       
         self._cache_dir = cache_dir
+        self._table_path = self.get_latest_release(bc)
+        self._table: pd.DataFrame | None = None
         self._airr_cells: list[AirrCell] | None = None
+
 
         if not hasattr(self.__class__, "DB_NAME"):
             raise TypeError(f"Class {self.__class__.__name__} must define a 'DB_NAME' class attribute.")
-        
+
     @property
     def table(self) -> pd.DataFrame:
         """
@@ -78,7 +78,8 @@ class BaseAdapter(ABC):
         """
         if self._cache_dir is None:
             self._cache_dir = platformdirs.user_cache_dir("iggytop")
-        return self._cache_dir  
+            os.makedirs(self._cache_dir, exist_ok=True)
+        return Path(self._cache_dir)  
     
     @property
     def airr_cells(self) -> list[AirrCell] | None:
@@ -203,10 +204,8 @@ class BaseAdapter(ABC):
 
         adata.uns["DB"] = {"name": self.DB_NAME, "date_downloaded": datetime.now().isoformat()}
         anndata_path = Path(self.cache_dir) / f"{self.DB_NAME}_anndata.h5ad"
-        anndata_path.parent.mkdir(parents=True, exist_ok=True)
         adata.write_h5ad(cast(os.PathLike, anndata_path))
         print(f"Saved Anndata to {anndata_path}")
-    
 
     def _generate_nodes_from_table(
         self,

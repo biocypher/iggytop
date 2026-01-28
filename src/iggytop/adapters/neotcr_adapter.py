@@ -1,8 +1,4 @@
-import os
-import tempfile
-
 import pandas as pd
-import requests
 from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
@@ -22,19 +18,22 @@ class NeoTCRAdapter(BaseAdapter):
     DB_DIR = "neotcr_latest"
     def get_latest_release(self, bc: BioCypher) -> str:
         # Download NEOTCR
-        cedar_resource = FileDownload(
+        neotcr_resource = FileDownload(
             name=self.DB_DIR,
             url_s=self.RAW_URL,
             lifetime=30,
             is_dir=False,
         )
 
-        file_path = bc.download(cedar_resource)
+        neotcr_path = bc.download(neotcr_resource)
 
-        return file_path
+        if not neotcr_path:
+            raise FileNotFoundError(f"Failed to download NeoTCR database from {self.RAW_URL}")
+        
+        return neotcr_path[0]
 
     def read_table(self, bc: BioCypher, table_path: str, test: bool = False) -> pd.DataFrame:
-        table = pd.read_excel(table_path[0])
+        table = pd.read_excel(table_path)
 
         if test:
             table = table.sample(frac=0.05, random_state=42)

@@ -1,10 +1,9 @@
 import logging
 import os
-from pathlib import Path
-
 import pandas as pd
-from biocypher import BioCypher
 
+from pathlib import Path
+from biocypher import BioCypher
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
 from .utils import get_pmids_batch, harmonize_sequences
@@ -38,11 +37,9 @@ class IEDBAdapter(BaseAdapter):
 
     def get_latest_release(self, bc: BioCypher) -> tuple[str, str]:
         # Create cache directory manually
-        cache_dir = Path(bc._cache_directory) / self.DB_DIR
-        cache_dir.mkdir(parents=True, exist_ok=True)
 
-        zip_file_path = cache_dir / "receptor_full_v3.zip"
-        extracted_dir = cache_dir / "receptor_full_v3_extracted"
+        zip_file_path = self.cache_dir / "receptor_full_v3.zip"
+        extracted_dir = self.cache_dir / "receptor_full_v3_extracted"
 
         # Check if already downloaded and extracted
         if extracted_dir.exists():

@@ -1,10 +1,6 @@
-import sys
-
-sys.path.append("..")
-sys.path.append("../..")
 import pandas as pd
-from biocypher import BioCypher, FileDownload
 
+from biocypher import BioCypher, FileDownload
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
 from .utils import harmonize_sequences

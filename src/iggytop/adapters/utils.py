@@ -38,16 +38,21 @@ def _set_up_config(output_format, cache_dir):
                 with importlib.resources.open_text('iggytop.config', 'biocypher_docker_config.yaml') as d_file:
                     config = yaml.safe_load(d_file)
 
-
-    # Ensure the cache directory exists
-    os.makedirs(cache_dir, exist_ok=True)
-
     # Save the modified configuration to the cache directory
     modified_config_path = os.path.join(cache_dir, 'biocypher_config.yaml')
     with open(modified_config_path, 'w') as file:
         yaml.safe_dump(config, file)
 
     return modified_config_path
+
+def _set_up_schema(cache_dir):
+    # Load the schema configuration
+    schema_config_path = os.path.join(cache_dir, 'schema_config.yaml')
+    with importlib.resources.open_text('iggytop.config', 'schema_config.yaml') as schema_file:
+        with open(schema_config_path, 'w') as cache_schema_file:
+            cache_schema_file.write(schema_file.read())
+
+    return schema_config_path
 
 def _is_valid_peptide_sequence(seq: str) -> bool:
     """Checks if a given sequence is a valid peptide sequence."""

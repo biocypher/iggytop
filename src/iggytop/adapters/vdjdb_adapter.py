@@ -2,9 +2,7 @@ import os
 import pandas as pd
 from biocypher import BioCypher, FileDownload
 from github import Github
-from tqdm.auto import tqdm
 from pathlib import Path
-from scirpy.io._datastructures import AirrCell
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
