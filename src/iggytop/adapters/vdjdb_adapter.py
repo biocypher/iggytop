@@ -110,6 +110,14 @@ class VDJDBAdapter(BaseAdapter):
         table = table.rename(columns=rename_cols)
         table = table[list(rename_cols.values())]
 
+        # Remove 'PMID:' prefix from reference IDs
+        table[REGISTRY_KEYS.PUBLICATION_KEY] = (
+            table[REGISTRY_KEYS.PUBLICATION_KEY]
+            .astype(str)
+            .str.replace(r"^PMID:", "", regex=True)
+            .replace("None", None)
+        )
+
         table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY] = table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY]
         table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.TRA_KEY
         table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY

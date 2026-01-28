@@ -22,7 +22,7 @@ import warnings
 merge = True  # whether to merge all datasets into a single AnnData
 deduplicate = True  # whether to deduplicate the merged AnnData, set unique id's below
 remove_entries_without_epitope  = True  # whether to remove entries without epitope info, this mainly affects MCPAS data (~24k entries)
-
+rebuild = False  # whether to rebuild the individual AnnData files from source
 cache_dir = platformdirs.user_cache_dir("iggytop_anndata") #cachedir must be a string (biocypher requirement)
 
 adapters_to_include = ["VDJdb", "IEDB", "McPAS",  "TCR3d", "NeoTCR", "CEDAR", "TRAIT"]
@@ -38,13 +38,14 @@ def aggregate_unique_joined(series, separator='|'):
     """ 
     values = set()
     for v in series:
-        if pd.isna(v):
+        if pd.isna(v) or str(v).lower() == 'nan':
             continue
             
         s_v = str(v).strip()  
         if s_v:
             values.update([s_v])
-
+    if len(values) == 0:
+        values.update(['nan'])
     return separator.join(sorted(values))
 
 
@@ -66,20 +67,20 @@ def deduplicate_and_aggregate(adata, subset_cols, agg_cols, separator='|'):
         
         # Group and aggregate
         # observed=True is used to avoid 'Product space too large' errors
-        aggs = obs_df.groupby(subset_cols, observed=True, sort=False).agg(agg_map).reset_index()
+        aggs = obs_df.groupby(subset_cols, observed=True, dropna=False, sort=False).agg(agg_map).reset_index()
         
         # Identify first occurrences to keep as base records
         # Use the same placeholder logic for duplication identification
         is_first = ~obs_df.duplicated(subset=subset_cols)
-        deduplicated_adata = adata[is_first, :].copy()
-        
+
         # Map aggregated info back to the deduplicated AnnData
         first_entries_keys = obs_df.loc[is_first, subset_cols].reset_index()
         final_info = first_entries_keys.merge(aggs, on=subset_cols, how='left')
+
+    deduplicated_adata = adata[is_first, :].copy()
+    for col in agg_cols:
+        deduplicated_adata.obs[col] = final_info[col].values
         
-        for col in agg_cols:
-            deduplicated_adata.obs[col] = final_info[col].values
-            
     return deduplicated_adata
 
 config_path = _set_up_config(output_format, cache_dir)
@@ -106,12 +107,12 @@ selected_adapters = [
     for name in adapters_to_include
     if name in adapter_classes
 ]
-
-for AdapterClass in selected_adapters:
-    start_time = time.time()
-    adapter = AdapterClass(bc, cache_dir, test_mode)
-    adapter.create_anndata()
-    print(f"Execution took {time.time() - start_time:.2f} seconds")
+if rebuild:
+    for AdapterClass in selected_adapters:
+        start_time = time.time()
+        adapter = AdapterClass(bc, cache_dir, test_mode)
+        adapter.create_anndata()
+        print(f"Execution took {time.time() - start_time:.2f} seconds")
 
 cache_dir = Path(cache_dir)
 if merge:
