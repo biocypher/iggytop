@@ -51,7 +51,11 @@ The final output is the **IggyTop** database, which integrates immunoreceptor-ep
 
 2. Install dependencies using uv:
    ```bash
+   # Core installation (includes dev dependencies)
    uv sync
+
+   # Include documentation and Jupyter tools
+   uv sync --group docs
    ```
 
 3. You are ready to go!
@@ -84,7 +88,13 @@ This repository uses [Sphinx](https://www.sphinx-doc.org/) for documentation.
 
 ### Building the Documentation
 
-To build the documentation, ensure you have `uv` installed and running. Then, execute the following command:
+To build the documentation, ensure you have the `docs` dependency group installed:
+
+```bash
+uv sync --group docs
+```
+
+Then, execute the following command:
 
 ```bash
 uv run ./update_docs.sh
@@ -108,12 +118,12 @@ Note for docstrings: The Sphinx's autodoc and napoleon extensions expect reStruc
 
 This repo also contains a `docker compose` workflow to create the example
 database using BioCypher and load it into a dockerised Neo4j instance
-automatically. To run it, simply execute `docker compose up -d --build` in the root
-directory of the project. HTe example instance consists of the TCR3d database only as it is small enough to visulize, for other database compositions, just edit the `create_knowledge_graph_docker.py` script to your needs. This will start up a single (detached) docker
+automatically. To run it, simply execute 
+```docker compose up -d --build```
+in the root directory of the project. The example instance consists of the TCR3d database only as it is small enough to visulize, for other database compositions, just edit the `create_knowledge_graph_docker.py` script to your needs. This will start up a single (detached) docker
 container with a Neo4j instance that contains the knowledge graph built by
 BioCypher as the DB `docker`, which you can connect to and browse at
-localhost:7474 (don't forget to switch the DB to `docker` instead of the
-standard `neo4j`). Authentication is set to `neo4j/neo4jpassword` by default
+localhost:7474. Authentication is set to `neo4j/neo4jpassword` by default
 and can be modified in the `docker_variables.env` file.
 
 Open http://localhost:7474 to access the neo4j database. You can now run queries against the database.
