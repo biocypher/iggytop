@@ -39,6 +39,7 @@ def create_knowledge_graph(
                              Defaults to providing all available adapters.
         output_format (str, optional): Output format, currently either 'airr','neo4j' or 'networkx'
     """
+    os.makedirs(cache_dir, exist_ok=True)
     config_path = _set_up_config(output_format, cache_dir)
 
     schema_config_path = _set_up_schema(cache_dir)

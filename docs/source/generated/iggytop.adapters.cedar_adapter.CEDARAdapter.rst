@@ -14,6 +14,7 @@
    .. autosummary::
    
       ~CEDARAdapter.__init__
+      ~CEDARAdapter.create_anndata
       ~CEDARAdapter.get_edges
       ~CEDARAdapter.get_latest_release
       ~CEDARAdapter.get_nodes
@@ -29,7 +30,11 @@
    
       ~CEDARAdapter.BCR_FNAME
       ~CEDARAdapter.DB_DIR
+      ~CEDARAdapter.DB_NAME
       ~CEDARAdapter.DB_URL
       ~CEDARAdapter.TCR_FNAME
+      ~CEDARAdapter.airr_cells
+      ~CEDARAdapter.cache_dir
+      ~CEDARAdapter.table
    
    

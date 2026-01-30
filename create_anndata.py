@@ -22,6 +22,7 @@ deduplicate = True  # whether to deduplicate the merged AnnData, set unique id's
 save_airr_json = True  # whether to save the merged and deduplicated AnnData as AIRR JSON
 
 cache_dir = platformdirs.user_cache_dir("iggytop_airr") #cachedir must be a string (biocypher requirement)
+os.makedirs(cache_dir, exist_ok=True)
 
 adapters_to_include = ["VDJdb", "McPAS", "IEDB", "TCR3d", "NeoTCR", "CEDAR", "TRAIT"]
 

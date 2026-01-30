@@ -39,6 +39,7 @@ The final output is the **IggyTop** database, which integrates immunoreceptor-ep
 ## Prerequisites
 
 - [uv](https://docs.astral.sh/uv/) for dependency management
+- [docker](https://www.docker.com/get-started/) optional for containerization
 
 ## Installation
 
@@ -48,32 +49,34 @@ The final output is the **IggyTop** database, which integrates immunoreceptor-ep
    cd iggytop
    ```
 
-2. Install dependencies using Poetry:
+2. Install dependencies using uv:
    ```bash
-      uv sync
+   uv sync
    ```
 
 3. You are ready to go!
    ```bash
    uv run create_knowledge_graph.py
    ```
-More information can be found in the documentation.
+More information can be found in the documentation (see below).
 ## Pipeline
 
 - `create_knowledge_graph.py`: the main script that orchestrates the pipeline.
 It brings together the BioCypher package with the data sources. It calls the `io.create_knowledge_graph()` function which creates a knowledge graph including all available databases and saves it to airr format in a json file.
 
-- `adapters` contains modules that define the adapter to the data source.
+- `create_anndata.py`: this script can be used to obtain the harmonized, merged (and deduplicated) data from all (or selected) available databases in [anndata](https://anndata.readthedocs.io/en/stable/index.html) format.
+It will initialize the adapters but not generate the knowledge graph. the main purpose is integration of the available data into [Scirpy](https://scirpy.scverse.org/en/latest/).
 
-- `schema_config.yaml`: a configuration file (found in the `config` directory)
+- `src/iggytop/adapters` contains modules that define the adapter to the data source.
+
+- `src/iggytop/config/schema_config.yaml`: a configuration file
 that defines the schema of the knowledge graph. It is used by BioCypher to map
 the data source to the knowledge representation on the basis of ontology (see
 [this part of the BioCypher tutorial](https://biocypher.org/tutorial-ontology.html)).
 
-- `biocypher_config.yaml`: a configuration file (found in the `config`
-directory) that defines some BioCypher parameters, such as the mode, the
+- `src/iggytop/config/biocypher_config.yaml`: a configuration file that defines some BioCypher parameters, such as the mode, the
 separators used, and other options. More on its use can be found in the
-[Documentation](https://biocypher.org/installation.html#configuration).
+[Documentation](https://biocypher.org/BioCypher/reference/biocypher-config/).
 
 ## Documentation
 
@@ -84,7 +87,7 @@ This repository uses [Sphinx](https://www.sphinx-doc.org/) for documentation.
 To build the documentation, ensure you have `uv` installed and running. Then, execute the following command:
 
 ```bash
-uv run update_docs.sh
+uv run ./update_docs.sh
 ```
 
 This will generate the documentation in the `docs/build` directory.

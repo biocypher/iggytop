@@ -14,6 +14,7 @@
    .. autosummary::
    
       ~BaseAdapter.__init__
+      ~BaseAdapter.create_anndata
       ~BaseAdapter.get_edges
       ~BaseAdapter.get_latest_release
       ~BaseAdapter.get_nodes
@@ -22,5 +23,13 @@
    
 
    
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~BaseAdapter.airr_cells
+      ~BaseAdapter.cache_dir
+      ~BaseAdapter.table
    
    
