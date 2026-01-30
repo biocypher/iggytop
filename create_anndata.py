@@ -19,8 +19,9 @@ from iggytop.adapters.utils import _set_up_config, _set_up_schema
 
 merge = True  # whether to merge all datasets into a single AnnData
 deduplicate = True  # whether to deduplicate the merged AnnData, set unique id's below
+save_airr_json = True  # whether to save the merged and deduplicated AnnData as AIRR JSON
 
-cache_dir = platformdirs.user_cache_dir("iggytop_anndata") #cachedir must be a string (biocypher requirement)
+cache_dir = platformdirs.user_cache_dir("iggytop_airr") #cachedir must be a string (biocypher requirement)
 
 adapters_to_include = ["VDJdb", "McPAS", "IEDB", "TCR3d", "NeoTCR", "CEDAR", "TRAIT"]
 
@@ -110,6 +111,18 @@ for AdapterClass in selected_adapters:
     adapter.create_anndata()
 
 cache_dir = Path(cache_dir)
+
+if save_airr_json:
+    for f in adapters_to_include:
+        file_path = cache_dir / (f+"_anndata.h5ad")
+        if os.path.exists(file_path):
+            print(f"Exporting {f} to AIRR JSON...")
+            adata = ad.read_h5ad(file_path)
+            ir.io.write_airr(adata,cache_dir / (f+"_anndata.json"))
+            print(f"  Saved to {cache_dir / (f+'_anndata.json')}")
+        else:
+            print(f"Warning: {f} not found in {cache_dir}, skipping AIRR JSON export")
+
 if merge:
     adatas = {}
 
@@ -165,7 +178,8 @@ if merge:
         print(f"Merged AnnData saved to {cache_dir / 'deduplicated_anndata.h5ad'}")
 
     # Optional: Export to AIRR JSON format
-    #ir.io.write_airr(merged_adata,cache_dir / "merged_anndata.json")
-    #ir.io.write_airr(deduplicated_adata,cache_dir / "deduplicated_anndata.json")
+    if save_airr_json:
+        ir.io.write_airr(merged_adata,cache_dir / "merged_anndata.json")
+        ir.io.write_airr(deduplicated_adata,cache_dir / "deduplicated_anndata.json")
 
 

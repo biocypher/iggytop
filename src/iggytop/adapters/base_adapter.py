@@ -139,6 +139,11 @@ class BaseAdapter(ABC):
                     val = getattr(row, f, None)
                     if val is not None and not pd.isnull(val):
                         cell[f] = val
+
+                if c1_cdr3 and c2_cdr3: # This property could be moved into the node representation (depending on the schema)
+                    cell["paired"] = True
+                else:
+                    cell["paired"] = False
                 self._airr_cells.append(cell)
 
         return self._airr_cells
