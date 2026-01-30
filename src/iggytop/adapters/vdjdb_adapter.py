@@ -1,7 +1,7 @@
 import os
 import pandas as pd
+import requests
 from biocypher import BioCypher, FileDownload
-from github import Github
 from pathlib import Path
 
 from .base_adapter import BaseAdapter
@@ -43,10 +43,38 @@ class VDJDBAdapter(BaseAdapter):
         Raises:
             FileNotFoundError: If the database file cannot be found after downloading.
         """
+        # Use GitHub REST API directly to avoid PyGithub authentication issues
+        api_url = f"https://api.github.com/repos/{self.REPO_NAME}/releases/latest"
+        headers = {
+            "Accept": "application/vnd.github.v3+json",
+            "User-Agent": "iggytop-adapter"
+        }
         github_token = os.getenv("GITHUB_TOKEN")
-        repo = Github(github_token).get_repo(self.REPO_NAME)
-        db_url = repo.get_latest_release().get_assets()[0].browser_download_url
-        # db_url = "https://github.com/antigenomics/vdjdb-db/releases/download/pyvdjdb-2025-02-21/vdjdb-2025-02-21.zip"
+        
+        # Try with token first if available
+        if github_token:
+            headers["Authorization"] = f"token {github_token}"
+        
+        response = requests.get(api_url, headers=headers)
+        
+        # If we get 401 (unauthorized), the token might be invalid/expired
+        # For public repos, we can retry without authentication
+        if response.status_code == 401:
+            if github_token:
+                # Token is invalid, try without it for public repo access
+                clean_headers = {
+                    "Accept": "application/vnd.github.v3+json",
+                    "User-Agent": "iggytop-adapter"
+                }
+                response = requests.get(api_url, headers=clean_headers)
+        
+        response.raise_for_status()
+        
+        release_data = response.json()
+        if not release_data.get("assets"):
+            raise FileNotFoundError(f"No assets found in latest release for {self.REPO_NAME}")
+        
+        db_url = release_data["assets"][0]["browser_download_url"]
 
         vdjdb_resource = FileDownload(
             name=self.DB_DIR,
