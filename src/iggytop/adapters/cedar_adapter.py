@@ -7,7 +7,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_pmids_batch, harmonize_sequences, get_mhc_class, get_tissue_source
+from .utils import get_pmids_batch, harmonize_sequences, get_mhc_class
 
 logger = logging.getLogger(__name__)
 

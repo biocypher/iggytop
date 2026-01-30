@@ -79,7 +79,7 @@ class TRAITAdapter(BaseAdapter):
         table = table.rename(columns=rename_cols)
         table = table[list(rename_cols.values())]
 
-                # Remove 'PMID:' prefix from reference IDs
+        # Remove 'PMID:' prefix from reference IDs
         table[REGISTRY_KEYS.PUBLICATION_KEY] = (
             table[REGISTRY_KEYS.PUBLICATION_KEY]
             .astype(str)
@@ -100,8 +100,6 @@ class TRAITAdapter(BaseAdapter):
         table_preprocessed[REGISTRY_KEYS.TISSUE_KEY] = table_preprocessed[REGISTRY_KEYS.TISSUE_KEY].apply(
             get_tissue_source
         )
-        # Preprocesses CDR3 sequences, epitope sequences, and gene names
-        table_preprocessed = harmonize_sequences(bc, table)
 
         return table_preprocessed
 

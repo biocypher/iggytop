@@ -2,11 +2,10 @@ import logging
 import os
 import pandas as pd
 
-from pathlib import Path
 from biocypher import BioCypher
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_pmids_batch, harmonize_sequences, get_mhc_class, get_tissue_source
+from .utils import get_pmids_batch, harmonize_sequences, get_mhc_class
 
 logger = logging.getLogger(__name__)
 

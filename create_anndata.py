@@ -62,7 +62,7 @@ def deduplicate_and_aggregate(adata, subset_cols, agg_cols, separator='|'):
                 raise KeyError(f"Column '{col}' not found in AnnData observations.")
 
         # Define aggregation map
-        agg_map = {col: lambda s: aggregate_unique_joined(s, separator) for col in agg_cols}
+        agg_map = {col: (lambda s, sep=separator: aggregate_unique_joined(s, sep)) for col in agg_cols}
         
         # Group and aggregate
         # observed=True is used to avoid 'Product space too large' errors
@@ -181,6 +181,9 @@ if merge:
     # Optional: Export to AIRR JSON format
     if save_airr_json:
         ir.io.write_airr(merged_adata,cache_dir / "merged_anndata.json")
-        ir.io.write_airr(deduplicated_adata,cache_dir / "deduplicated_anndata.json")
+        print(f"Merged AnnData exported to AIRR JSON at {cache_dir / 'merged_anndata.json'}")
+        if deduplicate:
+            ir.io.write_airr(deduplicated_adata,cache_dir / "deduplicated_anndata.json")
+            print(f"Deduplicated AnnData exported to AIRR JSON at {cache_dir / 'deduplicated_anndata.json'}")
 
 

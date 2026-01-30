@@ -119,8 +119,10 @@ Note for docstrings: The Sphinx's autodoc and napoleon extensions expect reStruc
 This repo also contains a `docker compose` workflow to create the example
 database using BioCypher and load it into a dockerised Neo4j instance
 automatically. To run it, simply execute 
-```docker compose up -d --build```
-in the root directory of the project. The example instance consists of the TCR3d database only as it is small enough to visulize, for other database compositions, just edit the `create_knowledge_graph_docker.py` script to your needs. This will start up a single (detached) docker
+```
+docker compose up -d --build
+```
+in the root directory of the project. The example instance consists of the TCR3d database only as it is small enough to visualize, for other database compositions, just edit the `create_knowledge_graph_docker.py` script to your needs. This will start up a single (detached) docker
 container with a Neo4j instance that contains the knowledge graph built by
 BioCypher as the DB `docker`, which you can connect to and browse at
 localhost:7474. Authentication is set to `neo4j/neo4jpassword` by default

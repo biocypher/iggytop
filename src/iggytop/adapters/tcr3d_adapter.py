@@ -3,7 +3,7 @@ import pandas as pd
 from biocypher import BioCypher, FileDownload
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import harmonize_sequences, get_mhc_class, get_tissue_source
+from .utils import harmonize_sequences, get_mhc_class
 
 
 class TCR3DAdapter(BaseAdapter):
