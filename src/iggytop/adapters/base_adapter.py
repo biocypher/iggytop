@@ -94,10 +94,15 @@ class BaseAdapter(ABC):
 
             # Using itertuples() for better performance on large DataFrames
             for row in tqdm( self.table.itertuples(), total=self.table.shape[0], desc=f"Processing {self.DB_NAME} entries"):
+
+                c1_cdr3 = getattr(row, REGISTRY_KEYS.CHAIN_1_CDR3_KEY, None)
+                c2_cdr3 = getattr(row, REGISTRY_KEYS.CHAIN_2_CDR3_KEY, None)
+                if (pd.isnull(c2_cdr3) and pd.isnull(c1_cdr3)) or pd.isnull(getattr(row, "epitope_sequence", None)):
+                    continue # skip entries without chains or without epitope
+
                 idx = row.Index
                 cell = AirrCell(cell_id=str(idx))
 
-                c1_cdr3 = getattr(row, REGISTRY_KEYS.CHAIN_1_CDR3_KEY, None)
                 if not pd.isnull(c1_cdr3):
                     alpha_chain = AirrCell.empty_chain_dict()
                     alpha_chain.update(
@@ -112,7 +117,6 @@ class BaseAdapter(ABC):
                     )
                     cell.add_chain(alpha_chain)
 
-                c2_cdr3 = getattr(row, REGISTRY_KEYS.CHAIN_2_CDR3_KEY, None)
                 if not pd.isnull(c2_cdr3):
                     beta_chain = AirrCell.empty_chain_dict()
                     beta_chain.update(

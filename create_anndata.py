@@ -1,10 +1,11 @@
 from biocypher import BioCypher
 from pathlib import Path
+import os
 import platformdirs
-import importlib.resources
 import pandas as pd
 import anndata as ad
 import scirpy as ir
+from scirpy.pp import index_chains
 
 from iggytop.adapters.cedar_adapter import CEDARAdapter
 from iggytop.adapters.iedb_adapter import IEDBAdapter
@@ -15,17 +16,13 @@ from iggytop.adapters.trait_adapter import TRAITAdapter
 from iggytop.adapters.vdjdb_adapter import VDJDBAdapter
 from iggytop.adapters.utils import _set_up_config, _set_up_schema
 
-import os
-import time
-import warnings
 
 merge = True  # whether to merge all datasets into a single AnnData
 deduplicate = True  # whether to deduplicate the merged AnnData, set unique id's below
-remove_entries_without_epitope  = True  # whether to remove entries without epitope info, this mainly affects MCPAS data (~24k entries)
-rebuild = True  # whether to rebuild the individual AnnData files from source
+
 cache_dir = platformdirs.user_cache_dir("iggytop_anndata") #cachedir must be a string (biocypher requirement)
 
-adapters_to_include = ["VDJdb", "IEDB", "McPAS",  "TCR3d", "NeoTCR", "CEDAR", "TRAIT"]
+adapters_to_include = ["VDJdb", "McPAS", "IEDB", "TCR3d", "NeoTCR", "CEDAR", "TRAIT"]
 
 test_mode = False
 output_format = "airr"  # doesnt matter here
@@ -107,16 +104,13 @@ selected_adapters = [
     for name in adapters_to_include
     if name in adapter_classes
 ]
-if rebuild:
-    for AdapterClass in selected_adapters:
-        start_time = time.time()
-        adapter = AdapterClass(bc, cache_dir, test_mode)
-        adapter.create_anndata()
-        print(f"Execution took {time.time() - start_time:.2f} seconds")
+
+for AdapterClass in selected_adapters:
+    adapter = AdapterClass(bc, cache_dir, test_mode)
+    adapter.create_anndata()
 
 cache_dir = Path(cache_dir)
 if merge:
-    # List of files to load
     adatas = {}
 
     for f in adapters_to_include:
@@ -144,18 +138,16 @@ if merge:
     # Concatenate all AnnData objects
     merged_adata = ad.concat(adatas, label="source", index_unique="_")
     print(f"Number of entries: {merged_adata.n_obs}")
-    # Convert PMID column to string to avoid serialization errors with mixed types
-    merged_adata.obs['PMID'] = merged_adata.obs['PMID'].astype(str)
 
-    if remove_entries_without_epitope:
-        initial_count = merged_adata.n_obs
-        has_epitope = merged_adata.obs['epitope_sequence'] != 'nan'
-        merged_adata = merged_adata[has_epitope, :].copy()
-        removed_count = initial_count - merged_adata.n_obs
-        print(f"Removed {removed_count} entries without epitope information. Remaining entries: {merged_adata.n_obs}")
+    # Convert object columns to string to avoid serialization issues with h5py (e.g. for PMID)
+    for col in merged_adata.obs.columns:
+        if merged_adata.obs[col].dtype == object:
+            merged_adata.obs[col] = merged_adata.obs[col].astype(str)
 
     merged_adata.write_h5ad(cache_dir / "merged_anndata.h5ad")
-    print(f"Merged shape: {merged_adata.shape}")
+    print(f"Merged AnnData saved to {cache_dir / 'merged_anndata.h5ad'}")
+
+    
     if deduplicate:
         # Deduplicate and aggregate specific attributes
         subset_cols = ['VJ_1_junction_aa', 'VJ_1_v_call', 'VDJ_1_v_call', 'VDJ_1_junction_aa', 'iedb_iri']
@@ -168,5 +160,12 @@ if merge:
             raise
 
         print(f"Number of entries after deduplication: {deduplicated_adata.n_obs}")
+        index_chains(deduplicated_adata)    
         deduplicated_adata.write_h5ad(cache_dir / "deduplicated_anndata.h5ad")
         print(f"Merged AnnData saved to {cache_dir / 'deduplicated_anndata.h5ad'}")
+
+    # Optional: Export to AIRR JSON format
+    #ir.io.write_airr(merged_adata,cache_dir / "merged_anndata.json")
+    #ir.io.write_airr(deduplicated_adata,cache_dir / "deduplicated_anndata.json")
+
+
