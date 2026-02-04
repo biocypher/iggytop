@@ -14,7 +14,7 @@ from iggytop.adapters.neotcr_adapter import NeoTCRAdapter
 from iggytop.adapters.tcr3d_adapter import TCR3DAdapter
 from iggytop.adapters.trait_adapter import TRAITAdapter
 from iggytop.adapters.vdjdb_adapter import VDJDBAdapter
-from iggytop.adapters.utils import _set_up_config, _set_up_schema
+from iggytop.adapters.utils import _set_up_config, _set_up_schema, save_airr_cells_json
 
 
 merge = True  # whether to merge all datasets into a single AnnData
@@ -110,19 +110,10 @@ selected_adapters = [
 for AdapterClass in selected_adapters:
     adapter = AdapterClass(bc, cache_dir, test_mode)
     adapter.create_anndata()
+    if save_airr_json:
+        save_airr_cells_json(adapter.airr_cells,directory=cache_dir, filename=f"{adapter.DB_NAME}_airr_cells")
 
 cache_dir = Path(cache_dir)
-
-if save_airr_json:
-    for f in adapters_to_include:
-        file_path = cache_dir / (f+"_anndata.h5ad")
-        if os.path.exists(file_path):
-            print(f"Exporting {f} to AIRR JSON...")
-            adata = ad.read_h5ad(file_path)
-            ir.io.write_airr(adata,cache_dir / (f+"_anndata.json"))
-            print(f"  Saved to {cache_dir / (f+'_anndata.json')}")
-        else:
-            print(f"Warning: {f} not found in {cache_dir}, skipping AIRR JSON export")
 
 if merge:
     adatas = {}
@@ -180,10 +171,10 @@ if merge:
 
     # Optional: Export to AIRR JSON format
     if save_airr_json:
-        ir.io.write_airr(merged_adata,cache_dir / "merged_anndata.json")
-        print(f"Merged AnnData exported to AIRR JSON at {cache_dir / 'merged_anndata.json'}")
+        merged_airr_list = ir.io.to_airr_cells(merged_adata)
+        save_airr_cells_json(merged_airr_list, directory=cache_dir, filename="merged_airr_cells")
         if deduplicate:
-            ir.io.write_airr(deduplicated_adata,cache_dir / "deduplicated_anndata.json")
-            print(f"Deduplicated AnnData exported to AIRR JSON at {cache_dir / 'deduplicated_anndata.json'}")
+            deduplicated_airr_list = ir.io.to_airr_cells(deduplicated_adata)
+            save_airr_cells_json(deduplicated_airr_list, directory=cache_dir, filename="deduplicated_airr_cells")
 
 

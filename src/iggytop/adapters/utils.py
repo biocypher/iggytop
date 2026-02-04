@@ -521,7 +521,7 @@ def _get_reference_data(bc: BioCypher, reference_ids: list[int], base_url: str) 
         return []
 
 
-def save_airr_cells_json(airrcells: List[AirrCell], directory: str) -> None:
+def save_airr_cells_json(airrcells: List[AirrCell], directory: str, filename: str = None) -> None:
     """
     Save a list of AirrCell objects to a compressed JSON file with auto-generated filename.
 
@@ -541,8 +541,11 @@ def save_airr_cells_json(airrcells: List[AirrCell], directory: str) -> None:
         serialized_data.append(cell_data)
 
     # Generate filename with current date
-    current_date = datetime.now().strftime("%d%m%Y")  # Format: DDMMYYYY
-    filename = f"airr_cells_{current_date}.json.gz"
+    current_date = datetime.now().strftime("%d%m%Y%H%M%S")  # Format: DDMMYYYY
+    if filename:
+        filename = f"{filename}.json.gz"
+    else:
+        filename = f"airr_cells_{current_date}.json.gz"
 
     # Create full filepath
     filepath = os.path.join(directory, filename)
