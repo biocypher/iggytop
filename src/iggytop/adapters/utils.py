@@ -533,10 +533,8 @@ def save_airr_cells_json(airrcells: List[AirrCell], directory: str, filename: st
 
     for cell in airrcells:
         cell_data = {
-            "cell_id": cell.cell_id,
-            "cell_attributes": dict(cell),  # Gets all cell-level attributes
+            **dict(cell),
             "chains": cell.chains,
-            "cell_attribute_fields": list(cell._cell_attribute_fields),
         }
         serialized_data.append(cell_data)
 
