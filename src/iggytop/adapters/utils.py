@@ -31,16 +31,12 @@ def _set_up_config(output_format, cache_dir):
             raise ValueError(f"Invalid output_format: {output_format}. Allowed formats are: {allowed_formats}")
         # Modify the configuration 
         if output_format == 'neo4j' or output_format == 'networkx':
-            config['biocypher']['online_mode'] = False
+            config['biocypher']['offline'] = True
 
         config['biocypher']['dbms'] = output_format
         if output_format == 'docker':
                 with importlib.resources.open_text('iggytop.config', 'biocypher_docker_config.yaml') as d_file:
                     config = yaml.safe_load(d_file)
-
-
-    # Ensure the cache directory exists
-    os.makedirs(cache_dir, exist_ok=True)
 
     # Save the modified configuration to the cache directory
     modified_config_path = os.path.join(cache_dir, 'biocypher_config.yaml')
@@ -48,6 +44,15 @@ def _set_up_config(output_format, cache_dir):
         yaml.safe_dump(config, file)
 
     return modified_config_path
+
+def _set_up_schema(cache_dir):
+    # Load the schema configuration
+    schema_config_path = os.path.join(cache_dir, 'schema_config.yaml')
+    with importlib.resources.open_text('iggytop.config', 'schema_config.yaml') as schema_file:
+        with open(schema_config_path, 'w') as cache_schema_file:
+            cache_schema_file.write(schema_file.read())
+
+    return schema_config_path
 
 def _is_valid_peptide_sequence(seq: str) -> bool:
     """Checks if a given sequence is a valid peptide sequence."""
@@ -108,6 +113,71 @@ def _normalize_vdj_gene_name(gene: str) -> str:
     gene = re.sub(r"\*.*$", "", gene)
 
     return gene.strip()
+
+
+def get_mhc_class(allele: str | None) -> str | None:
+    """Find MHC class information from the MHC gene (allele) names.
+
+    Args:
+        allele (str): MHC allele name.
+
+    Returns:
+        str: MHC class (I or II) or None if not found.
+    """
+    if allele is None or not isinstance(allele, str):
+        return None
+
+    allele = allele.upper().strip()
+
+    # If the allele is already exactly "I" or "II", return it
+    if allele in ["I", "II", "1", "2"]:
+        return "I" if allele in ["I", "1"] else "II"
+
+    # Class II matches
+    class_ii_indicators = [
+        "HLA-DR", "HLA-DQ", "HLA-DP", "HLA-DM", "HLA-DO",
+        "DRB", "DRA", "DQB", "DQA", "DPB", "DPA",
+        "H-2A", "H-2E", "H2-A", "H2-E", "I-A", "I-E",
+        "CLASS II", "MH2", "MHC2", "MHC-II", "CLASSII", "MHCII", "MHC II", "CD4",
+        "DQ8", "DR3", "H-2G7"
+    ]
+    if any(x in allele for x in class_ii_indicators):
+        return "II"
+
+    # Class I matches
+    class_i_indicators = [
+        "HLA-A", "HLA-B", "HLA-C", "HLA-E", "HLA-F", "HLA-G",
+        "CD1", "MR1",
+        "H-2K", "H-2D", "H-2L", "H-2B", "H-2Q", # Added H-2B from list
+        "H2-K", "H2-D", "H2-L", "H2-Q", "H2-B",
+        "QA-", "QB-", "H2-M",
+        "MAMU-A", "MAMU-B", "MAMU-I",
+        "GAGA-BF",
+        "CLASS I", "MH1", "MHC1", "MHC-I", "CLASSI", "MHCI", "MHC I", "CD8"
+    ]
+    if any(x in allele for x in class_i_indicators):
+        return "I"
+
+    # Generic hyphenated H-2 (Mouse) or HLA (Human) patterns if not already caught
+    if any(x in allele for x in ["H-2", "H2", "HLA"]):
+        return "I"
+
+    return None
+
+
+def get_tissue_source(tissue: str | None) -> str:
+    """Standardize tissue source information while staying close to the original values.
+
+    Args:
+        tissue (str): Original tissue source from database.
+
+    Returns:
+        str: Standardized tissue name or original value.
+    """
+    if tissue is None or not isinstance(tissue, str):
+        return "nan"
+    else:
+        return tissue.upper().strip()
 
 
 def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
@@ -451,7 +521,7 @@ def _get_reference_data(bc: BioCypher, reference_ids: list[int], base_url: str) 
         return []
 
 
-def save_airr_cells_json(airrcells: List[AirrCell], directory: str) -> None:
+def save_airr_cells_json(airrcells: List[AirrCell], directory: str, filename: str = None) -> None:
     """
     Save a list of AirrCell objects to a compressed JSON file with auto-generated filename.
 
@@ -463,16 +533,17 @@ def save_airr_cells_json(airrcells: List[AirrCell], directory: str) -> None:
 
     for cell in airrcells:
         cell_data = {
-            "cell_id": cell.cell_id,
-            "cell_attributes": dict(cell),  # Gets all cell-level attributes
+            **dict(cell),
             "chains": cell.chains,
-            "cell_attribute_fields": list(cell._cell_attribute_fields),
         }
         serialized_data.append(cell_data)
 
     # Generate filename with current date
-    current_date = datetime.now().strftime("%d%m%Y")  # Format: DDMMYYYY
-    filename = f"airr_cells_{current_date}.json.gz"
+    current_date = datetime.now().strftime("%d%m%Y%H%M%S")  # Format: DDMMYYYY
+    if filename:
+        filename = f"{filename}.json.gz"
+    else:
+        filename = f"airr_cells_{current_date}.json.gz"
 
     # Create full filepath
     filepath = os.path.join(directory, filename)
@@ -558,3 +629,4 @@ def save_airr_cells_csv(airr_cells: List, directory: str) -> None:
 
     getLogger("biocypher").info(f"Compressed CSV saved to: {filepath}")
     getLogger("biocypher").info(f"Shape: {df.shape}")
+

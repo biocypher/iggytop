@@ -14,6 +14,7 @@
    .. autosummary::
    
       ~TCR3DAdapter.__init__
+      ~TCR3DAdapter.create_anndata
       ~TCR3DAdapter.get_edges
       ~TCR3DAdapter.get_latest_release
       ~TCR3DAdapter.get_nodes
@@ -28,6 +29,10 @@
    .. autosummary::
    
       ~TCR3DAdapter.DB_DIR
+      ~TCR3DAdapter.DB_NAME
       ~TCR3DAdapter.DB_URL
+      ~TCR3DAdapter.airr_cells
+      ~TCR3DAdapter.cache_dir
+      ~TCR3DAdapter.table
    
    

@@ -1,13 +1,11 @@
 import logging
 import os
-from pathlib import Path
-
 import pandas as pd
-from biocypher import BioCypher
 
+from biocypher import BioCypher
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_pmids_batch, harmonize_sequences
+from .utils import get_pmids_batch, harmonize_sequences, get_mhc_class
 
 logger = logging.getLogger(__name__)
 
@@ -38,11 +36,9 @@ class IEDBAdapter(BaseAdapter):
 
     def get_latest_release(self, bc: BioCypher) -> tuple[str, str]:
         # Create cache directory manually
-        cache_dir = Path(bc._cache_directory) / self.DB_DIR
-        cache_dir.mkdir(parents=True, exist_ok=True)
 
-        zip_file_path = cache_dir / "receptor_full_v3.zip"
-        extracted_dir = cache_dir / "receptor_full_v3_extracted"
+        zip_file_path = self.cache_dir / "receptor_full_v3.zip"
+        extracted_dir = self.cache_dir / "receptor_full_v3_extracted"
 
         # Check if already downloaded and extracted
         if extracted_dir.exists():
@@ -220,6 +216,11 @@ class IEDBAdapter(BaseAdapter):
             ref_map
         )
 
+        table_preprocessed[REGISTRY_KEYS.MHC_CLASS_KEY] = table_preprocessed[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(
+            get_mhc_class
+        )
+        table_preprocessed[REGISTRY_KEYS.TISSUE_KEY] = "nan"
+        
         return table_preprocessed
 
     def get_nodes(self):
@@ -273,6 +274,7 @@ class IEDBAdapter(BaseAdapter):
                 REGISTRY_KEYS.ANTIGEN_KEY,
                 REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
+                REGISTRY_KEYS.MHC_CLASS_KEY,
                 REGISTRY_KEYS.PUBLICATION_KEY,
             ],
             unique_cols=[
@@ -284,6 +286,7 @@ class IEDBAdapter(BaseAdapter):
                 REGISTRY_KEYS.ANTIGEN_KEY,
                 REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
+                REGISTRY_KEYS.MHC_CLASS_KEY,
                 REGISTRY_KEYS.PUBLICATION_KEY,
             ],
         )

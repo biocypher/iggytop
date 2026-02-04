@@ -14,6 +14,7 @@
    .. autosummary::
    
       ~TRAITAdapter.__init__
+      ~TRAITAdapter.create_anndata
       ~TRAITAdapter.get_edges
       ~TRAITAdapter.get_latest_release
       ~TRAITAdapter.get_nodes
@@ -28,6 +29,10 @@
    .. autosummary::
    
       ~TRAITAdapter.DB_DIR
+      ~TRAITAdapter.DB_NAME
       ~TRAITAdapter.DB_URL
+      ~TRAITAdapter.airr_cells
+      ~TRAITAdapter.cache_dir
+      ~TRAITAdapter.table
    
    

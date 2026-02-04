@@ -7,7 +7,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_pmids_batch, harmonize_sequences
+from .utils import get_pmids_batch, harmonize_sequences, get_mhc_class
 
 logger = logging.getLogger(__name__)
 
@@ -59,12 +59,13 @@ class CEDARAdapter(BaseAdapter):
     ) -> pd.DataFrame:
         tcr_table_path, bcr_table_path = table_path
 
-        tcr_table = pd.read_csv(tcr_table_path, header=[0, 1])
+        # We use dtype=str to avoid DtypeWarning and optimize memory usage for large files.
+        tcr_table = pd.read_csv(tcr_table_path, header=[0, 1], dtype=str)
         tcr_table.columns = tcr_table.columns.map(" ".join)
         tcr_table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.TRA_KEY
         tcr_table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
 
-        bcr_table = pd.read_csv(bcr_table_path, header=[0, 1])
+        bcr_table = pd.read_csv(bcr_table_path, header=[0, 1], dtype=str)
         bcr_table.columns = bcr_table.columns.map(" ".join)
         bcr_table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.IGH_KEY
         bcr_table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.IGL_KEY
@@ -152,6 +153,11 @@ class CEDARAdapter(BaseAdapter):
             ref_map
         )
 
+        table_preprocessed[REGISTRY_KEYS.MHC_CLASS_KEY] = table_preprocessed[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(
+            get_mhc_class
+        )
+        table_preprocessed[REGISTRY_KEYS.TISSUE_KEY] = "nan"
+
         return table_preprocessed
 
     def get_nodes(self):
@@ -205,6 +211,7 @@ class CEDARAdapter(BaseAdapter):
                 REGISTRY_KEYS.ANTIGEN_KEY,
                 REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
+                REGISTRY_KEYS.MHC_CLASS_KEY,
             ],
             unique_cols=[
                 REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
@@ -215,6 +222,7 @@ class CEDARAdapter(BaseAdapter):
                 REGISTRY_KEYS.ANTIGEN_KEY,
                 REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
+                REGISTRY_KEYS.MHC_CLASS_KEY,
             ],
         )
 

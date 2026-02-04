@@ -1,13 +1,9 @@
-import sys
-
-sys.path.append("..")
-sys.path.append("../..")
 import pandas as pd
-from biocypher import BioCypher, FileDownload
 
+from biocypher import BioCypher, FileDownload
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import harmonize_sequences
+from .utils import harmonize_sequences, get_mhc_class
 
 
 class TCR3DAdapter(BaseAdapter):
@@ -76,15 +72,12 @@ class TCR3DAdapter(BaseAdapter):
         )
         table = table.explode(REGISTRY_KEYS.EPITOPE_KEY).reset_index(drop=True)
 
-        # Replace "CLASS" with "MHC" in the REGISTRY_KEYS.MHC_CLASS_KEY column
-        table[REGISTRY_KEYS.MHC_CLASS_KEY] = table[REGISTRY_KEYS.MHC_CLASS_KEY].replace(
-            to_replace=r"CLASS", value="MHC", regex=True
-        )
+        table[REGISTRY_KEYS.MHC_CLASS_KEY] = table[REGISTRY_KEYS.MHC_CLASS_KEY].apply(get_mhc_class)
 
         # Create a column placeholder for the antigen species
-        table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY] = None
-
         table_preprocessed = harmonize_sequences(bc, table)
+
+        table_preprocessed[REGISTRY_KEYS.TISSUE_KEY] = "nan"
 
         return table_preprocessed
 

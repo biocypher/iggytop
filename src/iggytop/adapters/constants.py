@@ -29,6 +29,7 @@ class _REGISTRY_KEYS_NT(NamedTuple):
     MHC_CLASS_KEY: str = "MHC_class"
     MHC_GENE_1_KEY: str = "MHC_gene_1"
     MHC_GENE_2_KEY: str = "MHC_gene_2"
+    TISSUE_KEY: str = "tissue"
     PUBLICATION_KEY: str = "PMID"
 
 

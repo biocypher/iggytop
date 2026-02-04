@@ -14,10 +14,10 @@
    .. autosummary::
    
       ~VDJDBAdapter.__init__
+      ~VDJDBAdapter.create_anndata
       ~VDJDBAdapter.get_edges
       ~VDJDBAdapter.get_latest_release
       ~VDJDBAdapter.get_nodes
-      ~VDJDBAdapter.raw_airr_cells
       ~VDJDBAdapter.read_table
    
    
@@ -30,6 +30,10 @@
    
       ~VDJDBAdapter.DB_DIR
       ~VDJDBAdapter.DB_FNAME
+      ~VDJDBAdapter.DB_NAME
       ~VDJDBAdapter.REPO_NAME
+      ~VDJDBAdapter.airr_cells
+      ~VDJDBAdapter.cache_dir
+      ~VDJDBAdapter.table
    
    

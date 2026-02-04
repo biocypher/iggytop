@@ -1,13 +1,9 @@
-import os
-import tempfile
-
 import pandas as pd
-import requests
-from biocypher import BioCypher
+from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import harmonize_sequences
+from .utils import get_mhc_class, harmonize_sequences, get_tissue_source
 
 
 class NeoTCRAdapter(BaseAdapter):
@@ -19,18 +15,22 @@ class NeoTCRAdapter(BaseAdapter):
     """File name of the NeoTCR database."""
     DB_NAME = "NeoTCR"
     """Name of the database."""
+    DB_DIR = "neotcr_latest"
     def get_latest_release(self, bc: BioCypher) -> str:
-        response = requests.get(self.RAW_URL)
-        if response.status_code != 200:
-            raise ConnectionError(f"Failed to download NeoTCR file: {self.RAW_URL}")
+        # Download NEOTCR
+        neotcr_resource = FileDownload(
+            name=self.DB_DIR,
+            url_s=self.RAW_URL,
+            lifetime=30,
+            is_dir=False,
+        )
 
-        tmp_dir = tempfile.mkdtemp()
-        file_path = os.path.join(tmp_dir, self.FILE_NAME)
+        neotcr_path = bc.download(neotcr_resource)
 
-        with open(file_path, "wb") as f:
-            f.write(response.content)
-
-        return file_path
+        if not neotcr_path:
+            raise FileNotFoundError(f"Failed to download NeoTCR database from {self.RAW_URL}")
+        
+        return neotcr_path[0]
 
     def read_table(self, bc: BioCypher, table_path: str, test: bool = False) -> pd.DataFrame:
         table = pd.read_excel(table_path)
@@ -51,6 +51,7 @@ class NeoTCRAdapter(BaseAdapter):
             "Neoepitope": REGISTRY_KEYS.EPITOPE_KEY,
             "Antigen": REGISTRY_KEYS.ANTIGEN_KEY,
             "HLA Allele": REGISTRY_KEYS.MHC_GENE_1_KEY,
+            "Source": REGISTRY_KEYS.TISSUE_KEY,
             "PubMed ID": REGISTRY_KEYS.PUBLICATION_KEY,
         }
 
@@ -77,7 +78,14 @@ class NeoTCRAdapter(BaseAdapter):
         )
 
         table_preprocessed = harmonize_sequences(bc, table)
+        table_preprocessed[REGISTRY_KEYS.MHC_CLASS_KEY] = table_preprocessed[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(
+            get_mhc_class
+        )
 
+        table_preprocessed[REGISTRY_KEYS.TISSUE_KEY] = table_preprocessed[REGISTRY_KEYS.TISSUE_KEY].apply(
+            get_tissue_source
+        )
+        
         return table_preprocessed
 
     def get_nodes(self):
@@ -122,20 +130,24 @@ class NeoTCRAdapter(BaseAdapter):
         # epitope
         yield from self._generate_nodes_from_table(
             subset_cols=[
+                REGISTRY_KEYS.MHC_CLASS_KEY,
                 REGISTRY_KEYS.EPITOPE_KEY,
                 REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
                 REGISTRY_KEYS.ANTIGEN_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
                 REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
+                REGISTRY_KEYS.TISSUE_KEY,
                 REGISTRY_KEYS.PUBLICATION_KEY,
             ],
             unique_cols=[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY],
             property_cols=[
+                REGISTRY_KEYS.MHC_CLASS_KEY,
                 REGISTRY_KEYS.EPITOPE_KEY,
                 REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
                 REGISTRY_KEYS.ANTIGEN_KEY,
                 REGISTRY_KEYS.MHC_GENE_1_KEY,
                 REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
+                REGISTRY_KEYS.TISSUE_KEY,
                 REGISTRY_KEYS.PUBLICATION_KEY,
             ],
         )

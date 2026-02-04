@@ -16,8 +16,7 @@ from iggytop.adapters.mcpas_adapter import MCPASAdapter
 from iggytop.adapters.neotcr_adapter import NeoTCRAdapter
 from iggytop.adapters.tcr3d_adapter import TCR3DAdapter
 from iggytop.adapters.trait_adapter import TRAITAdapter
-from iggytop.adapters.utils import save_airr_cells_json
-from iggytop.adapters.utils import _set_up_config
+from iggytop.adapters.utils import _set_up_schema, save_airr_cells_json, _set_up_config
 from iggytop.adapters.vdjdb_adapter import VDJDBAdapter
 import yaml
 import os
@@ -40,12 +39,10 @@ def create_knowledge_graph(
                              Defaults to providing all available adapters.
         output_format (str, optional): Output format, currently either 'airr','neo4j' or 'networkx'
     """
+    os.makedirs(cache_dir, exist_ok=True)
     config_path = _set_up_config(output_format, cache_dir)
 
-    schema_config_path = os.path.join(cache_dir, 'schema_config.yaml')
-    with importlib.resources.open_text('iggytop.config', 'schema_config.yaml') as schema_file:
-        with open(schema_config_path, 'w') as cache_schema_file:
-            cache_schema_file.write(schema_file.read())
+    schema_config_path = _set_up_schema(cache_dir)
 
     bc = BioCypher(biocypher_config_path=config_path,
                    schema_config_path=schema_config_path,
