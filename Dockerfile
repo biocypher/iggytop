@@ -6,6 +6,11 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    autoconf \
+    automake \
+    libtool \
+    m4 \
+    zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Sets default for BIOCYPHER_CONFIG
