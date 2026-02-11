@@ -4,7 +4,7 @@ services:
       context: .
       args:
         - "BIOCYPHER_CONFIG=src/iggytop/config/biocypher_docker_config.yaml"
-    container_name: biocypher-project-template-container
+    container_name: iggytop-container
     env_file:
       - docker-variables.env
     ports:
