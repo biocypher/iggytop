@@ -37,8 +37,8 @@ class IEDBAdapter(BaseAdapter):
     def get_latest_release(self, bc: BioCypher) -> tuple[str, str]:
         # Create cache directory manually
 
-        zip_file_path = self.cache_dir / "receptor_full_v3.zip"
-        extracted_dir = self.cache_dir / "receptor_full_v3_extracted"
+        zip_file_path = self.cache_dir / "iedb_latest/receptor_full_v3.zip"
+        extracted_dir = self.cache_dir / "iedb_latest/receptor_full_v3_extracted"
 
         # Check if already downloaded and extracted
         if extracted_dir.exists():
@@ -68,6 +68,7 @@ class IEDBAdapter(BaseAdapter):
         }
 
         try:
+            zip_file_path.parent.mkdir(exist_ok=True)
             print(f"Downloading IEDB data from {self.DB_URL}")
             response = requests.get(self.DB_URL, headers=headers, stream=True, timeout=60)
             response.raise_for_status()
