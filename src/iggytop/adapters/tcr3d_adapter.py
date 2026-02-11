@@ -77,8 +77,6 @@ class TCR3DAdapter(BaseAdapter):
         # Create a column placeholder for the antigen species
         table_preprocessed = harmonize_sequences(bc, table)
 
-        table_preprocessed[REGISTRY_KEYS.TISSUE_KEY] = "nan"
-
         return table_preprocessed
 
     def get_nodes(self):

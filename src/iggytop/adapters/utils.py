@@ -225,7 +225,7 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
 
         # Add column with IEDB IRIs corresponding to the epitope AA sequence
         iri_mapping = {epitope: data["iri"] for epitope, data in epitope_map.items()}
-        table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].map(iri_mapping)
+        table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].replace(iri_mapping)
 
         # Fill missing antigen and antigen species pairs if at least one is missing using information from IEDB
         organism_mapping = {
@@ -264,21 +264,21 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
         antigen_species_harmonized_map = map_species_terms(
             table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY].dropna().unique().tolist()
         )
-        table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY] = table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY].map(
+        table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY] = table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY].replace(
             antigen_species_harmonized_map
         )
 
     if REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY in table.columns:
         chain_1_species_map = map_species_terms(table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY].dropna().unique().tolist())
-        table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY] = table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY].map(chain_1_species_map)
+        table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY] = table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY].replace(chain_1_species_map)
 
     if REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY in table.columns:
         chain_2_species_map = map_species_terms(table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY].dropna().unique().tolist())
-        table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY] = table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY].map(chain_2_species_map)
+        table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY] = table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY].replace(chain_2_species_map)
 
     # Clean/delete brackets from the antigen names
     antigen_names_clean = map_antigen_names(table[REGISTRY_KEYS.ANTIGEN_KEY].dropna().unique().tolist())
-    table[REGISTRY_KEYS.ANTIGEN_KEY] = table[REGISTRY_KEYS.ANTIGEN_KEY].map(antigen_names_clean)
+    table[REGISTRY_KEYS.ANTIGEN_KEY] = table[REGISTRY_KEYS.ANTIGEN_KEY].replace(antigen_names_clean)
 
     return table
 
