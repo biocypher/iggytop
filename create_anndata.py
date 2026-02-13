@@ -128,6 +128,13 @@ if merge:
         else:
             print(f"Warning: {f} not found in {cache_dir}")
 
+    # Ensure all obs columns exist across datasets
+    all_cols = set().union(*(set(a.obs.columns) for a in adatas.values()))
+    for a in adatas.values():
+        missing = all_cols - set(a.obs.columns)
+        for col in missing:
+            a.obs[col] = None
+
     # Quick summary table
     for f in adatas:
         print({
