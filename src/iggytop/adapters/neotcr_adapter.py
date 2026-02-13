@@ -6,14 +6,14 @@ from .constants import REGISTRY_KEYS
 from .utils import get_mhc_class, harmonize_sequences, get_tissue_source
 
 
-class NeoTCRAdapter(BaseAdapter):
+class NEOTCRAdapter(BaseAdapter):
     """BioCypher adapter for the `NeoTCR <http://neotcrdb.bioxai.cn/home>`_ dataset."""
 
     RAW_URL = "https://github.com/lyotvincent/NeoTCR/raw/main/data/NeoTCR%20data-20221220.xlsx"
     """URL to download the NeoTCR database."""
     FILE_NAME = "NeoTCR_data-20221220.xlsx"
     """File name of the NeoTCR database."""
-    DB_NAME = "NeoTCR"
+    DB_NAME = "NEOTCR"
     """Name of the database."""
     DB_DIR = "neotcr_latest"
     def get_latest_release(self, bc: BioCypher) -> str:
@@ -28,7 +28,7 @@ class NeoTCRAdapter(BaseAdapter):
         neotcr_path = bc.download(neotcr_resource)
 
         if not neotcr_path:
-            raise FileNotFoundError(f"Failed to download NeoTCR database from {self.RAW_URL}")
+            raise FileNotFoundError(f"Failed to download NEOTCR database from {self.RAW_URL}")
         
         return neotcr_path[0]
 

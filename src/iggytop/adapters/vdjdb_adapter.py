@@ -13,13 +13,13 @@ import json
 
 class VDJDBAdapter(BaseAdapter):
     """
-    BioCypher adapter for the `VDJdb database <https://vdjdb.cdr3.net/>`_.
+    BioCypher adapter for the `VDJDB database <https://vdjdb.cdr3.net/>`_.
 
-    This adapter handles the downloading, reading, and processing of the VDJdb database.
+    This adapter handles the downloading, reading, and processing of the VDJDB database.
     """
 
     REPO_NAME = "antigenomics/vdjdb-db"
-    """GitHub repository name for the VDJdb database."""
+    """GitHub repository name for the VDJDB database."""
 
     DB_DIR = "vdjdb_latest"
     """Directory name for the downloaded database."""
@@ -27,12 +27,12 @@ class VDJDBAdapter(BaseAdapter):
     DB_FNAME = "vdjdb.txt"
     """File name of the database."""
 
-    DB_NAME = "VDJdb"
+    DB_NAME = "VDJDB"
     """Name of the database."""
 
     def get_latest_release(self, bc: BioCypher) -> str:
         """
-        Retrieves the latest release of the VDJdb database from GitHub.
+        Retrieves the latest release of the VDJDB database from GitHub.
 
         Args:
             bc (BioCypher): An instance of the BioCypher class.
@@ -92,7 +92,7 @@ class VDJDBAdapter(BaseAdapter):
                     db_path = os.path.join(root, file)
 
         if not db_path or not os.path.exists(db_path):
-            raise FileNotFoundError(f"Failed to download VDJdb database from {db_url}")
+            raise FileNotFoundError(f"Failed to download VDJDB database from {db_url}")
 
         return db_path
 

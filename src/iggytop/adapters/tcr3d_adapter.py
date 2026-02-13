@@ -7,7 +7,7 @@ from .utils import harmonize_sequences, get_mhc_class
 
 
 class TCR3DAdapter(BaseAdapter):
-    """BioCypher adapter for the `TCR3d <https://tcr3d.ibbr.umd.edu>`_ database.
+    """BioCypher adapter for the `TCR3D <https://tcr3d.ibbr.umd.edu>`_ database.
 
     Args:
         bc (BioCypher): BioCypher instance for DB download.
@@ -15,10 +15,10 @@ class TCR3DAdapter(BaseAdapter):
     """
 
     DB_URL = "https://tcr3d.ibbr.umd.edu/static/download/tcr_complexes_data.tsv"
-    """URL to download the TCR3d database."""
+    """URL to download the TCR3D database."""
     DB_DIR = "tcr3d_latest"
     """Directory name for the downloaded database."""
-    DB_NAME = "TCR3d"
+    DB_NAME = "TCR3D"
     """Name of the database."""
     def get_latest_release(self, bc: BioCypher) -> str:
         tcr3d_resource = FileDownload(
@@ -31,7 +31,7 @@ class TCR3DAdapter(BaseAdapter):
         tcr3d_path = bc.download(tcr3d_resource)
 
         if not tcr3d_path:
-            raise FileNotFoundError(f"Failed to download TCR3d database from {self.DB_URL}")
+            raise FileNotFoundError(f"Failed to download TCR3D database from {self.DB_URL}")
 
         return tcr3d_path[0]
 

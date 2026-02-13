@@ -7,4 +7,4 @@ import platformdirs
 
 from iggytop.io.create_knowledge_graph import create_knowledge_graph
 
-create_knowledge_graph(cache_dir=platformdirs.user_cache_dir("iggytop_dev"), adapters_to_include = ["VDJdb", "McPAS", "IEDB", "TCR3d", "NeoTCR", "CEDAR", "TRAIT"])
+create_knowledge_graph(cache_dir=platformdirs.user_cache_dir("iggytop_dev"), adapters_to_include = ["VDJDB", "MCPAS", "IEDB", "TCR3D", "NEOTCR", "CEDAR", "TRAIT"])
