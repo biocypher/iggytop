@@ -19,7 +19,7 @@ class MCPASAdapter(BaseAdapter):
     """URL to download the McPAS-TCR database."""
     DB_DIR = "mcpas_latest"
     """Directory name for the downloaded database."""
-    DB_NAME = "McPAS"
+    DB_NAME = "MCPAS"
     """Name of the database."""
 
     def get_latest_release(self, bc: BioCypher) -> str:
@@ -33,9 +33,9 @@ class MCPASAdapter(BaseAdapter):
         mcpas_path = bc.download(mcpas_resource)
 
         if not mcpas_path:
-            raise FileNotFoundError(f"Failed to download McPAS-TCR database from {self.DB_URL}")
+            raise FileNotFoundError(f"Failed to download MCPAS-TCR database from {self.DB_URL}")
 
-        # mcpas_path = "../data/McPAS-TCR1.csv"
+        # mcpas_path = "../data/MCPAS-TCR1.csv"
 
         return mcpas_path[0]
 

@@ -131,6 +131,26 @@ class BaseAdapter(ABC):
                     )
                     cell.add_chain(beta_chain)
 
+                # Source organism data is on the chain level for now
+                c1_org = getattr(row, REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY, None)
+                c2_org = getattr(row, REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY, None)
+
+                resolved_org = None
+                if pd.isnull(c1_org):
+                    resolved_org = c2_org
+                elif pd.isnull(c2_org):
+                    resolved_org = c1_org
+                elif c1_org == c2_org:
+                    resolved_org = c1_org
+                else:
+                    if c2_org in c1_org or c1_org in c2_org:
+                        resolved_org = c1_org if len(str(c1_org)) > len(str(c2_org)) else c2_org
+                    else:
+                        resolved_org = f"{c1_org} X {c2_org}"  # Transgenic or ambiguous case, keep both organisms in the string for now
+
+                if not pd.isnull(resolved_org):
+                    cell["source_organism"] = resolved_org
+
                 for f in REGISTRY_KEYS:
                     # f is a column name (value from REGISTRY_KEYS)
                     if "chain" in f:
@@ -139,11 +159,7 @@ class BaseAdapter(ABC):
                     val = getattr(row, f, None)
                     if val is not None and not pd.isnull(val):
                         cell[f] = val
-
-                if not pd.isnull(c1_cdr3) and not pd.isnull(c2_cdr3): # This property could be moved into the node representation (depending on the schema)
-                    cell["paired"] = True
-                else:
-                    cell["paired"] = False
+                        
                 self._airr_cells.append(cell)
 
         return self._airr_cells

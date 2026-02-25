@@ -10,7 +10,7 @@ from scirpy.pp import index_chains
 from iggytop.adapters.cedar_adapter import CEDARAdapter
 from iggytop.adapters.iedb_adapter import IEDBAdapter
 from iggytop.adapters.mcpas_adapter import MCPASAdapter
-from iggytop.adapters.neotcr_adapter import NeoTCRAdapter
+from iggytop.adapters.neotcr_adapter import NEOTCRAdapter
 from iggytop.adapters.tcr3d_adapter import TCR3DAdapter
 from iggytop.adapters.trait_adapter import TRAITAdapter
 from iggytop.adapters.vdjdb_adapter import VDJDBAdapter
@@ -24,7 +24,7 @@ save_airr_json = True  # whether to save the merged and deduplicated AnnData as 
 cache_dir = platformdirs.user_cache_dir("iggytop_airr") #cachedir must be a string (biocypher requirement)
 os.makedirs(cache_dir, exist_ok=True)
 
-adapters_to_include = ["VDJdb", "McPAS", "IEDB", "TCR3d", "NeoTCR", "CEDAR", "TRAIT"]
+adapters_to_include = ["VDJDB", "MCPAS", "IEDB", "TCR3D", "NEOTCR", "CEDAR", "TRAIT"]
 
 test_mode = False
 output_format = "airr"  # doesnt matter here
@@ -91,12 +91,12 @@ bc = BioCypher(biocypher_config_path=config_path,
 
 
 adapter_classes = {
-    "VDJdb": VDJDBAdapter,
-    "McPAS": MCPASAdapter,
+    "VDJDB": VDJDBAdapter,
+    "MCPAS": MCPASAdapter,
     "TRAIT": TRAITAdapter,
     "IEDB": IEDBAdapter,
-    "TCR3d": TCR3DAdapter,
-    "NeoTCR": NeoTCRAdapter,
+    "TCR3D": TCR3DAdapter,
+    "NEOTCR": NEOTCRAdapter,
     "CEDAR": CEDARAdapter,
 }
 
@@ -127,6 +127,13 @@ if merge:
             print(f"  Columns: {adatas[f].obs.columns.tolist()}")
         else:
             print(f"Warning: {f} not found in {cache_dir}")
+
+    # Ensure all obs columns exist across datasets
+    all_cols = set().union(*(set(a.obs.columns) for a in adatas.values()))
+    for a in adatas.values():
+        missing = all_cols - set(a.obs.columns)
+        for col in missing:
+            a.obs[col] = None
 
     # Quick summary table
     for f in adatas:

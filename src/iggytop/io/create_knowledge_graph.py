@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__) #inherits the log config from biocypher
 from iggytop.adapters.cedar_adapter import CEDARAdapter
 from iggytop.adapters.iedb_adapter import IEDBAdapter
 from iggytop.adapters.mcpas_adapter import MCPASAdapter
-from iggytop.adapters.neotcr_adapter import NeoTCRAdapter
+from iggytop.adapters.neotcr_adapter import NEOTCRAdapter
 from iggytop.adapters.tcr3d_adapter import TCR3DAdapter
 from iggytop.adapters.trait_adapter import TRAITAdapter
 from iggytop.adapters.utils import _set_up_schema, save_airr_cells_json, _set_up_config
@@ -25,7 +25,7 @@ import os
 def create_knowledge_graph(
     cache_dir: str = platformdirs.user_cache_dir("iggytop"),
     test_mode: bool = False,
-    adapters_to_include: Optional[List[str]] = ["VDJDB", "MCPAS", "TRAIT", "IEDB", "TCR3D", "NeoTCR", "CEDAR"],
+    adapters_to_include: Optional[List[str]] = ["VDJDB", "MCPAS", "TRAIT", "IEDB", "TCR3D", "NEOTCR", "CEDAR"],
     output_format: str | None = None,
 ):
     """
@@ -35,7 +35,7 @@ def create_knowledge_graph(
         cache_dir (str, optional): Directory to store cache and output files. Includes raw datasets and generated knowledge graphs (see logs for filenames). Defaults to user cache directory.
         test_mode (bool, optional): Test mode will use only 1% of the data for faster execution. Defaults to False.
         adapters_to_include (List[str], optional): List of adapter names to run.
-                             Available adapters: ["VDJDB", "MCPAS", "TRAIT", "IEDB", "TCR3D", "NeoTCR", "CEDAR"].
+                             Available adapters: ["VDJDB", "MCPAS", "TRAIT", "IEDB", "TCR3D", "NEOTCR", "CEDAR"].
                              Defaults to providing all available adapters.
         output_format (str, optional): Output format, currently either 'airr','neo4j' or 'networkx'
     """
@@ -54,7 +54,7 @@ def create_knowledge_graph(
         "TRAIT": TRAITAdapter,
         "IEDB": IEDBAdapter,
         "TCR3D": TCR3DAdapter,
-        "NeoTCR": NeoTCRAdapter,
+        "NEOTCR": NEOTCRAdapter,
         "CEDAR": CEDARAdapter,
     }
 

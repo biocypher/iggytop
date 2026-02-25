@@ -37,8 +37,8 @@ class IEDBAdapter(BaseAdapter):
     def get_latest_release(self, bc: BioCypher) -> tuple[str, str]:
         # Create cache directory manually
 
-        zip_file_path = self.cache_dir / "receptor_full_v3.zip"
-        extracted_dir = self.cache_dir / "receptor_full_v3_extracted"
+        zip_file_path = self.cache_dir / "iedb_latest/receptor_full_v3.zip"
+        extracted_dir = self.cache_dir / "iedb_latest/receptor_full_v3_extracted"
 
         # Check if already downloaded and extracted
         if extracted_dir.exists():
@@ -68,6 +68,7 @@ class IEDBAdapter(BaseAdapter):
         }
 
         try:
+            zip_file_path.parent.mkdir(exist_ok=True)
             print(f"Downloading IEDB data from {self.DB_URL}")
             response = requests.get(self.DB_URL, headers=headers, stream=True, timeout=60)
             response.raise_for_status()
@@ -136,7 +137,7 @@ class IEDBAdapter(BaseAdapter):
         if test:
             table = table.sample(frac=0.01, random_state=42)
         # Replace NaN and empty strings with None
-        table = table.replace(["", "nan"], None).where(pd.notnull, None)
+        table = table.replace(["", "nan", "NaN", "NAN", "None", "none"], None).where(pd.notnull, None)
 
         # Fill columns based on preference: calculated vs curated
         if prefer_calculated:
@@ -212,14 +213,13 @@ class IEDBAdapter(BaseAdapter):
 
         ref_urls = table_preprocessed[REGISTRY_KEYS.PUBLICATION_KEY].dropna().unique().tolist()
         ref_map = get_pmids_batch(bc, ref_urls)
-        table_preprocessed[REGISTRY_KEYS.PUBLICATION_KEY] = table_preprocessed[REGISTRY_KEYS.PUBLICATION_KEY].map(
+        table_preprocessed[REGISTRY_KEYS.PUBLICATION_KEY] = table_preprocessed[REGISTRY_KEYS.PUBLICATION_KEY].replace(
             ref_map
         )
 
         table_preprocessed[REGISTRY_KEYS.MHC_CLASS_KEY] = table_preprocessed[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(
             get_mhc_class
         )
-        table_preprocessed[REGISTRY_KEYS.TISSUE_KEY] = "nan"
         
         return table_preprocessed
 
