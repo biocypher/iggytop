@@ -36,25 +36,29 @@ class BaseAdapter(ABC):
         test (bool, optional): Whether to run in test mode. Defaults to False.
     """
 
-    def __init__(self, bc: BioCypher, cache_dir: str | None = None, test: bool = False):
+    def __init__(self, bc: BioCypher, cache_dir: str | None = None, receptors_to_include: list[str] | None = ["TCR", "BCR"], test: bool = False):
         """
         Initializes the BaseAdapter instance.
 
         Args:
             bc (BioCypher): An instance of the BioCypher class.
             cache_dir (str | None, optional): Directory to cache data. Defaults to None.
+            receptors_to_include (list[str], optional): List of receptor types to include. Defaults to ["TCR", "BCR"].
             test (bool, optional): Whether to run in test mode. Defaults to False.
         """
+        
+        if not hasattr(self.__class__, "DB_NAME"):
+            raise TypeError(f"Class {self.__class__.__name__} must define a 'DB_NAME' class attribute.")
+        if not hasattr(self.__class__, "available_receptors"):
+            raise TypeError(f"Class {self.__class__.__name__} must define an 'available_receptors' class attribute.")
         self._bc = bc
         self._test = test       
         self._cache_dir = cache_dir
+        self._receptors = list(set(receptors_to_include) & set(self.available_receptors))
         self._table_path = self.get_latest_release(bc)
         self._table: pd.DataFrame | None = None
         self._airr_cells: list[AirrCell] | None = None
 
-
-        if not hasattr(self.__class__, "DB_NAME"):
-            raise TypeError(f"Class {self.__class__.__name__} must define a 'DB_NAME' class attribute.")
 
     @property
     def table(self) -> pd.DataFrame:
@@ -65,7 +69,7 @@ class BaseAdapter(ABC):
             pd.DataFrame: The data table.
         """
         if self._table is None:
-            self._table = self.read_table(self._bc, self._table_path, self._test)
+            self._table = self.read_table(self._bc, self._table_path, self._receptors, self._test)
         return self._table
     
     @property
@@ -180,12 +184,13 @@ class BaseAdapter(ABC):
         pass
 
     @abstractmethod
-    def read_table(self, bc: BioCypher, table_path: str, test: bool = False) -> pd.DataFrame:
+    def read_table(self, bc: BioCypher, table_path: str, receptors: list[str], test: bool = False) -> pd.DataFrame:
         """
         Abstract method to read and harmonize the data table from the source.
 
         Args:
             table_path (str): Path to the data table.
+            receptors (list[str]): List of receptor types to include in the table.
             test (bool, optional): Whether to run in test mode. Defaults to False.
 
         Returns:

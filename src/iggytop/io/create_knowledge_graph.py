@@ -25,6 +25,7 @@ import os
 def create_knowledge_graph(
     cache_dir: str = platformdirs.user_cache_dir("iggytop"),
     test_mode: bool = False,
+    receptors_to_include: Optional[List[str]] = ["TCR", "BCR"],
     adapters_to_include: Optional[List[str]] = ["VDJDB", "MCPAS", "TRAIT", "IEDB", "TCR3D", "NEOTCR", "CEDAR"],
     output_format: str | None = None,
 ):
@@ -34,6 +35,9 @@ def create_knowledge_graph(
     Args:
         cache_dir (str, optional): Directory to store cache and output files. Includes raw datasets and generated knowledge graphs (see logs for filenames). Defaults to user cache directory.
         test_mode (bool, optional): Test mode will use only 1% of the data for faster execution. Defaults to False.
+        receptors_to_include (List[str], optional): List of receptor types to include in the knowledge graph.
+                             Available receptor types: ["TCR", "BCR"].
+                             Defaults to including both TCR and BCR.
         adapters_to_include (List[str], optional): List of adapter names to run.
                              Available adapters: ["VDJDB", "MCPAS", "TRAIT", "IEDB", "TCR3D", "NEOTCR", "CEDAR"].
                              Defaults to providing all available adapters.
@@ -63,9 +67,10 @@ def create_knowledge_graph(
         for name in adapters_to_include
         if name in adapter_classes
     ]
+    selected_adapters = [a for a in selected_adapters if any(receptor in receptors_to_include for receptor in a.available_receptors)]
 
     for AdapterClass in selected_adapters:
-        adapter = AdapterClass(bc, cache_dir, test_mode)
+        adapter = AdapterClass(bc, cache_dir, receptors_to_include, test_mode)
         bc.add(adapter.get_nodes())
         bc._add_edges(adapter.get_edges()) #or bc.add(adapter.get_edges()) if in online mode
         logger.info(f"Added data from {AdapterClass.__name__}")

@@ -24,6 +24,9 @@ class TRAITAdapter(BaseAdapter):
     DB_NAME = "TRAIT"
     """Name of the database."""
 
+    available_receptors = ["TCR"]
+    """Receptor types available in TRAIT."""
+    
     def get_latest_release(self, bc: BioCypher) -> str:
         trait_resource = FileDownload(
             name=self.DB_DIR,
@@ -51,7 +54,22 @@ class TRAITAdapter(BaseAdapter):
 
         return final_files[0]
 
-    def read_table(self, bc: BioCypher, table_path: str, test: bool = False) -> pd.DataFrame:
+    def read_table(self, bc: BioCypher, table_path: str, receptors: list[str], test: bool = False) -> pd.DataFrame:
+        """
+        Reads and processes the TRAIT table from the downloaded database file.
+
+        Args:
+            bc (BioCypher): An instance of the BioCypher class.
+            table_path (str): Path to the table file.
+            receptors (list[str]): List of receptor types to include in the table. Not used here as only TCR is available.
+            test (bool, optional): If `True`, loads only a subset of the data for testing (default is False).
+
+        Returns:
+            pd.DataFrame: A DataFrame containing the processed table data.
+
+        Raises:
+            FileNotFoundError: If the table file cannot be found.
+        """
         table = pd.read_excel(table_path)
         if test:
             table = table.sample(frac=0.01, random_state=42)

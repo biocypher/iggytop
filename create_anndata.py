@@ -20,7 +20,7 @@ from iggytop.adapters.utils import _set_up_config, _set_up_schema, save_airr_cel
 merge = True  # whether to merge all datasets into a single AnnData
 deduplicate = True  # whether to deduplicate the merged AnnData, set unique id's below
 save_airr_json = True  # whether to save the merged and deduplicated AnnData as AIRR JSON
-
+receptors_to_include = ["TCR", "BCR"]
 cache_dir = platformdirs.user_cache_dir("iggytop_airr") #cachedir must be a string (biocypher requirement)
 os.makedirs(cache_dir, exist_ok=True)
 
@@ -106,27 +106,29 @@ selected_adapters = [
     for name in adapters_to_include
     if name in adapter_classes
 ]
+selected_adapters = [a for a in selected_adapters if any(receptor in receptors_to_include for receptor in a.available_receptors)]
 
 for AdapterClass in selected_adapters:
-    adapter = AdapterClass(bc, cache_dir, test_mode)
+    adapter = AdapterClass(bc, cache_dir, receptors_to_include, test_mode)
     adapter.create_anndata()
     if save_airr_json:
-        save_airr_cells_json(adapter.airr_cells,directory=cache_dir, filename=f"{adapter.DB_NAME}_airr_cells")
+        save_airr_cells_json(adapter.airr_cells, directory=cache_dir, filename=f"{adapter.DB_NAME}_airr_cells")
 
 cache_dir = Path(cache_dir)
 
 if merge:
     adatas = {}
 
-    for f in adapters_to_include:
-        file_path = cache_dir / (f+"_anndata.h5ad")
+    for AdapterClass in selected_adapters:
+        db_name = AdapterClass.DB_NAME
+        file_path = cache_dir / ( db_name+"_anndata.h5ad")
         if os.path.exists(file_path):
-            print(f"Loading {f}...")
-            adatas[f] = ad.read_h5ad(file_path)
-            print(f"  Shape: {adatas[f].shape}")
-            print(f"  Columns: {adatas[f].obs.columns.tolist()}")
+            print(f"Loading { db_name}...")
+            adatas[db_name] = ad.read_h5ad(file_path)
+            print(f"  Shape: {adatas[ db_name].shape}")
+            print(f"  Columns: {adatas[db_name].obs.columns.tolist()}")
         else:
-            print(f"Warning: {f} not found in {cache_dir}")
+            print(f"Warning: {db_name} not found in {cache_dir}")
 
     # Ensure all obs columns exist across datasets
     all_cols = set().union(*(set(a.obs.columns) for a in adatas.values()))

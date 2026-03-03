@@ -7,4 +7,4 @@ import platformdirs
 
 from iggytop.io.create_knowledge_graph import create_knowledge_graph
 
-create_knowledge_graph(adapters_to_include= ["TCR3D"], output_format="docker")
+create_knowledge_graph(adapters_to_include= ["TCR3D"], receptors_to_include= ["TCR"], output_format="docker")
