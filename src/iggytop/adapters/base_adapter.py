@@ -70,6 +70,8 @@ class BaseAdapter(ABC):
         """
         if self._table is None:
             self._table = self.read_table(self._bc, self._table_path, self._receptors, self._test)
+            self._table = self._table[~(self._table["PMID"] == "no_pmid_1036521") & ~self._table["PMID"].astype(str).str.contains("https://www.10xgenomics.com", na=False)] 
+            # Filter out 10X Genomics dataset as it has been critisized for poor confidence.
         return self._table
     
     @property
@@ -168,7 +170,6 @@ class BaseAdapter(ABC):
                     val = getattr(row, f, None)
                     if val is not None and not pd.isnull(val):
                         cell[f] = val
-                        
                 self._airr_cells.append(cell)
 
         return self._airr_cells
@@ -238,6 +239,7 @@ class BaseAdapter(ABC):
                 adata.obs[col] = adata.obs[col].astype(str)
 
         adata.uns["DB"] = {"name": self.DB_NAME, "date_downloaded": datetime.now().isoformat()}
+
         anndata_path = Path(self.cache_dir) / f"{self.DB_NAME}_anndata.h5ad"
         adata.write_h5ad(cast(os.PathLike, anndata_path))
         print(f"Saved Anndata to {anndata_path}")
