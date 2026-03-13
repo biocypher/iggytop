@@ -13,6 +13,7 @@ BioCypher is designed to facilitate the standardized integration of heterogeneou
 - [VDJdb](https://github.com/antigenomics/vdjdb-db)
 - [McPAS-TCR](https://friedmanlab.weizmann.ac.il/McPAS-TCR/)
 - [CEDAR](https://cedar.iedb.org/home_v3.php)
+- [ITRAP](https://github.com/mnielLab/ITRAP_benchmark/blob/main/raw.csv) (data filtered from [10X Genomics Dataset](https://www.10xgenomics.com/library/a14cde))
 - [TRAIT](https://pgx.zju.edu.cn/traitdb/)
 - [TCR3d](https://tcr3d.ibbr.umd.edu/)
 - [NeoTCR](https://github.com/lyotvincent/NeoTCR?tab=readme-ov-file)

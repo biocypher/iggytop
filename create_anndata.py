@@ -9,6 +9,7 @@ from scirpy.pp import index_chains
 
 from iggytop.adapters.cedar_adapter import CEDARAdapter
 from iggytop.adapters.iedb_adapter import IEDBAdapter
+from iggytop.adapters.itrap_adapter import ITRAPAdapter
 from iggytop.adapters.mcpas_adapter import MCPASAdapter
 from iggytop.adapters.neotcr_adapter import NEOTCRAdapter
 from iggytop.adapters.tcr3d_adapter import TCR3DAdapter
@@ -24,7 +25,7 @@ receptors_to_include = ["TCR", "BCR"]
 cache_dir = platformdirs.user_cache_dir("iggytop_airr") #cachedir must be a string (biocypher requirement)
 os.makedirs(cache_dir, exist_ok=True)
 
-adapters_to_include = ["VDJDB", "MCPAS", "IEDB", "TCR3D", "NEOTCR", "CEDAR", "TRAIT"]
+adapters_to_include = ["ITRAP","VDJDB", "MCPAS", "IEDB", "TCR3D", "NEOTCR", "CEDAR", "TRAIT"]
 
 test_mode = False
 output_format = "airr"  # doesnt matter here
@@ -94,6 +95,7 @@ adapter_classes = {
     "VDJDB": VDJDBAdapter,
     "MCPAS": MCPASAdapter,
     "TRAIT": TRAITAdapter,
+    "ITRAP": ITRAPAdapter,
     "IEDB": IEDBAdapter,
     "TCR3D": TCR3DAdapter,
     "NEOTCR": NEOTCRAdapter,

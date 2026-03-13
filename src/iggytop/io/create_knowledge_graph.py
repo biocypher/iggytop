@@ -15,6 +15,7 @@ from iggytop.adapters.iedb_adapter import IEDBAdapter
 from iggytop.adapters.mcpas_adapter import MCPASAdapter
 from iggytop.adapters.neotcr_adapter import NEOTCRAdapter
 from iggytop.adapters.tcr3d_adapter import TCR3DAdapter
+from iggytop.adapters.itrap_adapter import ITRAPAdapter
 from iggytop.adapters.trait_adapter import TRAITAdapter
 from iggytop.adapters.utils import _set_up_schema, save_airr_cells_json, _set_up_config
 from iggytop.adapters.vdjdb_adapter import VDJDBAdapter
@@ -26,7 +27,7 @@ def create_knowledge_graph(
     cache_dir: str = platformdirs.user_cache_dir("iggytop"),
     test_mode: bool = False,
     receptors_to_include: Optional[List[str]] = ["TCR", "BCR"],
-    adapters_to_include: Optional[List[str]] = ["VDJDB", "MCPAS", "TRAIT", "IEDB", "TCR3D", "NEOTCR", "CEDAR"],
+    adapters_to_include: Optional[List[str]] = ["VDJDB", "MCPAS", "TRAIT", "IEDB", "TCR3D", "NEOTCR", "CEDAR", "ITRAP"],
     output_format: str | None = None,
 ):
     """
@@ -39,7 +40,7 @@ def create_knowledge_graph(
                              Available receptor types: ["TCR", "BCR"].
                              Defaults to including both TCR and BCR.
         adapters_to_include (List[str], optional): List of adapter names to run.
-                             Available adapters: ["VDJDB", "MCPAS", "TRAIT", "IEDB", "TCR3D", "NEOTCR", "CEDAR"].
+                             Available adapters: ["VDJDB", "MCPAS", "TRAIT", "IEDB", "TCR3D", "NEOTCR", "CEDAR", "ITRAP"].
                              Defaults to providing all available adapters.
         output_format (str, optional): Output format, currently either 'airr','neo4j' or 'networkx'
     """
@@ -58,6 +59,7 @@ def create_knowledge_graph(
         "TRAIT": TRAITAdapter,
         "IEDB": IEDBAdapter,
         "TCR3D": TCR3DAdapter,
+        "ITRAP": ITRAPAdapter,
         "NEOTCR": NEOTCRAdapter,
         "CEDAR": CEDARAdapter,
     }
