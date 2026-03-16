@@ -160,12 +160,6 @@ class BaseAdapter(ABC):
                         resolved_org = c1_org if len(str(c1_org)) > len(str(c2_org)) else c2_org
                     else:
                         resolved_org = f"{c1_org} X {c2_org}"  # Transgenic or ambiguous case, keep both organisms in the string for now
-                # Map common organism names to scientific names
-                organism_mapping = {
-                    "Mouse": "Mus musculus",
-                    "Human": "Homo sapiens"
-                }
-                resolved_org = organism_mapping.get(resolved_org, resolved_org)
                 if not pd.isnull(resolved_org):
                     cell["source_organism"] = resolved_org
 

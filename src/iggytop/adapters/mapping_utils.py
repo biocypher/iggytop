@@ -40,6 +40,8 @@ def map_species_terms(terms: list[str], zooma: bool = False) -> dict:
         "SARS-CoV": "Severe acute respiratory syndrome coronavirus",
         "SIV": "Simian immunodeficiency virus",
         "YFV": "Yellow fever virus",
+        "Mouse": "Mus musculus",
+        "Human": "Homo sapiens",
     }
 
     def normalize_species(term: str) -> str:
