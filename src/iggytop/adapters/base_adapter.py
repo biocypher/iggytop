@@ -12,6 +12,7 @@ from scirpy.io._datastructures import AirrCell
 from scirpy.io._convert_anndata import from_airr_cells
 from scirpy.pp import index_chains
 from .constants import REGISTRY_KEYS
+from .utils import get_file_checksum
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -55,9 +56,53 @@ class BaseAdapter(ABC):
         self._test = test       
         self._cache_dir = cache_dir
         self._receptors = list(set(receptors_to_include) & set(self.available_receptors))
+        self.metadata = {
+            "db_name": self.DB_NAME,
+            "version": "latest",
+            "download_date": datetime.now().isoformat(),
+            "source_url": None,
+            "checksum": None,
+            "has_changed": False,
+        }
         self._table_path = self.get_latest_release(bc)
+
+        # Handle both single paths and tuples (e.g., IEDB returns TCR/BCR pair)
+        paths_to_check = [self._table_path] if isinstance(self._table_path, (str, Path)) else list(self._table_path)
+        checksums = []
+        mtimes = []
+        if paths_to_check:
+            for p in paths_to_check:
+                if p and os.path.exists(str(p)):
+                    checksums.append(get_file_checksum(str(p)))
+                    mtimes.append(os.path.getmtime(str(p)))
+        
+        if checksums:
+            self.metadata["checksum"] = checksums[0] if len(checksums) == 1 else checksums
+
+        if mtimes:
+            # Use the latest mtime if multiple files (cached files keep their original mtime)
+            latest_mtime = max(mtimes)
+            self.metadata["download_date"] = datetime.fromtimestamp(latest_mtime).isoformat()
+
         self._table: pd.DataFrame | None = None
         self._airr_cells: list[AirrCell] | None = None
+
+
+    def set_metadata(self, version: str = None, source_url: str = None, previous_version: str = None):
+        """
+        Sets the metadata for the adapter.
+
+        Args:
+            version (str, optional): The version of the database. Defaults to None.
+            source_url (str, optional): The URL of the source. Defaults to None.
+            previous_version (str, optional): The version of the database in the previous release. Defaults to None.
+        """
+        if version:
+            self.metadata["version"] = version
+        if source_url:
+            self.metadata["source_url"] = source_url
+        if previous_version is not None and version is not None:
+            self.metadata["has_changed"] = version != previous_version
 
 
     @property

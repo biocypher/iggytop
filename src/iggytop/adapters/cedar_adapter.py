@@ -34,6 +34,7 @@ class CEDARAdapter(BaseAdapter):
     """Receptor types available in CEDAR."""
 
     def get_latest_release(self, bc: BioCypher) -> str:
+        self.set_metadata(source_url=self.DB_URL)
         # Download CEDAR
         cedar_resource = FileDownload(
             name=self.DB_DIR,

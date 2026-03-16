@@ -38,6 +38,7 @@ class IEDBAdapter(BaseAdapter):
     
     def get_latest_release(self, bc: BioCypher) -> tuple[str, str]:
         # Create cache directory manually
+        self.set_metadata(version="v3", source_url=self.DB_URL)
 
         zip_file_path = self.cache_dir / "iedb_latest/receptor_full_v3.zip"
         extracted_dir = self.cache_dir / "iedb_latest/receptor_full_v3_extracted"

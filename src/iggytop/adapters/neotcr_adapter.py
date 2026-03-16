@@ -21,6 +21,7 @@ class NEOTCRAdapter(BaseAdapter):
     """Receptor types available in NeoTCR."""
     
     def get_latest_release(self, bc: BioCypher) -> str:
+        self.set_metadata(source_url=self.RAW_URL)
         # Download NEOTCR
         neotcr_resource = FileDownload(
             name=self.DB_DIR,

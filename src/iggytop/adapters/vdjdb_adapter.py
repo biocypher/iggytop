@@ -74,10 +74,13 @@ class VDJDBAdapter(BaseAdapter):
         response.raise_for_status()
         
         release_data = response.json()
+        version_tag = release_data.get("tag_name", "latest")
         if not release_data.get("assets"):
             raise FileNotFoundError(f"No assets found in latest release for {self.REPO_NAME}")
         
         db_url = release_data["assets"][0]["browser_download_url"]
+
+        self.set_metadata(version=version_tag, source_url=db_url)
 
         vdjdb_resource = FileDownload(
             name=self.DB_DIR,

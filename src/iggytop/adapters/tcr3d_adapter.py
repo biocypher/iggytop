@@ -24,6 +24,7 @@ class TCR3DAdapter(BaseAdapter):
     """Receptor types available in TCR3D."""
     
     def get_latest_release(self, bc: BioCypher) -> str:
+        self.set_metadata(source_url=self.DB_URL)
         tcr3d_resource = FileDownload(
             name=self.DB_DIR,
             url_s=self.DB_URL,

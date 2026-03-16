@@ -1,6 +1,7 @@
 from biocypher import BioCypher
 from pathlib import Path
 import os
+from datetime import datetime
 import platformdirs
 import pandas as pd
 import anndata as ad
@@ -14,8 +15,15 @@ from iggytop.adapters.mcpas_adapter import MCPASAdapter
 from iggytop.adapters.neotcr_adapter import NEOTCRAdapter
 from iggytop.adapters.tcr3d_adapter import TCR3DAdapter
 from iggytop.adapters.trait_adapter import TRAITAdapter
+
 from iggytop.adapters.vdjdb_adapter import VDJDBAdapter
-from iggytop.adapters.utils import _set_up_config, _set_up_schema, save_airr_cells_json
+from iggytop.adapters.utils import (
+    _set_up_config,
+    _set_up_schema,
+    get_previous_release_metadata,
+    save_airr_cells_json,
+    deduplicate_and_aggregate,
+)
 
 
 merge = True  # whether to merge all datasets into a single AnnData
@@ -30,58 +38,6 @@ adapters_to_include = ["ITRAP","VDJDB", "MCPAS", "IEDB", "TCR3D", "NEOTCR", "CED
 test_mode = False
 output_format = "airr"  # doesnt matter here
 
-
-def aggregate_unique_joined(series, separator='|'):
-    """
-    Helper function to aggregate unique values into a joined string.
-    Warns if string 'nan' are found.
-    """ 
-    values = set()
-    for v in series:
-        if pd.isna(v) or str(v).lower() == 'nan':
-            continue
-            
-        s_v = str(v).strip()  
-        if s_v:
-            values.update([s_v])
-    if len(values) == 0:
-        values.update(['nan'])
-    return separator.join(sorted(values))
-
-
-def deduplicate_and_aggregate(adata, subset_cols, agg_cols, separator='|'):
-    """
-    Deduplicates AnnData based on subset_cols and aggregates values in agg_cols.
-    Uses scirpy airr_context to access TCR-specific columns if needed.
-    """
-    with ir.get.airr_context(adata, ["v_call", "junction_aa"], chain=["VJ_1", "VDJ_1"]) as m:
-        obs_df = m.obs.copy()
-        
-        # Verify columns exist
-        for col in subset_cols + agg_cols:
-            if col not in obs_df.columns:
-                raise KeyError(f"Column '{col}' not found in AnnData observations.")
-
-        # Define aggregation map
-        agg_map = {col: (lambda s, sep=separator: aggregate_unique_joined(s, sep)) for col in agg_cols}
-        
-        # Group and aggregate
-        # observed=True is used to avoid 'Product space too large' errors
-        aggs = obs_df.groupby(subset_cols, observed=True, dropna=False, sort=False).agg(agg_map).reset_index()
-        
-        # Identify first occurrences to keep as base records
-        # Use the same placeholder logic for duplication identification
-        is_first = ~obs_df.duplicated(subset=subset_cols)
-
-        # Map aggregated info back to the deduplicated AnnData
-        first_entries_keys = obs_df.loc[is_first, subset_cols].reset_index()
-        final_info = first_entries_keys.merge(aggs, on=subset_cols, how='left')
-
-    deduplicated_adata = adata[is_first, :].copy()
-    for col in agg_cols:
-        deduplicated_adata.obs[col] = final_info[col].values
-        
-    return deduplicated_adata
 
 config_path = _set_up_config(output_format, cache_dir)
 schema_config_path = _set_up_schema(cache_dir)
@@ -110,11 +66,27 @@ selected_adapters = [
 ]
 selected_adapters = [a for a in selected_adapters if any(receptor in receptors_to_include for receptor in a.available_receptors)]
 
+# Fetch previous release metadata for change detection
+prev_metadata = get_previous_release_metadata() or {}
+prev_sources = prev_metadata.get("sources", {})
+
+global_metadata = {
+    "iggytop_version": "latest", # Could be fetched from bumpversion or package
+    "release_date": datetime.now().isoformat(),
+    "sources": {}
+}
+
 for AdapterClass in selected_adapters:
     adapter = AdapterClass(bc, cache_dir, receptors_to_include, test_mode)
+    
+    # Update adapter metadata with change information
+    prev_source_version = prev_sources.get(adapter.DB_NAME, {}).get("version")
+    adapter.set_metadata(previous_version=prev_source_version)
+    global_metadata["sources"][adapter.DB_NAME] = adapter.metadata
+
     adapter.create_anndata()
     if save_airr_json:
-        save_airr_cells_json(adapter.airr_cells, directory=cache_dir, filename=f"{adapter.DB_NAME}_airr_cells")
+        save_airr_cells_json(adapter.airr_cells, directory=cache_dir, filename=f"{adapter.DB_NAME}_airr_cells", metadata=adapter.metadata)
 
 cache_dir = Path(cache_dir)
 
@@ -176,16 +148,20 @@ if merge:
             raise
 
         print(f"Number of entries after deduplication: {deduplicated_adata.n_obs}")
-        index_chains(deduplicated_adata)    
+        index_chains(deduplicated_adata)
+        
+        # Store metadata in AnnData
+        deduplicated_adata.uns["iggytop_metadata"] = global_metadata
+        
         deduplicated_adata.write_h5ad(cache_dir / "deduplicated_anndata.h5ad")
-        print(f"Merged AnnData saved to {cache_dir / 'deduplicated_anndata.h5ad'}")
+        print(f"Deduplicated AnnData saved to {cache_dir / 'deduplicated_anndata.h5ad'}")
 
     # Optional: Export to AIRR JSON format
     if save_airr_json:
         merged_airr_list = ir.io.to_airr_cells(merged_adata)
-        save_airr_cells_json(merged_airr_list, directory=cache_dir, filename="merged_airr_cells")
+        save_airr_cells_json(merged_airr_list, directory=cache_dir, filename="merged_airr_cells", metadata=global_metadata)
         if deduplicate:
             deduplicated_airr_list = ir.io.to_airr_cells(deduplicated_adata)
-            save_airr_cells_json(deduplicated_airr_list, directory=cache_dir, filename="deduplicated_airr_cells")
+            save_airr_cells_json(deduplicated_airr_list, directory=cache_dir, filename="deduplicated_airr_cells", metadata=global_metadata)
 
 
