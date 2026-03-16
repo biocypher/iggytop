@@ -1,0 +1,87 @@
+name: Bimonthly Data Release
+
+on:
+  schedule:
+    - cron: '0 0 1 */2 *' # 1st day of every 2nd month
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  test_and_release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install . pytest pytest-mock
+
+      - name: Run tests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pytest tests/
+
+      - name: Run ingestion (AnnData & AIRR JSON)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python create_anndata.py --merge --deduplicate --save-airr-json
+
+      - name: Generate Release Notes Table
+        id: release_notes
+        shell: python
+        run: |
+          import json
+          import gzip
+          import os
+
+          # Find the latest deduplicated JSON output
+          metadata = {}
+          for f in os.listdir("cache"):
+              if f.startswith("deduplicated_airr_cells") and f.endswith(".json.gz"):
+                  with gzip.open(os.path.join("cache", f), "rt") as gz:
+                      data = json.load(gz)
+                      metadata = data.get("metadata", {})
+                      break
+          
+          if not metadata:
+              print("No metadata found.")
+              exit(1)
+
+          # Generate Markdown Table
+          table = "| Data Source | Version | Changed | Checksum (SHA256) |\n"
+          table += "| --- | --- | --- | --- |\n"
+          for name, info in metadata.get("sources", {}).items():
+              changed_str = "⚠️ YES" if info.get("has_changed") else "No"
+              table += f"| {name} | {info.get('version', 'N/A')} | {changed_str} | `{info.get('checksum', 'N/A')[:10]}...` |\n"
+          
+          with open("RELEASE_NOTES.md", "w") as f:
+              f.write("### Data Source Information\n\n")
+              f.write(table)
+          
+          # Also save metadata as standalone JSON for future comparisons
+          with open("metadata.json", "w") as f:
+              json.dump(metadata, f, indent=4)
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: data-${{ github.event.schedule && format('{0}', github.event.repository.updated_at) || format('{0}', github.run_id) }}
+          name: Data Release ${{ github.run_id }}
+          body_path: RELEASE_NOTES.md
+          files: |
+            cache/deduplicated_anndata.h5ad
+            cache/deduplicated_airr_cells*.json.gz
+            metadata.json
+          draft: true
+          prerelease: true
