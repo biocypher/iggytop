@@ -7,10 +7,12 @@ import os
 import re
 import yaml
 import importlib.resources
+import requests
 from datetime import datetime
 from typing import List
 
 import pandas as pd
+import scirpy as ir
 from biocypher import APIRequest, BioCypher
 from scirpy.io._datastructures import AirrCell
 
@@ -53,6 +55,17 @@ def _set_up_schema(cache_dir):
             cache_schema_file.write(schema_file.read())
 
     return schema_config_path
+
+def get_file_checksum(file_path: str) -> str:
+    """Calculates the SHA256 checksum of a file."""
+    if not os.path.exists(file_path):
+        return None
+    sha256_hash = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        for byte_block in iter(lambda: f.read(4096), b""):
+            sha256_hash.update(byte_block)
+    return sha256_hash.hexdigest()
+
 
 def _is_valid_peptide_sequence(seq: str) -> bool:
     """Checks if a given sequence is a valid peptide sequence."""
@@ -521,13 +534,15 @@ def _get_reference_data(bc: BioCypher, reference_ids: list[int], base_url: str) 
         return []
 
 
-def save_airr_cells_json(airrcells: List[AirrCell], directory: str, filename: str = None) -> None:
+def save_airr_cells_json(airrcells: List[AirrCell], directory: str, filename: str = None, metadata: dict = None) -> None:
     """
     Save a list of AirrCell objects to a compressed JSON file with auto-generated filename.
 
     Args:
         airrcells (List[AirrCell]): List of AirrCell objects to save.
         directory (str): Directory path where to save the JSON file (e.g., "../data").
+        filename (str, optional): Filename without extension.
+        metadata (dict, optional): Metadata to include in the JSON file.
     """
     serialized_data = []
 
@@ -538,8 +553,15 @@ def save_airr_cells_json(airrcells: List[AirrCell], directory: str, filename: st
         }
         serialized_data.append(cell_data)
 
+    output_data = serialized_data
+    if metadata:
+        output_data = {
+            "metadata": metadata,
+            "cells": serialized_data
+        }
+
     # Generate filename with current date
-    current_date = datetime.now().strftime("%d%m%Y%H%M%S")  # Format: DDMMYYYY
+    current_date = datetime.now().strftime("%Y%m%d%H%M%S")  # Format: YYYYMMDDHHMMSS
     if filename:
         filename = f"{filename}.json.gz"
     else:
@@ -553,9 +575,39 @@ def save_airr_cells_json(airrcells: List[AirrCell], directory: str, filename: st
 
     # Save as compressed JSON
     with gzip.open(filepath, "wt", encoding="utf-8") as f:
-        json.dump(serialized_data, f, indent=2, ensure_ascii=False)
+        json.dump(output_data, f, indent=2, ensure_ascii=False)
 
     getLogger("biocypher").info(f"Compressed JSON saved to: {filepath}")
+
+
+def get_previous_release_metadata(repo_name: str = "iggytop/iggytop") -> dict | None:
+    """
+    Fetches metadata from the latest GitHub release of iggytop.
+    """
+    api_url = f"https://api.github.com/repos/{repo_name}/releases/latest"
+    headers = {
+        "Accept": "application/vnd.github.v3+json",
+        "User-Agent": "iggytop-metadata-fetcher"
+    }
+    github_token = os.getenv("GITHUB_TOKEN")
+    if github_token:
+        headers["Authorization"] = f"token {github_token}"
+    
+    try:
+        response = requests.get(api_url, headers=headers, timeout=10)
+        if response.status_code == 200:
+            release_data = response.json()
+            # Try to find a metadata asset or parse it from the release body/assets
+            # For now, we'll look for a specific 'metadata.json' asset if it exists
+            for asset in release_data.get("assets", []):
+                if asset["name"] == "metadata.json":
+                    meta_url = asset["browser_download_url"]
+                    meta_res = requests.get(meta_url, timeout=10)
+                    if meta_res.status_code == 200:
+                        return meta_res.json()
+    except Exception:
+        pass
+    return None
 
 
 def save_airr_cells_csv(airr_cells: List, directory: str) -> None:
@@ -629,4 +681,57 @@ def save_airr_cells_csv(airr_cells: List, directory: str) -> None:
 
     getLogger("biocypher").info(f"Compressed CSV saved to: {filepath}")
     getLogger("biocypher").info(f"Shape: {df.shape}")
+
+
+def aggregate_unique_joined(series, separator='|'):
+    """
+    Helper function to aggregate unique values into a joined string.
+    Warns if string 'nan' are found.
+    """
+    values = set()
+    for v in series:
+        if pd.isna(v) or str(v).lower() == 'nan':
+            continue
+
+        s_v = str(v).strip()
+        if s_v:
+            values.update([s_v])
+    if len(values) == 0:
+        values.update(['nan'])
+    return separator.join(sorted(values))
+
+
+def deduplicate_and_aggregate(adata, subset_cols, agg_cols, separator='|'):
+    """
+    Deduplicates AnnData based on subset_cols and aggregates values in agg_cols.
+    Uses scirpy airr_context to access TCR-specific columns if needed.
+    """
+    with ir.get.airr_context(adata, ["v_call", "junction_aa"], chain=["VJ_1", "VDJ_1"]) as m:
+        obs_df = m.obs.copy()
+
+        # Verify columns exist
+        for col in subset_cols + agg_cols:
+            if col not in obs_df.columns:
+                raise KeyError(f"Column '{col}' not found in AnnData observations.")
+
+        # Define aggregation map
+        agg_map = {col: (lambda s, sep=separator: aggregate_unique_joined(s, sep)) for col in agg_cols}
+
+        # Group and aggregate
+        # observed=True is used to avoid 'Product space too large' errors
+        aggs = obs_df.groupby(subset_cols, observed=True, dropna=False, sort=False).agg(agg_map).reset_index()
+
+        # Identify first occurrences to keep as base records
+        # Use the same placeholder logic for duplication identification
+        is_first = ~obs_df.duplicated(subset=subset_cols)
+
+        # Map aggregated info back to the deduplicated AnnData
+        first_entries_keys = obs_df.loc[is_first, subset_cols].reset_index()
+        final_info = first_entries_keys.merge(aggs, on=subset_cols, how='left')
+
+    deduplicated_adata = adata[is_first, :].copy()
+    for col in agg_cols:
+        deduplicated_adata.obs[col] = final_info[col].values
+
+    return deduplicated_adata
 

@@ -113,7 +113,30 @@ uv run python3 -m http.server --directory docs/build 8000
 
 You can then access the documentation in your browser at `http://localhost:8000`.
 
-Note for docstrings: The Sphinx's autodoc and napoleon extensions expect reStructuredText (reST) format by default, laso make sure to use Google-style headers (Args:, Returns:, Raises:).
+## Testing and CI/CD
+
+IggyTop uses GitHub Actions to automate **bimonthly data releases** and ensure data integrity through continuous integration.
+
+### Bimonthly Data Releases
+- **First Scheduled Run**: The pipeline is configured to run on the **1st day of every 2nd month**. The first automated run will occur on **May 1, 2026**.
+- **Relase Artifacts**:
+    - `deduplicated_anndata.h5ad`: Harmonized dataset for [Scirpy](https://scirpy.scverse.org/).
+    - `deduplicated_airr_cells.json.gz`: Standardized AIRR JSON export.
+    - `metadata.json`: Source versions, download dates, and SHA-256 checksums.
+
+### Automated Testing
+Before any data is released, the CI pipeline runs a validation suite to catch breaking changes in upstream databases (e.g., changes in VDJDB or IEDB formatting).
+
+**How to run tests locally:**
+```bash
+uv run pytest tests/
+```
+
+### Metadata & Verification
+Each release contains a `metadata.json` file. This metadata is also embedded within the data files:
+- **AnnData**: Access via `adata.uns["iggytop_metadata"]`.
+- **JSON**: Found in the top-level `"metadata"` key of the `.json.gz` file.
+The metadata includes a `has_changed` flag (⚠️) for each source, which compares the currently downloaded version with the version from the previous GitHub release.
 
 ## 🐳 Docker
 
