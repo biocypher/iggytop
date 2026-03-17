@@ -700,7 +700,6 @@ def aggregate_unique_joined(series, separator='|'):
         values.update(['nan'])
     return separator.join(sorted(values))
 
-
 def deduplicate_and_aggregate(adata, subset_cols, agg_cols, separator='|'):
     """
     Deduplicates AnnData based on subset_cols and aggregates values in agg_cols.
@@ -714,6 +713,11 @@ def deduplicate_and_aggregate(adata, subset_cols, agg_cols, separator='|'):
             if col not in obs_df.columns:
                 raise KeyError(f"Column '{col}' not found in AnnData observations.")
 
+        # Identify first occurrences based on subset_cols
+        # Use drop_duplicates to find indices of records to keep
+        # This is more robust than ~duplicated() when dealing with AIRR context/different views
+        keep_indices = obs_df.reset_index().drop_duplicates(subset=subset_cols).set_index('cell_id').index
+
         # Define aggregation map
         agg_map = {col: (lambda s, sep=separator: aggregate_unique_joined(s, sep)) for col in agg_cols}
 
@@ -721,17 +725,18 @@ def deduplicate_and_aggregate(adata, subset_cols, agg_cols, separator='|'):
         # observed=True is used to avoid 'Product space too large' errors
         aggs = obs_df.groupby(subset_cols, observed=True, dropna=False, sort=False).agg(agg_map).reset_index()
 
-        # Identify first occurrences to keep as base records
-        # Use the same placeholder logic for duplication identification
-        is_first = ~obs_df.duplicated(subset=subset_cols)
-
         # Map aggregated info back to the deduplicated AnnData
-        first_entries_keys = obs_df.loc[is_first, subset_cols].reset_index()
+        first_entries_keys = obs_df.loc[keep_indices, subset_cols].reset_index()
         final_info = first_entries_keys.merge(aggs, on=subset_cols, how='left')
 
-    deduplicated_adata = adata[is_first, :].copy()
+    # Slice original AnnData using the identified indices
+    deduplicated_adata = adata[keep_indices, :].copy()
+    
+    # Update aggregated columns
+    # Ensure index alignment
+    final_info.set_index('cell_id', inplace=True)
     for col in agg_cols:
-        deduplicated_adata.obs[col] = final_info[col].values
+        deduplicated_adata.obs[col] = final_info.loc[deduplicated_adata.obs.index, col]
 
     return deduplicated_adata
 

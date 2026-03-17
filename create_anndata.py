@@ -28,6 +28,7 @@ from iggytop.adapters.utils import (
 
 merge = True  # whether to merge all datasets into a single AnnData
 deduplicate = True  # whether to deduplicate the merged AnnData, set unique id's below
+save_single_adapter_data = False  # whether to save individual AnnData files for each adapter (in addition to the merged version)
 save_airr_json = True  # whether to save the merged and deduplicated AnnData as AIRR JSON
 receptors_to_include = ["TCR", "BCR"]
 cache_dir = platformdirs.user_cache_dir("iggytop_airr") #cachedir must be a string (biocypher requirement)
@@ -85,7 +86,7 @@ for AdapterClass in selected_adapters:
     global_metadata["sources"][adapter.DB_NAME] = adapter.metadata
 
     adapter.create_anndata()
-    if save_airr_json:
+    if save_airr_json and save_single_adapter_data:
         save_airr_cells_json(adapter.airr_cells, directory=cache_dir, filename=f"{adapter.DB_NAME}_airr_cells", metadata=adapter.metadata)
 
 cache_dir = Path(cache_dir)
@@ -138,7 +139,7 @@ if merge:
     
     if deduplicate:
         # Deduplicate and aggregate specific attributes
-        subset_cols = ['VJ_1_junction_aa', 'VJ_1_v_call', 'VDJ_1_v_call', 'VDJ_1_junction_aa', 'iedb_iri']
+        subset_cols = ['VJ_1_junction_aa', 'VJ_1_v_call', 'VDJ_1_v_call', 'VDJ_1_junction_aa', 'epitope_sequence'] #epitope IRI can be ambiguous
         agg_cols = ['PMID', 'source']
         
         try:
