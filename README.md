@@ -13,7 +13,7 @@ BioCypher is designed to facilitate the standardized integration of heterogeneou
 - [VDJdb](https://github.com/antigenomics/vdjdb-db)
 - [McPAS-TCR](https://friedmanlab.weizmann.ac.il/McPAS-TCR/)
 - [CEDAR](https://cedar.iedb.org/home_v3.php)
-- [ITRAP](https://github.com/mnielLab/ITRAP_benchmark/blob/main/raw.csv) (data filtered from [10X Genomics Dataset](https://www.10xgenomics.com/library/a14cde))
+- [ITRAP](https://github.com/mnielLab/ITRAP_benchmark/blob/main/ITRAP.csv) (data filtered from [10X Genomics Dataset](https://www.10xgenomics.com/library/a14cde))
 - [TRAIT](https://pgx.zju.edu.cn/traitdb/)
 - [TCR3d](https://tcr3d.ibbr.umd.edu/)
 - [NeoTCR](https://github.com/lyotvincent/NeoTCR?tab=readme-ov-file)
@@ -118,19 +118,33 @@ You can then access the documentation in your browser at `http://localhost:8000`
 IggyTop uses GitHub Actions to automate **bimonthly data releases** and ensure data integrity through continuous integration.
 
 ### Bimonthly Data Releases
-- **First Scheduled Run**: The pipeline is configured to run on the **1st day of every 2nd month**. The first automated run will occur on **May 1, 2026**.
-- **Relase Artifacts**:
+- **Frequency**: Automated releases on the **1st day of every 2nd month**. (first scheduled on **May 1,2026**)
+- **Release Assets**:
     - `deduplicated_anndata.h5ad`: Harmonized dataset for [Scirpy](https://scirpy.scverse.org/).
     - `deduplicated_airr_cells.json.gz`: Standardized AIRR JSON export.
-    - `metadata.json`: Source versions, download dates, and SHA-256 checksums.
+    - `metadata.json`: Source versions, download dates, SHA-256 checksums, and change indicators.
+    - `RELEASE_NOTES.md`: A human-readable record of data source changes.
 
 ### Automated Testing
-Before any data is released, the CI pipeline runs a validation suite to catch breaking changes in upstream databases (e.g., changes in VDJDB or IEDB formatting).
+Before any data is released, the CI pipeline runs a validation suite to catch breaking changes in upstream databases.
 
 **How to run tests locally:**
 ```bash
 uv run pytest tests/
 ```
+
+### Local Dev Workflows (using `act`)
+To simulate the data release pipeline locally without pushing to GitHub, you can use **[act](https://github.com/nektos/act)**. Ensure you have Docker and `act` installed, then run:
+
+```bash
+# Create local artifact folder
+mkdir -p ./act-artifacts
+
+# Run the release workflow and export outputs
+act workflow_dispatch -W .github/workflows/data_release.yml --artifact-server-path ./act-artifacts
+```
+
+The resulting datasets and logs will be exported to the `./act-artifacts` directory.
 
 ### Metadata & Verification
 Each release contains a `metadata.json` file. This metadata is also embedded within the data files:
