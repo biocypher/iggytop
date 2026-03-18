@@ -1,5 +1,4 @@
 import pandas as pd
-import re
 
 from biocypher import BioCypher, FileDownload
 from .base_adapter import BaseAdapter
@@ -104,7 +103,7 @@ class ITRAPAdapter(BaseAdapter):
             "AAKGRGAAL": ("Negative Control", "NC"),
         }
 
-        # Split peptide_HLA (e.g., "GILGFVFTL_HLA-A*02:01")
+        # Split peptide_HLA (e.g., "GILGFVFTL HLA-A*02:01")
         # Assuming format is PEPTIDE_HLA
         def split_peptide_hla(val):
             if pd.isna(val) or " " not in val:
@@ -141,7 +140,7 @@ class ITRAPAdapter(BaseAdapter):
         def apply_mapping(peptide):
             if peptide in antigen_mapping:
                 return antigen_mapping[peptide]
-            return (None, None) # Default species to human if not found
+            return (None, None) 
 
         mapped_info = table[REGISTRY_KEYS.EPITOPE_KEY].apply(apply_mapping)
         table[REGISTRY_KEYS.ANTIGEN_KEY] = mapped_info.apply(lambda x: x[0])

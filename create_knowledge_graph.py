@@ -18,7 +18,7 @@ def main():
     create_knowledge_graph(
         cache_dir=args.cache_dir,
         test_mode=args.test_mode,
-        adapters_to_include=["VDJDB", "MCPAS", "IEDB", "TCR3D", "NEOTCR", "CEDAR", "TRAIT"]
+        adapters_to_include=["VDJDB", "MCPAS", "IEDB", "TCR3D", "NEOTCR", "CEDAR", "TRAIT","ITRAP"],
     )
 
 if __name__ == "__main__":
