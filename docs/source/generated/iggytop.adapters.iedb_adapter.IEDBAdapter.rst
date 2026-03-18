@@ -19,6 +19,7 @@
       ~IEDBAdapter.get_latest_release
       ~IEDBAdapter.get_nodes
       ~IEDBAdapter.read_table
+      ~IEDBAdapter.set_metadata
    
    
 
@@ -34,7 +35,11 @@
       ~IEDBAdapter.DB_URL
       ~IEDBAdapter.TCR_FNAME
       ~IEDBAdapter.airr_cells
+      ~IEDBAdapter.available_receptors
       ~IEDBAdapter.cache_dir
+      ~IEDBAdapter.db_name
+      ~IEDBAdapter.metadata
+      ~IEDBAdapter.receptors
       ~IEDBAdapter.table
    
    

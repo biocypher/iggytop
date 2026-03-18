@@ -19,6 +19,7 @@
       ~BaseAdapter.get_latest_release
       ~BaseAdapter.get_nodes
       ~BaseAdapter.read_table
+      ~BaseAdapter.set_metadata
    
    
 
@@ -30,6 +31,11 @@
    
       ~BaseAdapter.airr_cells
       ~BaseAdapter.cache_dir
+      ~BaseAdapter.db_name
+      ~BaseAdapter.metadata
+      ~BaseAdapter.receptors
       ~BaseAdapter.table
+      ~BaseAdapter.DB_NAME
+      ~BaseAdapter.available_receptors
    
    

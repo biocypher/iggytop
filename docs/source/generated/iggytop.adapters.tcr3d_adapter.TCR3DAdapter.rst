@@ -19,6 +19,7 @@
       ~TCR3DAdapter.get_latest_release
       ~TCR3DAdapter.get_nodes
       ~TCR3DAdapter.read_table
+      ~TCR3DAdapter.set_metadata
    
    
 
@@ -32,7 +33,11 @@
       ~TCR3DAdapter.DB_NAME
       ~TCR3DAdapter.DB_URL
       ~TCR3DAdapter.airr_cells
+      ~TCR3DAdapter.available_receptors
       ~TCR3DAdapter.cache_dir
+      ~TCR3DAdapter.db_name
+      ~TCR3DAdapter.metadata
+      ~TCR3DAdapter.receptors
       ~TCR3DAdapter.table
    
    

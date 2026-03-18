@@ -48,6 +48,7 @@ docs = [
     "sphinx-copybutton>=0.5.2",
     "ipykernel>=6.29.5",
     "ipywidgets>=8.1.8",
+    "plotly>=6.6.0",
 ]
 
 [tool.setuptools]

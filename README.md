@@ -176,6 +176,11 @@ uv run create_anndata.py
 
 Note: this is a wip
 
+## Related work:
+If you find a dataset (eg training data for a model) and would like to find the source of the records using the IggyTop dataset, check out [this tool](https://github.com/RaphaelDeGottardi/TCR_source_detection).
+
+This project is built on (and part of) the [BioCypher](https://github.com/biocypher/biocypher) framework. Make sure to check out thsi cool project!
+
 
 ## Contributing
 

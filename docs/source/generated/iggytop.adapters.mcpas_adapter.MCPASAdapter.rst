@@ -19,6 +19,7 @@
       ~MCPASAdapter.get_latest_release
       ~MCPASAdapter.get_nodes
       ~MCPASAdapter.read_table
+      ~MCPASAdapter.set_metadata
    
    
 
@@ -32,7 +33,11 @@
       ~MCPASAdapter.DB_NAME
       ~MCPASAdapter.DB_URL
       ~MCPASAdapter.airr_cells
+      ~MCPASAdapter.available_receptors
       ~MCPASAdapter.cache_dir
+      ~MCPASAdapter.db_name
+      ~MCPASAdapter.metadata
+      ~MCPASAdapter.receptors
       ~MCPASAdapter.table
    
    

@@ -19,6 +19,7 @@
       ~VDJDBAdapter.get_latest_release
       ~VDJDBAdapter.get_nodes
       ~VDJDBAdapter.read_table
+      ~VDJDBAdapter.set_metadata
    
    
 
@@ -33,7 +34,11 @@
       ~VDJDBAdapter.DB_NAME
       ~VDJDBAdapter.REPO_NAME
       ~VDJDBAdapter.airr_cells
+      ~VDJDBAdapter.available_receptors
       ~VDJDBAdapter.cache_dir
+      ~VDJDBAdapter.db_name
+      ~VDJDBAdapter.metadata
+      ~VDJDBAdapter.receptors
       ~VDJDBAdapter.table
    
    

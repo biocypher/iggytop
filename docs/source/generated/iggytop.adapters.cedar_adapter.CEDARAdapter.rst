@@ -19,6 +19,7 @@
       ~CEDARAdapter.get_latest_release
       ~CEDARAdapter.get_nodes
       ~CEDARAdapter.read_table
+      ~CEDARAdapter.set_metadata
    
    
 
@@ -34,7 +35,11 @@
       ~CEDARAdapter.DB_URL
       ~CEDARAdapter.TCR_FNAME
       ~CEDARAdapter.airr_cells
+      ~CEDARAdapter.available_receptors
       ~CEDARAdapter.cache_dir
+      ~CEDARAdapter.db_name
+      ~CEDARAdapter.metadata
+      ~CEDARAdapter.receptors
       ~CEDARAdapter.table
    
    

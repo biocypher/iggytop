@@ -40,6 +40,7 @@ myst_enable_extensions = [
     "html_image",
 ]
 nb_execution_mode = "off"  # Disable notebook execution during build
+nb_remove_code_source = True  # Hide all code cells by default in the rendered output
 
 # Specify the BibTeX file for citations
 bibtex_bibfiles = ['references.bib']
