@@ -50,7 +50,8 @@ def test_deduplication_on_real_data_subset():
     dup_adata.obs['PMID'] = "NEW_PMID"
     
     combined_adata = ad.concat([adata, dup_adata])
-    
+    combined_adata.obs_names_make_unique()  # Ensure unique obs names for the duplicate
+
     subset_cols = ['VJ_1_junction_aa', 'VJ_1_v_call', 'VDJ_1_v_call', 'VDJ_1_junction_aa', 'iedb_iri']
     agg_cols = ['PMID', 'source']
     
@@ -66,4 +67,3 @@ def test_deduplication_on_real_data_subset():
         pmid_val = dedup.obs['PMID'].iloc[i]
         assert "NEW_PMID" in pmid_val
 
-test_deduplication_on_real_data_subset()

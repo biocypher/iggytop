@@ -1,0 +1,37 @@
+name: CI Ingestion Check
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  check-ingestion:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          python-version: '3.11'
+
+      - name: Run tests
+        run: |
+          uv run pytest tests/
+
+      - name: Run AnnData Ingestion (Test Mode)
+        run: |
+          uv run create_anndata.py --test-mode --cache-dir $(mktemp -d)
+
+      - name: Run Knowledge Graph Ingestion (Test Mode)
+        run: |
+          uv run create_knowledge_graph.py --test-mode --cache-dir $(mktemp -d)
+
+      - name: Build documentation
+        run: |
+          uv run --group docs sphinx-build -b html docs/source docs/build
