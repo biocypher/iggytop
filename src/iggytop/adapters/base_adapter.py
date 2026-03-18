@@ -6,7 +6,7 @@ import pandas as pd
 from pathlib import Path
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import cast
+from typing import cast, Any
 from tqdm.auto import tqdm
 from scirpy.io._datastructures import AirrCell
 from scirpy.io._convert_anndata import from_airr_cells
@@ -30,12 +30,18 @@ class BaseAdapter(ABC):
 
     Attributes:
         table (pd.DataFrame): The data table read from the source.
+        DB_NAME (str): Name of the database. Must be defined in subclasses.
+        available_receptors (list[str]): List of receptor types available in the database. Must be defined in subclasses.
     
     Args:
         bc (BioCypher): An instance of the BioCypher class.
         cache_dir (str | None, optional): Directory to cache data. Defaults to None.
         test (bool, optional): Whether to run in test mode. Defaults to False.
     """
+
+    # These should be defined in child classes
+    DB_NAME: str
+    available_receptors: list[str]
 
     def __init__(self, bc: BioCypher, cache_dir: str | None = None, receptors_to_include: list[str] | None = ["TCR", "BCR"], test: bool = False):
         """
@@ -56,7 +62,9 @@ class BaseAdapter(ABC):
         self._test = test       
         self._cache_dir = cache_dir
         self._receptors = list(set(receptors_to_include) & set(self.available_receptors))
-        self.metadata = {
+        self._table: pd.DataFrame | None = None
+        self._airr_cells: list[AirrCell] | None = None
+        self._metadata = {
             "db_name": self.DB_NAME,
             "version": "latest",
             "download_date": datetime.now().isoformat(),
@@ -77,15 +85,12 @@ class BaseAdapter(ABC):
                     mtimes.append(os.path.getmtime(str(p)))
         
         if checksums:
-            self.metadata["checksum"] = checksums[0] if len(checksums) == 1 else checksums
+            self._metadata["checksum"] = checksums[0] if len(checksums) == 1 else checksums
 
         if mtimes:
             # Use the latest mtime if multiple files (cached files keep their original mtime)
             latest_mtime = max(mtimes)
-            self.metadata["download_date"] = datetime.fromtimestamp(latest_mtime).isoformat()
-
-        self._table: pd.DataFrame | None = None
-        self._airr_cells: list[AirrCell] | None = None
+            self._metadata["download_date"] = datetime.fromtimestamp(latest_mtime).isoformat()
 
 
     def set_metadata(self, version: str = None, source_url: str = None, previous_version: str = None):
@@ -98,11 +103,44 @@ class BaseAdapter(ABC):
             previous_version (str, optional): The version of the database in the previous release. Defaults to None.
         """
         if version:
-            self.metadata["version"] = version
+            self._metadata["version"] = version
         if source_url:
-            self.metadata["source_url"] = source_url
+            self._metadata["source_url"] = source_url
         if previous_version is not None and version is not None:
-            self.metadata["has_changed"] = version != previous_version
+            self._metadata["has_changed"] = version != previous_version
+
+
+    @property
+    def metadata(self) -> dict[str, Any]:
+        """
+        Property to get the adapter metadata.
+
+        Returns:
+            dict[str, Any]: The metadata dictionary.
+        """
+        return self._metadata
+
+
+    @property
+    def db_name(self) -> str:
+        """
+        Property to get the database name.
+
+        Returns:
+            str: The database name.
+        """
+        return self.DB_NAME
+
+
+    @property
+    def receptors(self) -> list[str]:
+        """
+        Property to get the available receptor types.
+
+        Returns:
+            list[str]: List of receptor types.
+        """
+        return self.available_receptors
 
 
     @property

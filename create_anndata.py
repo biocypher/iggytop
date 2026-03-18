@@ -77,30 +77,32 @@ global_metadata = {
     "sources": {}
 }
 
+adapters = []
 for AdapterClass in selected_adapters:
     adapter = AdapterClass(bc, cache_dir, receptors_to_include, test_mode)
+    adapters.append(adapter)
     
     # Update adapter metadata with change information
-    prev_source_version = prev_sources.get(adapter.DB_NAME, {}).get("version")
+    prev_source_version = prev_sources.get(adapter.db_name, {}).get("version")
     adapter.set_metadata(previous_version=prev_source_version)
-    global_metadata["sources"][adapter.DB_NAME] = adapter.metadata
+    global_metadata["sources"][adapter.db_name] = adapter.metadata
 
     adapter.create_anndata()
     if save_airr_json and save_single_adapter_data:
-        save_airr_cells_json(adapter.airr_cells, directory=cache_dir, filename=f"{adapter.DB_NAME}_airr_cells", metadata=adapter.metadata)
+        save_airr_cells_json(adapter.airr_cells, directory=cache_dir, filename=f"{adapter.db_name}_airr_cells", metadata=adapter.metadata)
 
 cache_dir = Path(cache_dir)
 
 if merge:
     adatas = {}
 
-    for AdapterClass in selected_adapters:
-        db_name = AdapterClass.DB_NAME
-        file_path = cache_dir / ( db_name+"_anndata.h5ad")
+    for adapter in adapters:
+        db_name = adapter.db_name
+        file_path = cache_dir / (db_name + "_anndata.h5ad")
         if os.path.exists(file_path):
-            print(f"Loading { db_name}...")
+            print(f"Loading {db_name}...")
             adatas[db_name] = ad.read_h5ad(file_path)
-            print(f"  Shape: {adatas[ db_name].shape}")
+            print(f"  Shape: {adatas[db_name].shape}")
             print(f"  Columns: {adatas[db_name].obs.columns.tolist()}")
         else:
             print(f"Warning: {db_name} not found in {cache_dir}")
