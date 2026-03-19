@@ -1,14 +1,14 @@
 import pandas as pd
-
 from biocypher import BioCypher, FileDownload
+
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import harmonize_sequences, get_mhc_class
+from .utils import get_mhc_class, harmonize_sequences
 
 
 class ITRAPAdapter(BaseAdapter):
     """BioCypher adapter for the ITRAP benchmark dataset.
-    
+
     Data from: https://github.com/mnielLab/ITRAP_benchmark
     """
 
@@ -127,7 +127,7 @@ class ITRAPAdapter(BaseAdapter):
         }
 
         table = table.rename(columns=rename_cols)
-        
+
         # Add metadata
         table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.TRA_KEY
         table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
@@ -140,7 +140,7 @@ class ITRAPAdapter(BaseAdapter):
         def apply_mapping(peptide):
             if peptide in antigen_mapping:
                 return antigen_mapping[peptide]
-            return (None, None) 
+            return (None, None)
 
         mapped_info = table[REGISTRY_KEYS.EPITOPE_KEY].apply(apply_mapping)
         table[REGISTRY_KEYS.ANTIGEN_KEY] = mapped_info.apply(lambda x: x[0])

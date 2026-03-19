@@ -3,11 +3,11 @@
 
 .. automodule:: iggytop.adapters.utils
 
-   
+
    .. rubric:: Functions
 
    .. autosummary::
-   
+
       aggregate_unique_joined
       deduplicate_and_aggregate
       get_file_checksum
@@ -19,4 +19,3 @@
       harmonize_sequences
       save_airr_cells_csv
       save_airr_cells_json
-   

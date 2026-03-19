@@ -7,7 +7,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_pmids_batch, harmonize_sequences, get_mhc_class
+from .utils import get_mhc_class, get_pmids_batch, harmonize_sequences
 
 logger = logging.getLogger(__name__)
 
@@ -168,22 +168,16 @@ class CEDARAdapter(BaseAdapter):
         table = table[list(rename_cols.values())]
 
         # Extract iedb ID from the url
-        table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = (
-            "iedb:" + table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY].str.extract(r"/epitope/(\d+)$")[0]
-        )
+        table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = "iedb:" + table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY].str.extract(r"/epitope/(\d+)$")[0]
 
         # Preprocesses CDR3 sequences, epitope sequences, and gene names
         table_preprocessed = harmonize_sequences(bc, table)
 
         ref_urls = table_preprocessed[REGISTRY_KEYS.PUBLICATION_KEY].dropna().unique().tolist()
         ref_map = get_pmids_batch(bc, ref_urls)
-        table_preprocessed[REGISTRY_KEYS.PUBLICATION_KEY] = table_preprocessed[REGISTRY_KEYS.PUBLICATION_KEY].replace(
-            ref_map
-        )
+        table_preprocessed[REGISTRY_KEYS.PUBLICATION_KEY] = table_preprocessed[REGISTRY_KEYS.PUBLICATION_KEY].replace(ref_map)
 
-        table_preprocessed[REGISTRY_KEYS.MHC_CLASS_KEY] = table_preprocessed[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(
-            get_mhc_class
-        )
+        table_preprocessed[REGISTRY_KEYS.MHC_CLASS_KEY] = table_preprocessed[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(get_mhc_class)
 
         return table_preprocessed
 

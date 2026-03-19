@@ -3,7 +3,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_mhc_class, harmonize_sequences, get_tissue_source
+from .utils import get_mhc_class, get_tissue_source, harmonize_sequences
 
 
 class NEOTCRAdapter(BaseAdapter):
@@ -19,7 +19,7 @@ class NEOTCRAdapter(BaseAdapter):
     """Directory name for the downloaded database."""
     available_receptors = ["TCR"]
     """Receptor types available in NeoTCR."""
-    
+
     def get_latest_release(self, bc: BioCypher) -> str:
         self.set_metadata(source_url=self.RAW_URL)
         # Download NEOTCR
@@ -34,7 +34,7 @@ class NEOTCRAdapter(BaseAdapter):
 
         if not neotcr_path:
             raise FileNotFoundError(f"Failed to download NEOTCR database from {self.RAW_URL}")
-        
+
         return neotcr_path[0]
 
     def read_table(self, bc: BioCypher, table_path: str, receptors: list[str], test: bool = False) -> pd.DataFrame:
@@ -93,19 +93,13 @@ class NEOTCRAdapter(BaseAdapter):
         table = table.explode(REGISTRY_KEYS.EPITOPE_KEY).reset_index(drop=True)
 
         # Trim Pubmed IDs
-        table[REGISTRY_KEYS.PUBLICATION_KEY] = (
-            table[REGISTRY_KEYS.PUBLICATION_KEY].astype(str).str.replace("PMID:", "").str.strip()
-        )
+        table[REGISTRY_KEYS.PUBLICATION_KEY] = table[REGISTRY_KEYS.PUBLICATION_KEY].astype(str).str.replace("PMID:", "").str.strip()
 
         table_preprocessed = harmonize_sequences(bc, table)
-        table_preprocessed[REGISTRY_KEYS.MHC_CLASS_KEY] = table_preprocessed[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(
-            get_mhc_class
-        )
+        table_preprocessed[REGISTRY_KEYS.MHC_CLASS_KEY] = table_preprocessed[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(get_mhc_class)
 
-        table_preprocessed[REGISTRY_KEYS.TISSUE_KEY] = table_preprocessed[REGISTRY_KEYS.TISSUE_KEY].apply(
-            get_tissue_source
-        )
-        
+        table_preprocessed[REGISTRY_KEYS.TISSUE_KEY] = table_preprocessed[REGISTRY_KEYS.TISSUE_KEY].apply(get_tissue_source)
+
         return table_preprocessed
 
     def get_nodes(self):

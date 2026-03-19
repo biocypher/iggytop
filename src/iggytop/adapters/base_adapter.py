@@ -1,20 +1,21 @@
 from __future__ import annotations
 
-import re
 import os
-import pandas as pd
-from pathlib import Path
+import re
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import cast, Any
-from tqdm.auto import tqdm
-from scirpy.io._datastructures import AirrCell
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, cast
+
+import pandas as pd
 from scirpy.io._convert_anndata import from_airr_cells
+from scirpy.io._datastructures import AirrCell
 from scirpy.pp import index_chains
+from tqdm.auto import tqdm
+
 from .constants import REGISTRY_KEYS
 from .utils import get_file_checksum
 
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from biocypher import BioCypher
 import platformdirs
@@ -32,7 +33,7 @@ class BaseAdapter(ABC):
         table (pd.DataFrame): The data table read from the source.
         DB_NAME (str): Name of the database. Must be defined in subclasses.
         available_receptors (list[str]): List of receptor types available in the database. Must be defined in subclasses.
-    
+
     Args:
         bc (BioCypher): An instance of the BioCypher class.
         cache_dir (str | None, optional): Directory to cache data. Defaults to None.
@@ -43,7 +44,13 @@ class BaseAdapter(ABC):
     DB_NAME: str
     available_receptors: list[str]
 
-    def __init__(self, bc: BioCypher, cache_dir: str | None = None, receptors_to_include: list[str] | None = ["TCR", "BCR"], test: bool = False):
+    def __init__(
+        self,
+        bc: BioCypher,
+        cache_dir: str | None = None,
+        receptors_to_include: list[str] | None = ["TCR", "BCR"],
+        test: bool = False,
+    ):
         """
         Initializes the BaseAdapter instance.
 
@@ -53,13 +60,13 @@ class BaseAdapter(ABC):
             receptors_to_include (list[str], optional): List of receptor types to include. Defaults to ["TCR", "BCR"].
             test (bool, optional): Whether to run in test mode. Defaults to False.
         """
-        
+
         if not hasattr(self.__class__, "DB_NAME"):
             raise TypeError(f"Class {self.__class__.__name__} must define a 'DB_NAME' class attribute.")
         if not hasattr(self.__class__, "available_receptors"):
             raise TypeError(f"Class {self.__class__.__name__} must define an 'available_receptors' class attribute.")
         self._bc = bc
-        self._test = test       
+        self._test = test
         self._cache_dir = cache_dir
         self._receptors = list(set(receptors_to_include) & set(self.available_receptors))
         self._table: pd.DataFrame | None = None
@@ -83,7 +90,7 @@ class BaseAdapter(ABC):
                 if p and os.path.exists(str(p)):
                     checksums.append(get_file_checksum(str(p)))
                     mtimes.append(os.path.getmtime(str(p)))
-        
+
         if checksums:
             self._metadata["checksum"] = checksums[0] if len(checksums) == 1 else checksums
 
@@ -91,7 +98,6 @@ class BaseAdapter(ABC):
             # Use the latest mtime if multiple files (cached files keep their original mtime)
             latest_mtime = max(mtimes)
             self._metadata["download_date"] = datetime.fromtimestamp(latest_mtime).isoformat()
-
 
     def set_metadata(self, version: str = None, source_url: str = None, previous_version: str = None):
         """
@@ -109,7 +115,6 @@ class BaseAdapter(ABC):
         if previous_version is not None and version is not None:
             self._metadata["has_changed"] = version != previous_version
 
-
     @property
     def metadata(self) -> dict[str, Any]:
         """
@@ -119,7 +124,6 @@ class BaseAdapter(ABC):
             dict[str, Any]: The metadata dictionary.
         """
         return self._metadata
-
 
     @property
     def db_name(self) -> str:
@@ -131,7 +135,6 @@ class BaseAdapter(ABC):
         """
         return self.DB_NAME
 
-
     @property
     def receptors(self) -> list[str]:
         """
@@ -141,7 +144,6 @@ class BaseAdapter(ABC):
             list[str]: List of receptor types.
         """
         return self.available_receptors
-
 
     @property
     def table(self) -> pd.DataFrame:
@@ -154,16 +156,19 @@ class BaseAdapter(ABC):
         if self._table is None:
             self._table = self.read_table(self._bc, self._table_path, self._receptors, self._test)
             # Filter out 10X Genomics dataset as it has been criticized for poor confidence.
-            self._table = self._table[~(self._table["PMID"] == "no_pmid_1036521") & ~self._table["PMID"].astype(str).str.contains("https://www.10xgenomics.com", na=False)] 
+            self._table = self._table[
+                ~(self._table["PMID"] == "no_pmid_1036521")
+                & ~self._table["PMID"].astype(str).str.contains("https://www.10xgenomics.com", na=False)
+            ]
 
             # Filter out entries without receptor information (both chains missing) or without epitope information
             self._table = self._table[
-                ~(self._table[REGISTRY_KEYS.CHAIN_1_CDR3_KEY].isna() & self._table[REGISTRY_KEYS.CHAIN_2_CDR3_KEY].isna()) &
-                ~self._table[REGISTRY_KEYS.EPITOPE_KEY].isna()
+                ~(self._table[REGISTRY_KEYS.CHAIN_1_CDR3_KEY].isna() & self._table[REGISTRY_KEYS.CHAIN_2_CDR3_KEY].isna())
+                & ~self._table[REGISTRY_KEYS.EPITOPE_KEY].isna()
             ]
-            
+
         return self._table
-    
+
     @property
     def cache_dir(self) -> str:
         """
@@ -175,8 +180,8 @@ class BaseAdapter(ABC):
         if self._cache_dir is None:
             self._cache_dir = platformdirs.user_cache_dir("iggytop")
             os.makedirs(self._cache_dir, exist_ok=True)
-        return Path(self._cache_dir)  
-    
+        return Path(self._cache_dir)
+
     @property
     def airr_cells(self) -> list[AirrCell] | None:
         """
@@ -189,12 +194,11 @@ class BaseAdapter(ABC):
             self._airr_cells = []
 
             # Using itertuples() for better performance on large DataFrames
-            for row in tqdm( self.table.itertuples(), total=self.table.shape[0], desc=f"Processing {self.DB_NAME} entries"):
-
+            for row in tqdm(self.table.itertuples(), total=self.table.shape[0], desc=f"Processing {self.DB_NAME} entries"):
                 c1_cdr3 = getattr(row, REGISTRY_KEYS.CHAIN_1_CDR3_KEY, None)
                 c2_cdr3 = getattr(row, REGISTRY_KEYS.CHAIN_2_CDR3_KEY, None)
                 if (pd.isnull(c2_cdr3) and pd.isnull(c1_cdr3)) or pd.isnull(getattr(row, "epitope_sequence", None)):
-                    continue # skip entries without chains or without epitope
+                    continue  # skip entries without chains or without epitope
 
                 idx = row.Index
                 cell = AirrCell(cell_id=str(idx))
@@ -250,15 +254,14 @@ class BaseAdapter(ABC):
                     # f is a column name (value from REGISTRY_KEYS)
                     if "chain" in f:
                         continue
-                    
+
                     val = getattr(row, f, None)
                     if val is not None and not pd.isnull(val):
                         cell[f] = val
                 self._airr_cells.append(cell)
 
         return self._airr_cells
-        
-    
+
     @abstractmethod
     def get_latest_release(self, bc: BioCypher) -> str:
         """
@@ -291,8 +294,10 @@ class BaseAdapter(ABC):
     @abstractmethod
     def get_nodes(self):
         """
-        Abstract method to generate BioCypher nodes from the data. 
-        This method is intended to use _generate_nodes_from_table with the right parameters for each edge type. This requires parameters depending on the adapter used.
+        Abstract method to generate BioCypher nodes from the data.
+
+        This method is intended to use _generate_nodes_from_table with the right parameters for each edge type.
+        This requires parameters depending on the adapter used.
 
         Returns:
             Iterable: An iterable of BioCypher nodes.
@@ -303,7 +308,9 @@ class BaseAdapter(ABC):
     def get_edges(self):
         """
         Abstract method to generate BioCypher edges from the data.
-        This method is intended to call _generate_edges_from_table with the right parameters for each edge type. This requires parameters depending on the adapter used.
+
+        This method is intended to call _generate_edges_from_table with the right parameters for each edge type.
+        This requires parameters depending on the adapter used.
 
         Returns:
             Iterable: An iterable of BioCypher edges.
@@ -313,7 +320,7 @@ class BaseAdapter(ABC):
     def create_anndata(self) -> None:
         """
         Creates an Anndata object from the AIRR cell data and saves it to a file in the cache directory.
-        """   
+        """
         adata = from_airr_cells(self.airr_cells)
         index_chains(adata)
 
@@ -374,22 +381,24 @@ class BaseAdapter(ABC):
             # For TCR chains, use sequence + V gene + J gene as the identifier
             if _type.lower() != "epitope":
                 # Get V gene and J gene if available
-                v_gene_key = REGISTRY_KEYS.CHAIN_1_V_GENE_KEY if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in subset_cols else REGISTRY_KEYS.CHAIN_2_V_GENE_KEY
-                
+                v_gene_key = (
+                    REGISTRY_KEYS.CHAIN_1_V_GENE_KEY if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in subset_cols else REGISTRY_KEYS.CHAIN_2_V_GENE_KEY
+                )
+
                 # Check if V gene is available in the row
                 v_gene = getattr(row, v_gene_key, None)
-                
+
                 # Create an ID that includes V and J genes if available
                 id_components = [_type.lower()]
                 id_components.extend([str(getattr(row, col)) for col in unique_cols])
                 if v_gene:
                     id_components.append(str(v_gene))
-                
+
                 _id = ":".join(id_components)
             else:
                 # For epitopes and other types, keep the original ID format
                 _id = ":".join([_type.lower(), *[str(getattr(row, col)) for col in unique_cols]])
-            
+
             _props = {re.sub(r"chain_\d_", "", k): getattr(row, k) for k in property_cols}
 
             yield _id, _type.lower(), _props
@@ -433,19 +442,15 @@ class BaseAdapter(ABC):
         if not isinstance(target_unique_cols, list):
             target_unique_cols = [target_unique_cols]
 
-        subset_table = (
-            self.table[source_subset_cols + target_subset_cols]
-            .dropna(subset=source_unique_cols + target_unique_cols)
-        )
+        subset_table = self.table[source_subset_cols + target_subset_cols].dropna(subset=source_unique_cols + target_unique_cols)
 
         # Using itertuples() for better performance
         for row in subset_table.itertuples(index=False):
-
             node_data = {}
             for i in ["source", "target"]:
                 cols = locals()[f"{i}_subset_cols"]
                 unique_cols_list = locals()[f"{i}_unique_cols"]
-                
+
                 if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in cols:
                     node_type = getattr(row, REGISTRY_KEYS.CHAIN_1_TYPE_KEY)
                     v_gene_key = REGISTRY_KEYS.CHAIN_1_V_GENE_KEY
@@ -464,10 +469,7 @@ class BaseAdapter(ABC):
                     if v_gene:
                         id_components.append(str(v_gene))
 
-                node_data[i] = {
-                    "id": ":".join(id_components),
-                    "type": node_type
-                }
+                node_data[i] = {"id": ":".join(id_components), "type": node_type}
 
             _source_id = node_data["source"]["id"]
             _target_id = node_data["target"]["id"]

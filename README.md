@@ -134,14 +134,12 @@ uv run pytest tests/
 ```
 
 ### Local Dev Workflows (using `act`)
-To simulate the data release pipeline locally without pushing to GitHub, you can use **[act](https://github.com/nektos/act)**. Ensure you have Docker and `act` installed, then run:
+To simulate the ci pipeline locally without pushing to GitHub, you can use **[act](https://github.com/nektos/act)**. Ensure you have Docker and `act` installed, then run:
 
 ```bash
-# Create local artifact folder
-mkdir -p ./act-artifacts
 
-# Run the release workflow and export outputs
-act workflow_dispatch -W .github/workflows/data_release.yml --artifact-server-path ./act-artifacts
+# Run the workflow
+act workflow_dispatch -W .github/workflows/ci_ingestion.yml
 ```
 
 The resulting datasets and logs will be exported to the `./act-artifacts` directory.
@@ -156,7 +154,7 @@ The metadata includes a `has_changed` flag (⚠️) for each source, which compa
 
 This repo also contains a `docker compose` workflow to create the example
 database using BioCypher and load it into a dockerised Neo4j instance
-automatically. To run it, simply execute 
+automatically. To run it, simply execute
 ```
 docker compose up -d --build
 ```

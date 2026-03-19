@@ -1,9 +1,9 @@
 import pandas as pd
-
 from biocypher import BioCypher, FileDownload
+
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import harmonize_sequences, get_mhc_class
+from .utils import get_mhc_class, harmonize_sequences
 
 
 class TCR3DAdapter(BaseAdapter):
@@ -22,7 +22,7 @@ class TCR3DAdapter(BaseAdapter):
     """Name of the database."""
     available_receptors = ["TCR"]
     """Receptor types available in TCR3D."""
-    
+
     def get_latest_release(self, bc: BioCypher) -> str:
         self.set_metadata(source_url=self.DB_URL)
         tcr3d_resource = FileDownload(

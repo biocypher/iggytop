@@ -5,14 +5,14 @@
 
 .. autoclass:: NEOTCRAdapter
 
-   
+
    .. automethod:: __init__
 
-   
+
    .. rubric:: Methods
 
    .. autosummary::
-   
+
       ~NEOTCRAdapter.__init__
       ~NEOTCRAdapter.create_anndata
       ~NEOTCRAdapter.get_edges
@@ -20,15 +20,15 @@
       ~NEOTCRAdapter.get_nodes
       ~NEOTCRAdapter.read_table
       ~NEOTCRAdapter.set_metadata
-   
-   
 
-   
-   
+
+
+
+
    .. rubric:: Attributes
 
    .. autosummary::
-   
+
       ~NEOTCRAdapter.DB_DIR
       ~NEOTCRAdapter.DB_NAME
       ~NEOTCRAdapter.FILE_NAME
@@ -40,5 +40,3 @@
       ~NEOTCRAdapter.metadata
       ~NEOTCRAdapter.receptors
       ~NEOTCRAdapter.table
-   
-   

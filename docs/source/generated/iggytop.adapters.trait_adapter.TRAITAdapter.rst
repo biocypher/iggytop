@@ -5,14 +5,14 @@
 
 .. autoclass:: TRAITAdapter
 
-   
+
    .. automethod:: __init__
 
-   
+
    .. rubric:: Methods
 
    .. autosummary::
-   
+
       ~TRAITAdapter.__init__
       ~TRAITAdapter.create_anndata
       ~TRAITAdapter.get_edges
@@ -20,15 +20,15 @@
       ~TRAITAdapter.get_nodes
       ~TRAITAdapter.read_table
       ~TRAITAdapter.set_metadata
-   
-   
 
-   
-   
+
+
+
+
    .. rubric:: Attributes
 
    .. autosummary::
-   
+
       ~TRAITAdapter.DB_DIR
       ~TRAITAdapter.DB_NAME
       ~TRAITAdapter.DB_URL
@@ -39,5 +39,3 @@
       ~TRAITAdapter.metadata
       ~TRAITAdapter.receptors
       ~TRAITAdapter.table
-   
-   

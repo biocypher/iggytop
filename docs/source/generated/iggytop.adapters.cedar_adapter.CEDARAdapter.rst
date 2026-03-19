@@ -5,14 +5,14 @@
 
 .. autoclass:: CEDARAdapter
 
-   
+
    .. automethod:: __init__
 
-   
+
    .. rubric:: Methods
 
    .. autosummary::
-   
+
       ~CEDARAdapter.__init__
       ~CEDARAdapter.create_anndata
       ~CEDARAdapter.get_edges
@@ -20,15 +20,15 @@
       ~CEDARAdapter.get_nodes
       ~CEDARAdapter.read_table
       ~CEDARAdapter.set_metadata
-   
-   
 
-   
-   
+
+
+
+
    .. rubric:: Attributes
 
    .. autosummary::
-   
+
       ~CEDARAdapter.BCR_FNAME
       ~CEDARAdapter.DB_DIR
       ~CEDARAdapter.DB_NAME
@@ -41,5 +41,3 @@
       ~CEDARAdapter.metadata
       ~CEDARAdapter.receptors
       ~CEDARAdapter.table
-   
-   

@@ -128,7 +128,7 @@ def map_species_terms(terms: list[str], zooma: bool = False) -> dict:
 
             else:
                 return None, None
-        except:
+        except Exception:
             return None, None
 
     def get_zooma_label(term: str):
@@ -152,7 +152,7 @@ def map_species_terms(terms: list[str], zooma: bool = False) -> dict:
             r = requests.get(zooma_url, params=params, timeout=10)
             r.raise_for_status()
             results = r.json()
-        except:
+        except Exception:
             return term
 
         for r in results:

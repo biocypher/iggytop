@@ -5,14 +5,14 @@
 
 .. autoclass:: MCPASAdapter
 
-   
+
    .. automethod:: __init__
 
-   
+
    .. rubric:: Methods
 
    .. autosummary::
-   
+
       ~MCPASAdapter.__init__
       ~MCPASAdapter.create_anndata
       ~MCPASAdapter.get_edges
@@ -20,15 +20,15 @@
       ~MCPASAdapter.get_nodes
       ~MCPASAdapter.read_table
       ~MCPASAdapter.set_metadata
-   
-   
 
-   
-   
+
+
+
+
    .. rubric:: Attributes
 
    .. autosummary::
-   
+
       ~MCPASAdapter.DB_DIR
       ~MCPASAdapter.DB_NAME
       ~MCPASAdapter.DB_URL
@@ -39,5 +39,3 @@
       ~MCPASAdapter.metadata
       ~MCPASAdapter.receptors
       ~MCPASAdapter.table
-   
-   

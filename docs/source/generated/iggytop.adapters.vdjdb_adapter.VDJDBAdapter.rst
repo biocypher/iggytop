@@ -5,14 +5,14 @@
 
 .. autoclass:: VDJDBAdapter
 
-   
+
    .. automethod:: __init__
 
-   
+
    .. rubric:: Methods
 
    .. autosummary::
-   
+
       ~VDJDBAdapter.__init__
       ~VDJDBAdapter.create_anndata
       ~VDJDBAdapter.get_edges
@@ -20,15 +20,15 @@
       ~VDJDBAdapter.get_nodes
       ~VDJDBAdapter.read_table
       ~VDJDBAdapter.set_metadata
-   
-   
 
-   
-   
+
+
+
+
    .. rubric:: Attributes
 
    .. autosummary::
-   
+
       ~VDJDBAdapter.DB_DIR
       ~VDJDBAdapter.DB_FNAME
       ~VDJDBAdapter.DB_NAME
@@ -40,5 +40,3 @@
       ~VDJDBAdapter.metadata
       ~VDJDBAdapter.receptors
       ~VDJDBAdapter.table
-   
-   

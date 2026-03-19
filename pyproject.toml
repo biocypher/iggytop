@@ -54,17 +54,17 @@ docs = [
 ]
 
 [tool.setuptools]
-include-package-data = true 
+include-package-data = true
 
 [tool.setuptools.package-data]
-"iggytop" = ["config/*.yaml"]  
+"iggytop" = ["config/*.yaml"]
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
-line-length = 120
+line-length = 140
 target-version = "py311"
 exclude = [".git", ".venv", "__pycache__", "*.pyc", "*.ipynb"]
 

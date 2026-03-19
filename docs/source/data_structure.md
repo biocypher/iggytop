@@ -53,4 +53,3 @@ Example edges: `tra:CAVTTDSWGKLQF:TRAV12-2-trb:CASRPGLAGGRPEQYF:TRBV6-5`, `tra:C
 
 During construction of the graph, redundant data can be neglected (e.g., pairs reported in multiple databases); however, some information is also lost.
 See [this issue](https://github.com/biocypher/iggytop/issues/31).
-

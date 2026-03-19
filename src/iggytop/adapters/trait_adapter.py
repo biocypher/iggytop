@@ -1,10 +1,11 @@
 import os
-import pandas as pd
 
+import pandas as pd
 from biocypher import BioCypher, FileDownload
+
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_tissue_source, get_mhc_class, harmonize_sequences
+from .utils import get_mhc_class, get_tissue_source, harmonize_sequences
 
 
 class TRAITAdapter(BaseAdapter):
@@ -17,7 +18,7 @@ class TRAITAdapter(BaseAdapter):
 
     DB_URL = "https://pgx.zju.edu.cn/download.trait/Interactive_TCR-pMHC_Pairs.zip_20250312.zip"
     """URL to download the TRAIT database."""
-    
+
     DB_DIR = "trait_latest"
     """Directory name for the downloaded database."""
 
@@ -26,7 +27,7 @@ class TRAITAdapter(BaseAdapter):
 
     available_receptors = ["TCR"]
     """Receptor types available in TRAIT."""
-    
+
     def get_latest_release(self, bc: BioCypher) -> str:
         self.set_metadata(source_url=self.DB_URL)
         trait_resource = FileDownload(
@@ -100,25 +101,17 @@ class TRAITAdapter(BaseAdapter):
 
         # Remove 'PMID:' prefix from reference IDs
         table[REGISTRY_KEYS.PUBLICATION_KEY] = (
-            table[REGISTRY_KEYS.PUBLICATION_KEY]
-            .astype(str)
-            .str.replace(r"^PMID:", "", regex=True)
-            .replace("None", None)
+            table[REGISTRY_KEYS.PUBLICATION_KEY].astype(str).str.replace(r"^PMID:", "", regex=True).replace("None", None)
         )
-        
+
         table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.TRA_KEY
         table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
         table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY] = table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY]
 
-
         table_preprocessed = harmonize_sequences(bc, table)
-        table_preprocessed[REGISTRY_KEYS.MHC_CLASS_KEY] = table_preprocessed[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(
-            get_mhc_class
-        )
+        table_preprocessed[REGISTRY_KEYS.MHC_CLASS_KEY] = table_preprocessed[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(get_mhc_class)
 
-        table_preprocessed[REGISTRY_KEYS.TISSUE_KEY] = table_preprocessed[REGISTRY_KEYS.TISSUE_KEY].apply(
-            get_tissue_source
-        )
+        table_preprocessed[REGISTRY_KEYS.TISSUE_KEY] = table_preprocessed[REGISTRY_KEYS.TISSUE_KEY].apply(get_tissue_source)
 
         return table_preprocessed
 

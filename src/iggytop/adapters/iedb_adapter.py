@@ -1,17 +1,16 @@
 import logging
 import os
-import pandas as pd
-
-from biocypher import BioCypher
-from .base_adapter import BaseAdapter
-from .constants import REGISTRY_KEYS
-from .utils import get_pmids_batch, harmonize_sequences, get_mhc_class
-
-logger = logging.getLogger(__name__)
-
 import zipfile
 
+import pandas as pd
 import requests
+from biocypher import BioCypher
+
+from .base_adapter import BaseAdapter
+from .constants import REGISTRY_KEYS
+from .utils import get_mhc_class, get_pmids_batch, harmonize_sequences
+
+logger = logging.getLogger(__name__)
 
 
 class IEDBAdapter(BaseAdapter):
@@ -20,7 +19,8 @@ class IEDBAdapter(BaseAdapter):
     Args:
         bc (BioCypher): BioCypher instance for DB download.
         test (bool, optional): If `True`, only a subset of the data will be loaded for testing purposes. Defaults to False.
-        prefer_calculated (bool, optional): If `True`, calculated values are preferred over curated values. If `False`, curated values are preferred. Defaults to True.
+        prefer_calculated (bool, optional): If `True`, calculated values are preferred over curated values.
+            If `False`, curated values are preferred. Defaults to True.
     """
 
     DB_URL = "https://www.iedb.org/downloader.php?file_name=doc/receptor_full_v3.zip"
@@ -35,7 +35,7 @@ class IEDBAdapter(BaseAdapter):
     """File name of the BCR data in IEDB."""
     available_receptors = ["TCR", "BCR"]
     """Receptor types available in IEDB."""
-    
+
     def get_latest_release(self, bc: BioCypher) -> tuple[str, str]:
         # Create cache directory manually
         self.set_metadata(version="v3", source_url=self.DB_URL)
@@ -61,8 +61,11 @@ class IEDBAdapter(BaseAdapter):
                 return tcr_path, bcr_path
 
         # Download with proper headers using requests
+        user_agent = (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " "Chrome/91.0.4472.124 Safari/537.36"
+        )
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "User-Agent": user_agent,
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
             "Accept-Language": "en-US,en;q=0.9",
             "Referer": "https://www.iedb.org/",
@@ -118,7 +121,6 @@ class IEDBAdapter(BaseAdapter):
             raise FileNotFoundError(f"Downloaded file is not a valid zip: {e}")
         except Exception as e:
             raise FileNotFoundError(f"Error processing IEDB download: {e}")
-
 
     def read_table(
         self, bc: BioCypher, table_path: str, receptors: list[str], test: bool = False, prefer_calculated: bool = True
@@ -232,23 +234,17 @@ class IEDBAdapter(BaseAdapter):
         table = table[list(rename_cols.values())]
 
         # Extract iedb ID from the url
-        table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = (
-            "iedb:" + table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY].str.extract(r"/epitope/(\d+)$")[0]
-        )
+        table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = "iedb:" + table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY].str.extract(r"/epitope/(\d+)$")[0]
 
         # Preprocesses CDR3 sequences, epitope sequences, and gene names
         table_preprocessed = harmonize_sequences(bc, table)
 
         ref_urls = table_preprocessed[REGISTRY_KEYS.PUBLICATION_KEY].dropna().unique().tolist()
         ref_map = get_pmids_batch(bc, ref_urls)
-        table_preprocessed[REGISTRY_KEYS.PUBLICATION_KEY] = table_preprocessed[REGISTRY_KEYS.PUBLICATION_KEY].replace(
-            ref_map
-        )
+        table_preprocessed[REGISTRY_KEYS.PUBLICATION_KEY] = table_preprocessed[REGISTRY_KEYS.PUBLICATION_KEY].replace(ref_map)
 
-        table_preprocessed[REGISTRY_KEYS.MHC_CLASS_KEY] = table_preprocessed[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(
-            get_mhc_class
-        )
-        
+        table_preprocessed[REGISTRY_KEYS.MHC_CLASS_KEY] = table_preprocessed[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(get_mhc_class)
+
         return table_preprocessed
 
     def get_nodes(self):

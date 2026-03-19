@@ -31,9 +31,9 @@ jobs:
           # Separate Cache (for computation) and Release (for final assets)
           mkdir -p /tmp/iggytop_cache
           mkdir -p /tmp/iggytop_release
-          
+
           uv run create_anndata.py --merge --deduplicate --save-airr-json --cache-dir /tmp/iggytop_cache
-          
+
           # Populate release folder with final assets only
           cp /tmp/iggytop_cache/deduplicated_anndata.h5ad /tmp/iggytop_release/
           cp /tmp/iggytop_cache/deduplicated_airr_cells*.json.gz /tmp/iggytop_release/
@@ -50,7 +50,7 @@ jobs:
           # Use separate paths
           cache_dir = "/tmp/iggytop_cache"
           release_dir = "/tmp/iggytop_release"
-          
+
           # Find metadata from cache
           metadata = {}
           for f in os.listdir(cache_dir):
@@ -59,7 +59,7 @@ jobs:
                       data = json.load(gz)
                       metadata = data.get("metadata", {})
                       break
-          
+
           if not metadata:
               print("No metadata found.")
               exit(1)
@@ -70,11 +70,16 @@ jobs:
           for name, info in metadata.get("sources", {}).items():
               changed_str = "⚠️ YES" if info.get("has_changed") else "No"
               table += f"| {name} | {info.get('version', 'N/A')} | {changed_str} | `{info.get('checksum', 'N/A')[:10]}...` |\n"
-          
+
           with open(os.path.join(release_dir, "RELEASE_NOTES.md"), "w") as f:
-              f.write("### Data Source Information\n\n")
+              f.write("### IggyTop Data Release\n\n")
+              f.write("IggyTop (**I**mmunolo**g**ical **G**raph **Y**ielding **Top** receptor-epitope pairings) "
+                      "harmonizes and integrates various immunoreceptor-epitope databases using the BioCypher framework. "
+                      "This release includes updated data from multiple sources in AnnData and AIRR formats.\n\n")
+              f.write("For more information, please visit the [IggyTop GitHub repository](https://github.com/biocypher/iggytop).\n\n")
+              f.write("#### Data Source Information\n\n")
               f.write(table)
-          
+
           with open(os.path.join(release_dir, "metadata.json"), "w") as f:
               json.dump(metadata, f, indent=4)
           EOF

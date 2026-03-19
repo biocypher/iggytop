@@ -1,14 +1,12 @@
-import os
 import argparse
+import os
 from datetime import datetime
-import platformdirs
-import pandas as pd
-import anndata as ad
-import scirpy as ir
-from scirpy.pp import index_chains
-from biocypher import BioCypher
 from pathlib import Path
 
+import anndata as ad
+import platformdirs
+import scirpy as ir
+from biocypher import BioCypher
 from iggytop.adapters.cedar_adapter import CEDARAdapter
 from iggytop.adapters.iedb_adapter import IEDBAdapter
 from iggytop.adapters.itrap_adapter import ITRAPAdapter
@@ -16,20 +14,26 @@ from iggytop.adapters.mcpas_adapter import MCPASAdapter
 from iggytop.adapters.neotcr_adapter import NEOTCRAdapter
 from iggytop.adapters.tcr3d_adapter import TCR3DAdapter
 from iggytop.adapters.trait_adapter import TRAITAdapter
-
-from iggytop.adapters.vdjdb_adapter import VDJDBAdapter
 from iggytop.adapters.utils import (
     _set_up_config,
     _set_up_schema,
+    deduplicate_and_aggregate,
     get_previous_release_metadata,
     save_airr_cells_json,
-    deduplicate_and_aggregate,
 )
+from iggytop.adapters.vdjdb_adapter import VDJDBAdapter
+from scirpy.pp import index_chains
+
 
 def main():
     parser = argparse.ArgumentParser(description="Run the AnnData ingestion workflow.")
     parser.add_argument("--test-mode", action="store_true", help="Run in test mode with a small subset of data.")
-    parser.add_argument("--cache-dir", type=str, default=platformdirs.user_cache_dir("iggytop_airr"), help="Directory for caching results.")
+    parser.add_argument(
+        "--cache-dir",
+        type=str,
+        default=platformdirs.user_cache_dir("iggytop_airr"),
+        help="Directory for caching results.",
+    )
     parser.add_argument("--merge", action="store_true", default=True, help="Whether to merge all datasets into a single AnnData.")
     parser.add_argument("--deduplicate", action="store_true", default=True, help="Whether to deduplicate the merged AnnData.")
     parser.add_argument("--save-airr-json", action="store_true", default=True, help="Whether to save the AnnData as AIRR JSON.")
@@ -43,16 +47,14 @@ def main():
     cache_dir = args.cache_dir
     os.makedirs(cache_dir, exist_ok=True)
 
-    adapters_to_include = ["ITRAP","VDJDB", "MCPAS", "IEDB", "TCR3D", "NEOTCR", "CEDAR", "TRAIT"]
+    adapters_to_include = ["ITRAP", "VDJDB", "MCPAS", "IEDB", "TCR3D", "NEOTCR", "CEDAR", "TRAIT"]
     test_mode = args.test_mode
     output_format = "airr"
 
     config_path = _set_up_config(output_format, cache_dir)
     schema_config_path = _set_up_schema(cache_dir)
 
-    bc = BioCypher(biocypher_config_path=config_path,
-                    schema_config_path=schema_config_path,
-                    cache_directory=cache_dir)
+    bc = BioCypher(biocypher_config_path=config_path, schema_config_path=schema_config_path, cache_directory=cache_dir)
 
     adapter_classes = {
         "VDJDB": VDJDBAdapter,
@@ -65,11 +67,7 @@ def main():
         "CEDAR": CEDARAdapter,
     }
 
-    selected_adapters = [
-        adapter_classes[name]
-        for name in adapters_to_include
-        if name in adapter_classes
-    ]
+    selected_adapters = [adapter_classes[name] for name in adapters_to_include if name in adapter_classes]
     selected_adapters = [a for a in selected_adapters if any(receptor in receptors_to_include for receptor in a.available_receptors)]
 
     # Fetch previous release metadata for change detection
@@ -77,16 +75,16 @@ def main():
     prev_sources = prev_metadata.get("sources", {})
 
     global_metadata = {
-        "iggytop_version": "latest", # Could be fetched from bumpversion or package
+        "iggytop_version": "latest",  # Could be fetched from bumpversion or package
         "release_date": datetime.now().isoformat(),
-        "sources": {}
+        "sources": {},
     }
 
     adapters = []
     for AdapterClass in selected_adapters:
         adapter = AdapterClass(bc, cache_dir, receptors_to_include, test_mode)
         adapters.append(adapter)
-        
+
         # Update adapter metadata with change information
         prev_source_version = prev_sources.get(adapter.db_name, {}).get("version")
         adapter.set_metadata(previous_version=prev_source_version)
@@ -94,7 +92,12 @@ def main():
 
         adapter.create_anndata()
         if save_airr_json and save_single_adapter_data:
-            save_airr_cells_json(adapter.airr_cells, directory=cache_dir, filename=f"{adapter.db_name}_airr_cells", metadata=adapter.metadata)
+            save_airr_cells_json(
+                adapter.airr_cells,
+                directory=cache_dir,
+                filename=f"{adapter.db_name}_airr_cells",
+                metadata=adapter.metadata,
+            )
 
     cache_dir = Path(cache_dir)
 
@@ -121,12 +124,14 @@ def main():
 
         # Quick summary table
         for f in adatas:
-            print({
-            "File": f,
-            "Observations": adatas[f].n_obs,
-            "Variables": adatas[f].n_vars,
-            "Columns": len(adatas[f].obs.columns)
-        } )
+            print(
+                {
+                    "File": f,
+                    "Observations": adatas[f].n_obs,
+                    "Variables": adatas[f].n_vars,
+                    "Columns": len(adatas[f].obs.columns),
+                }
+            )
 
         common_cols = set.intersection(*(set(adatas[f].obs.columns) for f in adatas))
         print(f"Common columns: {common_cols}")
@@ -143,12 +148,17 @@ def main():
         merged_adata.write_h5ad(cache_dir / "merged_anndata.h5ad")
         print(f"Merged AnnData saved to {cache_dir / 'merged_anndata.h5ad'}")
 
-        
         if deduplicate:
             # Deduplicate and aggregate specific attributes
-            subset_cols = ['VJ_1_junction_aa', 'VJ_1_v_call', 'VDJ_1_v_call', 'VDJ_1_junction_aa', 'epitope_sequence'] #epitope IRI can be ambiguous
-            agg_cols = ['PMID', 'source']
-            
+            subset_cols = [
+                "VJ_1_junction_aa",
+                "VJ_1_v_call",
+                "VDJ_1_v_call",
+                "VDJ_1_junction_aa",
+                "epitope_sequence",
+            ]  # epitope IRI can be ambiguous
+            agg_cols = ["PMID", "source"]
+
             try:
                 deduplicated_adata = deduplicate_and_aggregate(merged_adata, subset_cols, agg_cols)
             except (ValueError, KeyError) as e:
@@ -157,10 +167,10 @@ def main():
 
             print(f"Number of entries after deduplication: {deduplicated_adata.n_obs}")
             index_chains(deduplicated_adata)
-            
+
             # Store metadata in AnnData
             deduplicated_adata.uns["iggytop_metadata"] = global_metadata
-            
+
             deduplicated_adata.write_h5ad(cache_dir / "deduplicated_anndata.h5ad")
             print(f"Deduplicated AnnData saved to {cache_dir / 'deduplicated_anndata.h5ad'}")
 
@@ -170,9 +180,13 @@ def main():
             save_airr_cells_json(merged_airr_list, directory=cache_dir, filename="merged_airr_cells", metadata=global_metadata)
             if deduplicate:
                 deduplicated_airr_list = ir.io.to_airr_cells(deduplicated_adata)
-                save_airr_cells_json(deduplicated_airr_list, directory=cache_dir, filename="deduplicated_airr_cells", metadata=global_metadata)
+                save_airr_cells_json(
+                    deduplicated_airr_list,
+                    directory=cache_dir,
+                    filename="deduplicated_airr_cells",
+                    metadata=global_metadata,
+                )
+
 
 if __name__ == "__main__":
     main()
-
-

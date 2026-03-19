@@ -5,14 +5,14 @@
 
 .. autoclass:: IEDBAdapter
 
-   
+
    .. automethod:: __init__
 
-   
+
    .. rubric:: Methods
 
    .. autosummary::
-   
+
       ~IEDBAdapter.__init__
       ~IEDBAdapter.create_anndata
       ~IEDBAdapter.get_edges
@@ -20,15 +20,15 @@
       ~IEDBAdapter.get_nodes
       ~IEDBAdapter.read_table
       ~IEDBAdapter.set_metadata
-   
-   
 
-   
-   
+
+
+
+
    .. rubric:: Attributes
 
    .. autosummary::
-   
+
       ~IEDBAdapter.BCR_FNAME
       ~IEDBAdapter.DB_DIR
       ~IEDBAdapter.DB_NAME
@@ -41,5 +41,3 @@
       ~IEDBAdapter.metadata
       ~IEDBAdapter.receptors
       ~IEDBAdapter.table
-   
-   
