@@ -1,0 +1,25 @@
+# Read the Docs configuration file
+# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+
+# Required
+version: 2
+
+# Set the OS, Python version, and other tools you might need
+build:
+  os: ubuntu-24.04
+  tools:
+    python: "3.11"
+
+jobs:
+  post_create_environment:
+    # 1. Install uv into the RTD environment
+    - pip install uv
+
+  install:
+    # 2. Sync dependencies using your lockfile.
+    # This points uv to the environment RTD already created.
+    - VIRTUAL_ENV=$READTHEDOCS_VIRTUALENV_PATH uv sync --frozen --group docs
+
+# Build documentation in the "docs/" directory with Sphinx
+sphinx:
+   configuration: docs/source/conf.py
