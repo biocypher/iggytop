@@ -137,12 +137,9 @@ uv run pytest tests/
 To simulate the ci pipeline locally without pushing to GitHub, you can use **[act](https://github.com/nektos/act)**. Ensure you have Docker and `act` installed, then run:
 
 ```bash
-
 # Run the workflow
 act workflow_dispatch -W .github/workflows/ci_ingestion.yml
 ```
-
-The resulting datasets and logs will be exported to the `./act-artifacts` directory.
 
 ### Metadata & Verification
 Each release contains a `metadata.json` file. This metadata is also embedded within the data files:

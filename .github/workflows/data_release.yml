@@ -10,19 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
         with:
-          enable-cache: true
           python-version: '3.11'
-
-      - name: Run tests
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          uv run pytest tests/
 
       - name: Run ingestion (AnnData & AIRR JSON)
         env:
@@ -41,48 +34,7 @@ jobs:
       - name: Generate Release Notes Table
         id: release_notes
         run: |
-          uv run python << 'EOF'
-          import json
-          import gzip
-          import os
-          import shutil
-
-          # Use separate paths
-          cache_dir = "/tmp/iggytop_cache"
-          release_dir = "/tmp/iggytop_release"
-
-          # Find metadata from cache
-          metadata = {}
-          for f in os.listdir(cache_dir):
-              if f.startswith("deduplicated_airr_cells") and f.endswith(".json.gz"):
-                  with gzip.open(os.path.join(cache_dir, f), "rt") as gz:
-                      data = json.load(gz)
-                      metadata = data.get("metadata", {})
-                      break
-
-          if not metadata:
-              print("No metadata found.")
-              exit(1)
-
-          # Write release notes and metadata directly to release folder
-          table = "| Data Source | Version | Changed | Checksum (SHA256) |\n"
-          table += "| --- | --- | --- | --- |\n"
-          for name, info in metadata.get("sources", {}).items():
-              changed_str = "⚠️ YES" if info.get("has_changed") else "No"
-              table += f"| {name} | {info.get('version', 'N/A')} | {changed_str} | `{info.get('checksum', 'N/A')[:10]}...` |\n"
-
-          with open(os.path.join(release_dir, "RELEASE_NOTES.md"), "w") as f:
-              f.write("### IggyTop Data Release\n\n")
-              f.write("IggyTop (**I**mmunolo**g**ical **G**raph **Y**ielding **Top** receptor-epitope pairings) "
-                      "harmonizes and integrates various immunoreceptor-epitope databases using the BioCypher framework. "
-                      "This release includes updated data from multiple sources in AnnData and AIRR formats.\n\n")
-              f.write("For more information, please visit the [IggyTop GitHub repository](https://github.com/biocypher/iggytop).\n\n")
-              f.write("#### Data Source Information\n\n")
-              f.write(table)
-
-          with open(os.path.join(release_dir, "metadata.json"), "w") as f:
-              json.dump(metadata, f, indent=4)
-          EOF
+          uv run iggytop-release --cache-dir /tmp/iggytop_cache --release-dir /tmp/iggytop_release
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
