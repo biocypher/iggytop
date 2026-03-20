@@ -11,19 +11,26 @@ from iggytop.io.create_knowledge_graph import create_knowledge_graph
 
 def main():
     parser = argparse.ArgumentParser(description="Create a knowledge graph from immunological databases.")
-    parser.add_argument("--test-mode", action="store_true", help="Run in test mode with a small subset of data.")
+    parser.add_argument("--test-mode", action="store_true", default=False, help="Run in test mode with a small subset of data.")
     parser.add_argument(
         "--cache-dir",
         type=str,
-        default=platformdirs.user_cache_dir("iggytop_dev"),
+        default=platformdirs.user_cache_dir("iggytop_airr"),
         help="Directory for caching results.",
+    )
+    default_adapters = ["ITRAP", "VDJDB", "MCPAS", "IEDB", "TCR3D", "NEOTCR", "CEDAR", "TRAIT"]
+    parser.add_argument(
+        "--adapters",
+        nargs="+",
+        default=default_adapters,
+        help="List of adapters to include (e.g., --adapters VDJDB CEDAR). Defaults to all.",
     )
     args = parser.parse_args()
 
     create_knowledge_graph(
         cache_dir=args.cache_dir,
         test_mode=args.test_mode,
-        adapters_to_include=["VDJDB", "MCPAS", "IEDB", "TCR3D", "NEOTCR", "CEDAR", "TRAIT", "ITRAP"],
+        adapters_to_include=args.adapters,
     )
 
 

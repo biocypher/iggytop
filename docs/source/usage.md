@@ -45,7 +45,7 @@ And added to the BioCypher Graph. Please refer to the [BioCypher documentation](
 The node and edge label generation (implying uniqueness) is described [here](uniquenes).
 
 #### Output
-The graph format is defined by the `config/biocypher_config.yaml`. This defines what {meth}`~bc.get_kg()` will return. For Iggytop the AIRR fromat was added to the compatible formats.
+The graph format is defined by the `config/biocypher_config.yaml`. This defines what {meth}`~bc.get_kg()` will return. For Iggytop the AIRR format was added to the compatible formats.
 
 Note, the conversion from the Knowledge graph to AIRR Cell data (tabular) is non-trivial and must be understood well in order to use the resulting data for downstream applications. Most importantly, this is NOT a concatenation of the underlying datasets. therefore this is currently a work in progress.
 

@@ -25,7 +25,7 @@ jobs:
           mkdir -p /tmp/iggytop_cache
           mkdir -p /tmp/iggytop_release
 
-          uv run create_anndata.py --merge --deduplicate --save-airr-json --cache-dir /tmp/iggytop_cache
+          uv run create_anndata.py --cache-dir /tmp/iggytop_cache
 
           # Populate release folder with final assets only
           cp /tmp/iggytop_cache/deduplicated_anndata.h5ad /tmp/iggytop_release/
@@ -42,7 +42,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
         with:
-          tag_name: data-${{ github.event.schedule && format('{0}', github.event.repository.updated_at) || format('{0}', github.run_id) }}
+          tag_name: data-${{ github.run_id }}
           name: Data Release ${{ github.run_id }}
           body_path: /tmp/iggytop_release/RELEASE_NOTES.md
           files: |

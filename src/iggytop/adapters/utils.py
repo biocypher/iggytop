@@ -59,7 +59,7 @@ def _set_up_schema(cache_dir):
     return schema_config_path
 
 
-def get_file_checksum(file_path: str) -> str:
+def get_file_checksum(file_path: str) -> str | None:
     """Calculates the SHA256 checksum of a file."""
     if not os.path.exists(file_path):
         return None

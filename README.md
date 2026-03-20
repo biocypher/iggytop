@@ -63,14 +63,24 @@ The final output is the **IggyTop** database, which integrates immunoreceptor-ep
    ```bash
    uv run create_knowledge_graph.py
    ```
+   or
+
+   ```bash
+   uv run create_anndata.py
+   ```
 More information can be found in the documentation (see below).
 ## Pipeline
 
 - `create_knowledge_graph.py`: the main script that orchestrates the pipeline.
-It brings together the BioCypher package with the data sources. It calls the `io.create_knowledge_graph()` function which creates a knowledge graph including all available databases and saves it to airr format in a json file.
-
+It brings together the BioCypher package with the data sources. It calls the `io.create_knowledge_graph()` function which creates a knowledge graph including all available databases and saves it to airr format in a json file. use the `--adapters` flag to select single source databases
+```bash
+uv run create_knowledge_graph.py --adapters VDJDB CEDAR
+```
 - `create_anndata.py`: this script can be used to obtain the harmonized, merged (and deduplicated) data from all (or selected) available databases in [anndata](https://anndata.readthedocs.io/en/stable/index.html) format.
-It will initialize the adapters but not generate the knowledge graph. the main purpose is integration of the available data into [Scirpy](https://scirpy.scverse.org/en/latest/).
+It will initialize the adapters but not generate the knowledge graph. The main purpose is integration of the available data into [Scirpy](https://scirpy.scverse.org/en/latest/). You can specify which adapters to include:
+```bash
+uv run create_anndata.py --adapters VDJDB CEDAR
+```
 
 - `src/iggytop/adapters` contains modules that define the adapter to the data source.
 
@@ -188,7 +198,7 @@ Note: this is a wip
 ## Related work:
 If you find a dataset (eg training data for a model) and would like to find the source of the records using the IggyTop dataset, check out [this tool](https://github.com/RaphaelDeGottardi/TCR_source_detection).
 
-This project is built on (and part of) the [BioCypher](https://github.com/biocypher/biocypher) framework. Make sure to check out thsi cool project!
+This project is built on (and part of) the [BioCypher](https://github.com/biocypher/biocypher) framework. Make sure to check out this cool project!
 
 
 ## Contributing

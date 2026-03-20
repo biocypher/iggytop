@@ -55,7 +55,7 @@ class VDJDBAdapter(BaseAdapter):
         if github_token:
             headers["Authorization"] = f"token {github_token}"
 
-        response = requests.get(api_url, headers=headers)
+        response = requests.get(api_url, headers=headers, timeout=30)
 
         # If we get 401 (unauthorized), the token might be invalid/expired
         # For public repos, we can retry without authentication
@@ -63,7 +63,7 @@ class VDJDBAdapter(BaseAdapter):
             if github_token:
                 # Token is invalid, try without it for public repo access
                 clean_headers = {"Accept": "application/vnd.github.v3+json", "User-Agent": "iggytop-adapter"}
-                response = requests.get(api_url, headers=clean_headers)
+                response = requests.get(api_url, headers=clean_headers, timeout=30)
 
         response.raise_for_status()
 
@@ -84,7 +84,7 @@ class VDJDBAdapter(BaseAdapter):
         )
 
         vdjdb_paths = bc.download(vdjdb_resource)
-
+        db_path = None
         db_dir = Path(vdjdb_paths[0]).parent
         for root, _dirs, files in os.walk(db_dir):
             for file in files:

@@ -27,27 +27,43 @@ from scirpy.pp import index_chains
 
 def main():
     parser = argparse.ArgumentParser(description="Run the AnnData ingestion workflow.")
-    parser.add_argument("--test-mode", action="store_true", help="Run in test mode with a small subset of data.")
+    parser.add_argument("--test-mode", action="store_true", default=False, help="Run in test mode with a small subset of data.")
     parser.add_argument(
         "--cache-dir",
         type=str,
         default=platformdirs.user_cache_dir("iggytop_airr"),
         help="Directory for caching results.",
     )
-    parser.add_argument("--merge", action="store_true", default=True, help="Whether to merge all datasets into a single AnnData.")
-    parser.add_argument("--deduplicate", action="store_true", default=True, help="Whether to deduplicate the merged AnnData.")
-    parser.add_argument("--save-airr-json", action="store_true", default=True, help="Whether to save the AnnData as AIRR JSON.")
+    default_adapters = ["ITRAP", "VDJDB", "MCPAS", "IEDB", "TCR3D", "NEOTCR", "CEDAR", "TRAIT"]
+    parser.add_argument(
+        "--adapters",
+        nargs="+",
+        default=default_adapters,
+        help="List of adapters to include (e.g., --adapters VDJDB CEDAR). Defaults to all.",
+    )
+    parser.add_argument(
+        "--not_deduplicate",
+        action="store_false",
+        default=True,
+        help="Whether to deduplicate the merged AnnData.",
+    )
+    parser.add_argument(
+        "--adata_only",
+        action="store_true",
+        default=False,
+        help="Whether to save the AnnData as AIRR JSON.",
+    )
     args = parser.parse_args()
 
-    merge = args.merge
-    deduplicate = args.deduplicate
+    adapters_to_include = args.adapters
+    merge = True if len(adapters_to_include) > 1 else False
+    deduplicate = ~args.not_deduplicate
     save_single_adapter_data = False
-    save_airr_json = args.save_airr_json
+    save_airr_json = ~args.adata_only
     receptors_to_include = ["TCR", "BCR"]
     cache_dir = args.cache_dir
     os.makedirs(cache_dir, exist_ok=True)
 
-    adapters_to_include = ["ITRAP", "VDJDB", "MCPAS", "IEDB", "TCR3D", "NEOTCR", "CEDAR", "TRAIT"]
     test_mode = args.test_mode
     output_format = "airr"
 
