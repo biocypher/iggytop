@@ -43,7 +43,7 @@ jobs:
       - name: Generate Release Notes Table
         id: release_notes
         run: |
-          uv run iggytop-release --cache-dir /tmp/iggytop_cache --release-dir /tmp/iggytop_release
+          uv run iggytop-release --release-dir /tmp/iggytop_release
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
