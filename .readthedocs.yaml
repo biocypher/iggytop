@@ -10,15 +10,15 @@ build:
   tools:
     python: "3.11"
 
-jobs:
-  post_create_environment:
-    # 1. Install uv into the RTD environment
-    - pip install uv
+  jobs:
+    post_create_environment:
+      # 1. Install uv into the RTD environment
+      - pip install uv
 
-  install:
-    # 2. Sync dependencies using your lockfile.
-    # This points uv to the environment RTD already created.
-    - VIRTUAL_ENV=$READTHEDOCS_VIRTUALENV_PATH uv sync --frozen --group docs
+    install:
+      # 2. Sync dependencies using your lockfile.
+      # This points uv to the environment RTD already created.
+      - VIRTUAL_ENV=$READTHEDOCS_VIRTUALENV_PATH uv sync --frozen --group docs
 
 # Build documentation in the "docs/" directory with Sphinx
 sphinx:
