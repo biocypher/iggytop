@@ -25,11 +25,20 @@ jobs:
           mkdir -p /tmp/iggytop_cache
           mkdir -p /tmp/iggytop_release
 
-          uv run create_anndata.py --cache-dir /tmp/iggytop_cache
+          # Create raw versions for direct use (mirror source db's)
+          uv run create_anndata.py --cache-dir /tmp/iggytop_cache --not_deduplicate
 
-          # Populate release folder with final assets only
-          cp /tmp/iggytop_cache/deduplicated_anndata.h5ad /tmp/iggytop_release/
-          cp /tmp/iggytop_cache/deduplicated_airr_cells*.json.gz /tmp/iggytop_release/
+          cp /tmp/iggytop_cache/merged* /tmp/iggytop_release/
+
+      - name: Create iggytop dataset
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Create filtered and deduplicated Iggytop dataset
+          uv run create_anndata.py --cache-dir /tmp/iggytop_cache --filter-10x
+
+          cp /tmp/iggytop_cache/deduplicated* /tmp/iggytop_release/
+        # TBD: Add graph-based dataset
 
       - name: Generate Release Notes Table
         id: release_notes
@@ -46,11 +55,10 @@ jobs:
           name: Data Release ${{ github.run_id }}
           body_path: /tmp/iggytop_release/RELEASE_NOTES.md
           files: |
-            /tmp/iggytop_release/deduplicated_anndata.h5ad
-            /tmp/iggytop_release/deduplicated_airr_cells*.json.gz
-            /tmp/iggytop_release/metadata.json
+            /tmp/iggytop_release/*
           draft: true
           prerelease: true
+
 
       - name: Keep container alive for inspection (Local only)
         if: contains(github.actor, 'act')

@@ -25,12 +25,20 @@ def main():
         default=default_adapters,
         help="List of adapters to include (e.g., --adapters VDJDB CEDAR). Defaults to all.",
     )
+    parser.add_argument(
+        "--filter-10x",
+        action="store_true",
+        dest="filter_10x",
+        default=False,
+        help="Filter out 10X Genomics datasets (default: False).",
+    )
     args = parser.parse_args()
 
     create_knowledge_graph(
         cache_dir=args.cache_dir,
         test_mode=args.test_mode,
         adapters_to_include=args.adapters,
+        filter_10x=args.filter_10x,
     )
 
 

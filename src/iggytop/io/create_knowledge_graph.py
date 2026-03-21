@@ -34,6 +34,7 @@ def create_knowledge_graph(
         "ITRAP",
     ],
     output_format: str | None = None,
+    filter_10x: bool = False,
 ):
     """
     Generates the knowledge graph using specified adapters and saves it in the requested format.
@@ -51,6 +52,7 @@ def create_knowledge_graph(
             Available adapters: ["VDJDB", "MCPAS", "TRAIT", "IEDB", "TCR3D", "NEOTCR", "CEDAR", "ITRAP"].
             Defaults to providing all available adapters.
         output_format (str, optional): Output format, currently either 'airr','neo4j' or 'networkx'
+        filter_10x (bool, optional): Whether to filter out 10X Genomics datasets. Defaults to False.
     """
     os.makedirs(cache_dir, exist_ok=True)
     config_path = _set_up_config(output_format, cache_dir)
@@ -74,7 +76,7 @@ def create_knowledge_graph(
     selected_adapters = [a for a in selected_adapters if any(receptor in receptors_to_include for receptor in a.available_receptors)]
 
     for AdapterClass in selected_adapters:
-        adapter = AdapterClass(bc, cache_dir, receptors_to_include, test_mode)
+        adapter = AdapterClass(bc, cache_dir, receptors_to_include, test_mode, filter_10x)
         bc.add(adapter.get_nodes())
         bc._add_edges(adapter.get_edges())  # or bc.add(adapter.get_edges()) if in online mode
         logger.info(f"Added data from {AdapterClass.__name__}")

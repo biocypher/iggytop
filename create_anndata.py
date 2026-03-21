@@ -53,8 +53,17 @@ def main():
         default=False,
         help="Whether to save the AnnData as AIRR JSON.",
     )
+    parser.add_argument(
+        "--filter-10x",
+        action="store_true",
+        dest="filter_10x",
+        default=False,
+        help="Filter out 10X Genomics datasets (default: False).",
+    )
+
     args = parser.parse_args()
 
+    filter_10x = args.filter_10x
     adapters_to_include = args.adapters
     merge = True if len(adapters_to_include) > 1 else False
     deduplicate = ~args.not_deduplicate
@@ -98,7 +107,7 @@ def main():
 
     adapters = []
     for AdapterClass in selected_adapters:
-        adapter = AdapterClass(bc, cache_dir, receptors_to_include, test_mode)
+        adapter = AdapterClass(bc, cache_dir, receptors_to_include, test_mode, filter_10x)
         adapters.append(adapter)
 
         # Update adapter metadata with change information

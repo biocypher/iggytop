@@ -74,12 +74,12 @@ More information can be found in the documentation (see below).
 - `create_knowledge_graph.py`: the main script that orchestrates the pipeline.
 It brings together the BioCypher package with the data sources. It calls the `io.create_knowledge_graph()` function which creates a knowledge graph including all available databases and saves it to airr format in a json file. use the `--adapters` flag to select single source databases
 ```bash
-uv run create_knowledge_graph.py --adapters VDJDB CEDAR
+uv run create_knowledge_graph.py --adapters VDJDB CEDAR --filter-10x
 ```
 - `create_anndata.py`: this script can be used to obtain the harmonized, merged (and deduplicated) data from all (or selected) available databases in [anndata](https://anndata.readthedocs.io/en/stable/index.html) format.
 It will initialize the adapters but not generate the knowledge graph. The main purpose is integration of the available data into [Scirpy](https://scirpy.scverse.org/en/latest/). You can specify which adapters to include:
 ```bash
-uv run create_anndata.py --adapters VDJDB CEDAR
+uv run create_anndata.py --adapters VDJDB CEDAR --filter-10x
 ```
 
 - `src/iggytop/adapters` contains modules that define the adapter to the data source.

@@ -50,6 +50,7 @@ class BaseAdapter(ABC):
         cache_dir: str | None = None,
         receptors_to_include: list[str] | None = ["TCR", "BCR"],
         test: bool = False,
+        filter_10x: bool = False,
     ):
         """
         Initializes the BaseAdapter instance.
@@ -59,6 +60,7 @@ class BaseAdapter(ABC):
             cache_dir (str | None, optional): Directory to cache data. Defaults to None.
             receptors_to_include (list[str], optional): List of receptor types to include. Defaults to ["TCR", "BCR"].
             test (bool, optional): Whether to run in test mode. Defaults to False.
+            filter_10x (bool, optional): Whether to filter out 10X Genomics datasets. Defaults to False.
         """
 
         if not hasattr(self.__class__, "DB_NAME"):
@@ -67,6 +69,7 @@ class BaseAdapter(ABC):
             raise TypeError(f"Class {self.__class__.__name__} must define an 'available_receptors' class attribute.")
         self._bc = bc
         self._test = test
+        self._filter_10x = filter_10x
         self._cache_dir = cache_dir
         self._receptors = list(set(receptors_to_include) & set(self.available_receptors))
         self._table: pd.DataFrame | None = None
@@ -155,11 +158,12 @@ class BaseAdapter(ABC):
         """
         if self._table is None:
             self._table = self.read_table(self._bc, self._table_path, self._receptors, self._test)
-            # Filter out 10X Genomics dataset as it has been criticized for poor confidence.
-            self._table = self._table[
-                ~(self._table["PMID"] == "no_pmid_1036521")
-                & ~self._table["PMID"].astype(str).str.contains("https://www.10xgenomics.com", na=False)
-            ]
+            if self._filter_10x:
+                # Filter out 10X Genomics dataset as it has been criticized for poor confidence.
+                self._table = self._table[
+                    ~(self._table["PMID"] == "no_pmid_1036521")
+                    & ~self._table["PMID"].astype(str).str.contains("https://www.10xgenomics.com", na=False)
+                ]
 
             # Filter out entries without receptor information (both chains missing) or without epitope information
             self._table = self._table[
