@@ -21,6 +21,8 @@ class MCPASAdapter(BaseAdapter):
     """Directory name for the downloaded database."""
     DB_NAME = "MCPAS"
     """Name of the database."""
+    available_receptors = ["TCR"]
+    """Receptor types available in McPAS-TCR."""
 
     def get_latest_release(self, bc: BioCypher) -> str:
         mcpas_resource = FileDownload(
@@ -39,7 +41,22 @@ class MCPASAdapter(BaseAdapter):
 
         return mcpas_path[0]
 
-    def read_table(self, bc: BioCypher, table_path: str, test: bool = False) -> pd.DataFrame:
+    def read_table(self, bc: BioCypher, table_path: str, receptors: list[str], test: bool = False) -> pd.DataFrame:
+        """
+        Reads and processes the MCPAS table from the downloaded database file.
+
+        Args:
+            bc (BioCypher): An instance of the BioCypher class.
+            table_path (str): Path to the table file.
+            receptors (list[str]): List of receptor types to include in the table. Not used here as only TCR is available.
+            test (bool, optional): If `True`, loads only a subset of the data for testing (default is False).
+
+        Returns:
+            pd.DataFrame: A DataFrame containing the processed table data.
+
+        Raises:
+            FileNotFoundError: If the table file cannot be found.
+        """
         table = pd.read_csv(table_path, encoding="utf-8-sig")
         if test:
             table = table.sample(frac=0.001, random_state=42)

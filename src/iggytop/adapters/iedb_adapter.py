@@ -33,7 +33,9 @@ class IEDBAdapter(BaseAdapter):
     """File name of the TCR data in IEDB."""
     BCR_FNAME = "bcr_full_v3.csv"
     """File name of the BCR data in IEDB."""
-
+    available_receptors = ["TCR", "BCR"]
+    """Receptor types available in IEDB."""
+    
     def get_latest_release(self, bc: BioCypher) -> tuple[str, str]:
         # Create cache directory manually
 
@@ -118,22 +120,47 @@ class IEDBAdapter(BaseAdapter):
 
 
     def read_table(
-        self, bc: BioCypher, table_path: str, test: bool = False, prefer_calculated: bool = True
+        self, bc: BioCypher, table_path: str, receptors: list[str], test: bool = False, prefer_calculated: bool = True
     ) -> pd.DataFrame:
+        """
+        Reads and processes the IEDB table from the downloaded database file.
+
+        Args:
+            bc (BioCypher): An instance of the BioCypher class.
+            table_path (str): Path to the table file.
+            receptors (list[str]): List of receptor types to include in the table.
+            test (bool, optional): If `True`, loads only a subset of the data for testing (default is False).
+
+        Returns:
+            pd.DataFrame: A DataFrame containing the processed table data.
+
+        Raises:
+            FileNotFoundError: If the table file cannot be found.
+        """
         tcr_table_path, bcr_table_path = table_path
 
-        # We use dtype=str to avoid DtypeWarning and optimize memory usage for large files.
-        tcr_table = pd.read_csv(tcr_table_path, header=[0, 1], dtype=str)
-        tcr_table.columns = tcr_table.columns.map(" ".join)
-        tcr_table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.TRA_KEY
-        tcr_table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
+        tcr_table = None
+        bcr_table = None
 
-        bcr_table = pd.read_csv(bcr_table_path, header=[0, 1], dtype=str)
-        bcr_table.columns = bcr_table.columns.map(" ".join)
-        bcr_table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.IGH_KEY
-        bcr_table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.IGL_KEY
+        if "TCR" in receptors:
+            # We use dtype=str to avoid DtypeWarning and optimize memory usage for large files.
+            tcr_table = pd.read_csv(tcr_table_path, header=[0, 1], dtype=str)
+            tcr_table.columns = tcr_table.columns.map(" ".join)
+            tcr_table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.TRA_KEY
+            tcr_table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
 
-        table = pd.concat([tcr_table, bcr_table], ignore_index=True)
+        if "BCR" in receptors:
+            bcr_table = pd.read_csv(bcr_table_path, header=[0, 1], dtype=str)
+            bcr_table.columns = bcr_table.columns.map(" ".join)
+            bcr_table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.IGH_KEY
+            bcr_table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.IGL_KEY
+
+        # Combine tables that were loaded
+        tables_to_concat = [t for t in [tcr_table, bcr_table] if t is not None]
+        if not tables_to_concat:
+            return pd.DataFrame()
+        table = pd.concat(tables_to_concat, ignore_index=True)
+
         if test:
             table = table.sample(frac=0.01, random_state=42)
         # Replace NaN and empty strings with None
