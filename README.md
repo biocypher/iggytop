@@ -21,26 +21,16 @@ BioCypher is designed to facilitate the standardized integration of heterogeneou
 These include data from both, original sources, extracting data directly from studies, such es McPAS-TCR, and from already pulled sources such as TRAIT.
 A script is provided to build a knowledge graph with all these adapters. On a consumer laptop, building the full graph typically takes 20-30 mins.
 
-The final output is the **IggyTop** database, which integrates immunoreceptor-epitope matching information from all supported data sources in the unified list of [AIRR cells](https://scirpy.scverse.org/en/stable/generated/scirpy.io.AirrCell.html).
+The final output is the **IggyTop** database, which integrates immunoreceptor-epitope matching information from all supported data sources.
 
-## Node and Edge Types
-### Nodes
-- tra sequence
-- trb sequence
-- igh sequence
-- igl sequence
-- epitope
+## Graphs vs Tables
+Two paths are covered: A tabular path, stacking the source databases and returning them in tabular format, and a knowledge graph path, converting the source data into a graph. We cover both paths extensively in the [documentation](https://iggytop.readthedocs.io/en/cicd/). For more details on the graph data structure, see [Graph Data Structure](https://iggytop.readthedocs.io/en/cicd/graph_data_structure.html). For the tabular approach, refer to [Tabular Data Structure](https://iggytop.readthedocs.io/en/cicd/tabular_data_structure.html).
 
-### Edges
-- alpha sequence to beta sequence association
-- heavy sequence to light sequence association
-- t cell receptor sequence to epitope association
-- b cell receptor sequence to epitope association
 
 ## Prerequisites
 
 - [uv](https://docs.astral.sh/uv/) for dependency management
-- [docker](https://www.docker.com/get-started/) optional for containerization
+- [docker](https://www.docker.com/get-started/) optional for neo4j (see below)
 
 ## Installation
 
@@ -68,7 +58,8 @@ The final output is the **IggyTop** database, which integrates immunoreceptor-ep
    ```bash
    uv run create_anndata.py
    ```
-More information can be found in the documentation (see below).
+More information can be found in the [documentation](https://iggytop.readthedocs.io/en/cicd/).
+
 ## Pipeline
 
 - `create_knowledge_graph.py`: the main script that orchestrates the pipeline.
@@ -81,7 +72,6 @@ It will initialize the adapters but not generate the knowledge graph. The main p
 ```bash
 uv run create_anndata.py --adapters VDJDB CEDAR --filter-10x
 ```
-
 - `src/iggytop/adapters` contains modules that define the adapter to the data source.
 
 - `src/iggytop/config/schema_config.yaml`: a configuration file
@@ -98,64 +88,44 @@ separators used, and other options. More on its use can be found in the
 This repository uses [Sphinx](https://www.sphinx-doc.org/) for documentation.
 
 ### Building the Documentation
-
-To build the documentation, ensure you have the `docs` dependency group installed:
+The full documentation is available online via [Read the Docs](https://iggytop.readthedocs.io/en/cicd/).
+To build the documentation locally, ensure you have the `docs` dependency group installed:
 
 ```bash
-uv sync --group docs
+uv sync
 ```
 
 Then, execute the following command:
 
 ```bash
-uv run ./update_docs.sh
+uv run --group docs ./update_docs.sh
 ```
 
 This will generate the documentation in the `docs/build` directory.
 
-### Hosting the Documentation Locally
-
-To host the documentation locally, run:
-
-```bash
-uv run python3 -m http.server --directory docs/build 8000
-```
-
-You can then access the documentation in your browser at `http://localhost:8000`.
-
 ## Testing and CI/CD
 
 IggyTop uses GitHub Actions to automate **bimonthly data releases** and ensure data integrity through continuous integration.
+Currently this only involves the tabular part of Iggytop (`create_anndata.py`)
 
 ### Bimonthly Data Releases
 - **Frequency**: Automated releases on the **1st day of every 2nd month**. (first scheduled on **May 1,2026**)
 - **Release Assets**:
-    - `deduplicated_anndata.h5ad`: Harmonized dataset for [Scirpy](https://scirpy.scverse.org/).
-    - `deduplicated_airr_cells.json.gz`: Standardized AIRR JSON export.
-    - `metadata.json`: Source versions, download dates, SHA-256 checksums, and change indicators.
-    - `RELEASE_NOTES.md`: A human-readable record of data source changes.
+   Check out the release notes for more information on the released datasets.
 
 ### Automated Testing
-Before any data is released, the CI pipeline runs a validation suite to catch breaking changes in upstream databases.
+Before any data is released, the CI pipeline (based on Github Actions) runs a validation suite to catch breaking changes in upstream databases.
 
 **How to run tests locally:**
 ```bash
 uv run pytest tests/
 ```
-
-### Local Dev Workflows (using `act`)
-To simulate the ci pipeline locally without pushing to GitHub, you can use **[act](https://github.com/nektos/act)**. Ensure you have Docker and `act` installed, then run:
-
+**How to test the CI pipelines**
+Ensure you have Docker and `act` installed, then run:
 ```bash
 # Run the workflow
 act workflow_dispatch -W .github/workflows/ci_ingestion.yml
 ```
-
-### Metadata & Verification
-Each release contains a `metadata.json` file. This metadata is also embedded within the data files:
-- **AnnData**: Access via `adata.uns["iggytop_metadata"]`.
-- **JSON**: Found in the top-level `"metadata"` key of the `.json.gz` file.
-The metadata includes a `has_changed` flag (⚠️) for each source, which compares the currently downloaded version with the version from the previous GitHub release.
 
 ## 🐳 Docker
 
@@ -184,16 +154,6 @@ container installs and runs Neo4j. The files created by BioCypher in the first
 container are copied and automatically imported into the DB in the second
 container.
 
-## Scirpy integration
-
-This project helps generating the anndata versions of all the Scirpy reference databases supported by Iggytop. The Anndata objects are stored in h5ad file format.
-This can be replicated by running the `create_anndata` script (while selecting the databases of interest using the variable `adapters_to_include`)
-
-```bash
-uv run create_anndata.py
-```
-
-Note: this is a wip
 
 ## Related work:
 If you find a dataset (eg training data for a model) and would like to find the source of the records using the IggyTop dataset, check out [this tool](https://github.com/RaphaelDeGottardi/TCR_source_detection).
