@@ -13,12 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class CEDARAdapter(BaseAdapter):
-    """BioCypher adapter for the Cancer Epitope Database and Analysis Resource `CEDAR <https://cedar.iedb.org/>`_.
-
-    Args:
-        bc (BioCypher): BioCypher instance for DB download.
-        test (bool, optional): If `True`, only a subset of the data will be loaded for testing purposes. Defaults to False.
-    """
+    """BioCypher adapter for the Cancer Epitope Database and Analysis Resource `CEDAR <https://cedar.iedb.org/>`_."""
 
     DB_URL = "https://cedar.iedb.org/downloader.php?file_name=doc/receptor_full_v3.zip"
     """URL to download the CEDAR database."""
@@ -33,7 +28,16 @@ class CEDARAdapter(BaseAdapter):
     available_receptors = ["TCR", "BCR"]
     """Receptor types available in CEDAR."""
 
-    def get_latest_release(self, bc: BioCypher) -> str:
+    def get_latest_release(self, bc: BioCypher) -> tuple[str, str]:
+        """
+        Retrieves the latest release of the CEDAR database.
+
+        Args:
+            bc (BioCypher): An instance of the BioCypher class.
+
+        Returns:
+            tuple[str, str]: Paths to the latest TCR and BCR release files.
+        """
         self.set_metadata(source_url=self.DB_URL)
         # Download CEDAR
         cedar_resource = FileDownload(
@@ -58,16 +62,22 @@ class CEDARAdapter(BaseAdapter):
         return tcr_path, bcr_path
 
     def read_table(
-        self, bc: BioCypher, table_path: str, receptors: list[str], test: bool = False, prefer_calculated: bool = True
+        self,
+        bc: BioCypher,
+        table_path: tuple[str, str],
+        receptors: list[str],
+        test: bool = False,
+        prefer_calculated: bool = True,
     ) -> pd.DataFrame:
         """
         Reads and processes the CEDAR table from the downloaded database file.
 
         Args:
             bc (BioCypher): An instance of the BioCypher class.
-            table_path (str): Path to the table file.
+            table_path (tuple[str, str]): Paths to the TCR and BCR table files.
             receptors (list[str]): List of receptor types to include in the table.
             test (bool, optional): If `True`, loads only a subset of the data for testing (default is False).
+            prefer_calculated (bool, optional): If `True`, calculated values are preferred over curated values. Defaults to True.
 
         Returns:
             pd.DataFrame: A DataFrame containing the processed table data.

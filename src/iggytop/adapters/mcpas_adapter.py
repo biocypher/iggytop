@@ -10,9 +10,6 @@ class MCPASAdapter(BaseAdapter):
     """BioCypher adapter for the manually-curated catalogue of pathology-associated T cell
     receptor sequences `McPAS-TCR <https://friedmanlab.weizmann.ac.il/McPAS-TCR.csv>`_.
 
-    Args:
-        bc (BioCypher): BioCypher instance for DB download.
-        test (bool, optional): If `True`, only a subset of the data will be loaded for testing purposes. Defaults to False.
     """
 
     DB_URL = "https://friedmanlab.weizmann.ac.il/McPAS-TCR.csv"
@@ -25,6 +22,15 @@ class MCPASAdapter(BaseAdapter):
     """Receptor types available in McPAS-TCR."""
 
     def get_latest_release(self, bc: BioCypher) -> str:
+        """
+        Retrieves the latest release of the McPAS-TCR database.
+
+        Args:
+            bc (BioCypher): An instance of the BioCypher class.
+
+        Returns:
+            str: Path to the latest release file.
+        """
         self.set_metadata(version="latest", source_url=self.DB_URL)
         mcpas_resource = FileDownload(
             name=self.DB_DIR,
@@ -49,7 +55,7 @@ class MCPASAdapter(BaseAdapter):
         Args:
             bc (BioCypher): An instance of the BioCypher class.
             table_path (str): Path to the table file.
-            receptors (list[str]): List of receptor types to include in the table. Not used here as only TCR is available.
+            receptors (list[str]): List of receptor types to include in the table. (Ignored as only TCR is available).
             test (bool, optional): If `True`, loads only a subset of the data for testing (default is False).
 
         Returns:

@@ -5,7 +5,7 @@ import re
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Literal, Sequence, cast
 
 import pandas as pd
 from scirpy.io._convert_anndata import from_airr_cells
@@ -37,7 +37,9 @@ class BaseAdapter(ABC):
     Args:
         bc (BioCypher): An instance of the BioCypher class.
         cache_dir (str | None, optional): Directory to cache data. Defaults to None.
+        receptors_to_include (Sequence[Literal["TCR", "BCR"]] | None, optional): Receptors to include. Defaults to ("TCR", "BCR").
         test (bool, optional): Whether to run in test mode. Defaults to False.
+        filter_10x (bool, optional): Whether to filter out 10X Genomics datasets. Defaults to False.
     """
 
     # These should be defined in child classes
@@ -48,7 +50,7 @@ class BaseAdapter(ABC):
         self,
         bc: BioCypher,
         cache_dir: str | None = None,
-        receptors_to_include: list[str] | None = ["TCR", "BCR"],
+        receptors_to_include: Sequence[Literal["TCR", "BCR"]] | None = ("TCR", "BCR"),
         test: bool = False,
         filter_10x: bool = False,
     ):
@@ -58,7 +60,7 @@ class BaseAdapter(ABC):
         Args:
             bc (BioCypher): An instance of the BioCypher class.
             cache_dir (str | None, optional): Directory to cache data. Defaults to None.
-            receptors_to_include (list[str], optional): List of receptor types to include. Defaults to ["TCR", "BCR"].
+            receptors_to_include (Sequence[Literal["TCR", "BCR"]] | None, optional): Receptors to include. Defaults to ("TCR", "BCR").
             test (bool, optional): Whether to run in test mode. Defaults to False.
             filter_10x (bool, optional): Whether to filter out 10X Genomics datasets. Defaults to False.
         """
@@ -267,26 +269,26 @@ class BaseAdapter(ABC):
         return self._airr_cells
 
     @abstractmethod
-    def get_latest_release(self, bc: BioCypher) -> str:
+    def get_latest_release(self, bc: BioCypher) -> str | tuple[str, ...]:
         """
         Abstract method to get the latest release of the data.
 
         Args:
             bc (BioCypher): An instance of the BioCypher class.
-            cache_dir (str): Directory to cache data.
 
         Returns:
-            str: Path to the latest release.
+            str | tuple[str, ...]: Path to the latest release file(s).
         """
         pass
 
     @abstractmethod
-    def read_table(self, bc: BioCypher, table_path: str, receptors: list[str], test: bool = False) -> pd.DataFrame:
+    def read_table(self, bc: BioCypher, table_path: str | tuple[str, ...], receptors: list[str], test: bool = False) -> pd.DataFrame:
         """
         Abstract method to read and harmonize the data table from the source.
 
         Args:
-            table_path (str): Path to the data table.
+            bc (BioCypher): An instance of the BioCypher class.
+            table_path (str | tuple[str, ...]): Path to the data table file(s).
             receptors (list[str]): List of receptor types to include in the table.
             test (bool, optional): Whether to run in test mode. Defaults to False.
 
@@ -303,8 +305,8 @@ class BaseAdapter(ABC):
         This method is intended to use _generate_nodes_from_table with the right parameters for each edge type.
         This requires parameters depending on the adapter used.
 
-        Returns:
-            Iterable: An iterable of BioCypher nodes.
+        Yields:
+            tuple: A BioCypher node (id, type, properties).
         """
         pass
 
@@ -316,8 +318,8 @@ class BaseAdapter(ABC):
         This method is intended to call _generate_edges_from_table with the right parameters for each edge type.
         This requires parameters depending on the adapter used.
 
-        Returns:
-            Iterable: An iterable of BioCypher edges.
+        Yields:
+            tuple: A BioCypher edge (id, source, target, type, properties).
         """
         pass
 

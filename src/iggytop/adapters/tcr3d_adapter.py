@@ -7,12 +7,7 @@ from .utils import get_mhc_class, harmonize_sequences
 
 
 class TCR3DAdapter(BaseAdapter):
-    """BioCypher adapter for the `TCR3D <https://tcr3d.ibbr.umd.edu>`_ database.
-
-    Args:
-        bc (BioCypher): BioCypher instance for DB download.
-        test (bool, optional): If `True`, only a subset of the data will be loaded for testing purposes. Defaults to False.
-    """
+    """BioCypher adapter for the `TCR3D <https://tcr3d.ibbr.umd.edu>`_ database."""
 
     DB_URL = "https://tcr3d.ibbr.umd.edu/static/download/tcr_complexes_data.tsv"
     """URL to download the TCR3D database."""
@@ -24,6 +19,15 @@ class TCR3DAdapter(BaseAdapter):
     """Receptor types available in TCR3D."""
 
     def get_latest_release(self, bc: BioCypher) -> str:
+        """
+        Retrieves the latest release of the TCR3D database.
+
+        Args:
+            bc (BioCypher): An instance of the BioCypher class.
+
+        Returns:
+            str: Path to the latest release file.
+        """
         self.set_metadata(source_url=self.DB_URL)
         tcr3d_resource = FileDownload(
             name=self.DB_DIR,
@@ -46,7 +50,7 @@ class TCR3DAdapter(BaseAdapter):
         Args:
             bc (BioCypher): An instance of the BioCypher class.
             table_path (str): Path to the table file.
-            receptors (list[str]): List of receptor types to include in the table. Not used here as only TCR is available.
+            receptors (list[str]): List of receptor types to include in the table (Ignored as only TCR is available).
             test (bool, optional): If `True`, loads only a subset of the data for testing (default is False).
 
         Returns:

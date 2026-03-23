@@ -22,6 +22,15 @@ class ITRAPAdapter(BaseAdapter):
     """Receptor types available in ITRAP."""
 
     def get_latest_release(self, bc: BioCypher) -> str:
+        """
+        Retrieves the latest release of the ITRAP database.
+
+        Args:
+            bc (BioCypher): An instance of the BioCypher class.
+
+        Returns:
+            str: Path to the latest release file.
+        """
         self.set_metadata(source_url=self.DB_URL)
         itrap_resource = FileDownload(
             name=self.DB_DIR,
@@ -39,8 +48,16 @@ class ITRAPAdapter(BaseAdapter):
 
     def read_table(self, bc: BioCypher, table_path: str, receptors: list[str], test: bool = False) -> pd.DataFrame:
         """
-        Reads and processes the ITRAP table.
-        Columns: peptide_HLA, cdr3_TRA, cdr3_TRB, v_gene_TRA, j_gene_TRA, v_gene_TRB, j_gene_TRB
+        Reads and processes the ITRAP table from the downloaded database file.
+
+        Args:
+            bc (BioCypher): An instance of the BioCypher class.
+            table_path (str): Path to the table file.
+            receptors (list[str]): List of receptor types to include in the table (Ignored as only TCR is available).
+            test (bool, optional): If `True`, loads only a subset of the data for testing (default is False).
+
+        Returns:
+            pd.DataFrame: A DataFrame containing the processed table data.
         """
         table = pd.read_csv(table_path)
 

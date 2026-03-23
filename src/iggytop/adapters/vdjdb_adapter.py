@@ -103,7 +103,7 @@ class VDJDBAdapter(BaseAdapter):
         Args:
             bc (BioCypher): An instance of the BioCypher class.
             table_path (str): Path to the table file.
-            receptors (list[str]): List of receptor types to include in the table. Not used here as only TCR is available.
+            receptors (list[str]): List of receptor types to include in the table (Ignored as only TCR is available).
             test (bool, optional): If `True`, loads only a subset of the data for testing (default is False).
 
         Returns:

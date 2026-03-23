@@ -9,12 +9,7 @@ from .utils import get_mhc_class, get_tissue_source, harmonize_sequences
 
 
 class TRAITAdapter(BaseAdapter):
-    """A Comprehensive Database for T-cell Receptor-Antigen Interactions `TRAIT <https://pgx.zju.edu.cn/traitdb/>`_.
-
-    Args:
-        bc (BioCypher): BioCypher instance for DB download.
-        test (bool, optional): If `True`, only a subset of the data will be loaded for testing purposes. Defaults to False.
-    """
+    """A Comprehensive Database for T-cell Receptor-Antigen Interactions `TRAIT <https://pgx.zju.edu.cn/traitdb/>`_."""
 
     DB_URL = "https://pgx.zju.edu.cn/download.trait/Interactive_TCR-pMHC_Pairs.zip_20250312.zip"
     """URL to download the TRAIT database."""
@@ -29,6 +24,15 @@ class TRAITAdapter(BaseAdapter):
     """Receptor types available in TRAIT."""
 
     def get_latest_release(self, bc: BioCypher) -> str:
+        """
+        Retrieves the latest release of the TRAIT database.
+
+        Args:
+            bc (BioCypher): An instance of the BioCypher class.
+
+        Returns:
+            str: Path to the latest release file.
+        """
         self.set_metadata(source_url=self.DB_URL)
         trait_resource = FileDownload(
             name=self.DB_DIR,
@@ -63,7 +67,7 @@ class TRAITAdapter(BaseAdapter):
         Args:
             bc (BioCypher): An instance of the BioCypher class.
             table_path (str): Path to the table file.
-            receptors (list[str]): List of receptor types to include in the table. Not used here as only TCR is available.
+            receptors (list[str]): List of receptor types to include in the table (Ignored as only TCR is available).
             test (bool, optional): If `True`, loads only a subset of the data for testing (default is False).
 
         Returns:

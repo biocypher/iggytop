@@ -21,6 +21,15 @@ class NEOTCRAdapter(BaseAdapter):
     """Receptor types available in NeoTCR."""
 
     def get_latest_release(self, bc: BioCypher) -> str:
+        """
+        Retrieves the latest release of the NeoTCR database.
+
+        Args:
+            bc (BioCypher): An instance of the BioCypher class.
+
+        Returns:
+            str: Path to the latest release file.
+        """
         self.set_metadata(source_url=self.RAW_URL)
         # Download NEOTCR
         neotcr_resource = FileDownload(
@@ -44,7 +53,7 @@ class NEOTCRAdapter(BaseAdapter):
         Args:
             bc (BioCypher): An instance of the BioCypher class.
             table_path (str): Path to the table file.
-            receptors (list[str]): List of receptor types to include in the table. Not used here as only TCR is available.
+            receptors (list[str]): List of receptor types to include in the table (Ignored as only TCR is available).
             test (bool, optional): If `True`, loads only a subset of the data for testing (default is False).
 
         Returns:
