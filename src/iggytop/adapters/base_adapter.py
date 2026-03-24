@@ -35,11 +35,11 @@ class BaseAdapter(ABC):
         available_receptors (list[str]): List of receptor types available in the database. Must be defined in subclasses.
 
     Args:
-        bc (BioCypher): An instance of the BioCypher class.
-        cache_dir (str | None, optional): Directory to cache data. Defaults to None.
-        receptors_to_include (Sequence[Literal["TCR", "BCR"]] | None, optional): Receptors to include. Defaults to ("TCR", "BCR").
-        test (bool, optional): Whether to run in test mode. Defaults to False.
-        filter_10x (bool, optional): Whether to filter out 10X Genomics datasets. Defaults to False.
+        bc: An instance of the BioCypher class.
+        cache_dir: Directory to cache data. Defaults to None.
+        receptors_to_include: Receptors to include. Defaults to ("TCR", "BCR").
+        test: Whether to run in test mode. Defaults to False.
+        filter_10x: Whether to filter out 10X Genomics datasets. Defaults to False.
     """
 
     # These should be defined in child classes
@@ -58,11 +58,11 @@ class BaseAdapter(ABC):
         Initializes the BaseAdapter instance.
 
         Args:
-            bc (BioCypher): An instance of the BioCypher class.
-            cache_dir (str | None, optional): Directory to cache data. Defaults to None.
-            receptors_to_include (Sequence[Literal["TCR", "BCR"]] | None, optional): Receptors to include. Defaults to ("TCR", "BCR").
-            test (bool, optional): Whether to run in test mode. Defaults to False.
-            filter_10x (bool, optional): Whether to filter out 10X Genomics datasets. Defaults to False.
+            bc: An instance of the BioCypher class.
+            cache_dir: Directory to cache data. Defaults to None.
+            receptors_to_include: Receptors to include. Defaults to ("TCR", "BCR").
+            test: Whether to run in test mode. Defaults to False.
+            filter_10x: Whether to filter out 10X Genomics datasets. Defaults to False.
         """
 
         if not hasattr(self.__class__, "DB_NAME"):
@@ -109,9 +109,9 @@ class BaseAdapter(ABC):
         Sets the metadata for the adapter.
 
         Args:
-            version (str, optional): The version of the database. Defaults to None.
-            source_url (str, optional): The URL of the source. Defaults to None.
-            previous_version (str, optional): The version of the database in the previous release. Defaults to None.
+            version: The version of the database. Defaults to None.
+            source_url: The URL of the source. Defaults to None.
+            previous_version: The version of the database in the previous release. Defaults to None.
         """
         if version:
             self._metadata["version"] = version
@@ -126,7 +126,7 @@ class BaseAdapter(ABC):
         Property to get the adapter metadata.
 
         Returns:
-            dict[str, Any]: The metadata dictionary.
+            The metadata dictionary.
         """
         return self._metadata
 
@@ -136,7 +136,7 @@ class BaseAdapter(ABC):
         Property to get the database name.
 
         Returns:
-            str: The database name.
+            The database name.
         """
         return self.DB_NAME
 
@@ -146,7 +146,7 @@ class BaseAdapter(ABC):
         Property to get the available receptor types.
 
         Returns:
-            list[str]: List of receptor types.
+            List of receptor types.
         """
         return self.available_receptors
 
@@ -156,7 +156,7 @@ class BaseAdapter(ABC):
         Property to get the data table. Reads the table if not already read.
 
         Returns:
-            pd.DataFrame: The data table.
+            The data table.
         """
         if self._table is None:
             self._table = self.read_table(self._bc, self._table_path, self._receptors, self._test)
@@ -181,7 +181,7 @@ class BaseAdapter(ABC):
         Property to get the cache directory.
 
         Returns:
-            str: The cache directory.
+            The cache directory.
         """
         if self._cache_dir is None:
             self._cache_dir = platformdirs.user_cache_dir("iggytop")
@@ -194,7 +194,7 @@ class BaseAdapter(ABC):
         Property to get the list of AIRR cells.
 
         Returns:
-            list[AirrCell] | None: The list of AIRR cells.
+            The list of AIRR cells.
         """
         if self._airr_cells is None:
             self._airr_cells = []
@@ -274,10 +274,10 @@ class BaseAdapter(ABC):
         Abstract method to get the latest release of the data.
 
         Args:
-            bc (BioCypher): An instance of the BioCypher class.
+            bc: An instance of the BioCypher class.
 
         Returns:
-            str | tuple[str, ...]: Path to the latest release file(s).
+            Path to the latest release file(s).
         """
         pass
 
@@ -287,13 +287,13 @@ class BaseAdapter(ABC):
         Abstract method to read and harmonize the data table from the source.
 
         Args:
-            bc (BioCypher): An instance of the BioCypher class.
-            table_path (str | tuple[str, ...]): Path to the data table file(s).
-            receptors (list[str]): List of receptor types to include in the table.
-            test (bool, optional): Whether to run in test mode. Defaults to False.
+            bc: An instance of the BioCypher class.
+            table_path: Path to the data table file(s).
+            receptors: List of receptor types to include in the table.
+            test: Whether to run in test mode. Defaults to False.
 
         Returns:
-            pd.DataFrame: The data table.
+            The data table.
         """
         pass
 
@@ -355,12 +355,12 @@ class BaseAdapter(ABC):
         To create the unique identifier, we use unique_cols + V gene (if available) for TCR chains.
 
         Args:
-            subset_cols (list[str]): List of columns to subset the table.
-            unique_cols (list[str] | None, optional): List of columns to check for uniqueness. Defaults to None.
-            property_cols (list[str] | None, optional): List of columns to include as properties. Defaults to None.
+            subset_cols: List of columns to subset the table.
+            unique_cols: List of columns to check for uniqueness. Defaults to None.
+            property_cols: List of columns to include as properties. Defaults to None.
 
         Yields:
-            tuple: A tuple containing the node ID, node type, and properties.
+            A tuple containing the node ID, node type, and properties.
         """
         if not isinstance(subset_cols, list):
             subset_cols = [subset_cols]
@@ -424,13 +424,13 @@ class BaseAdapter(ABC):
         To create the unique identifier, we use unique_cols + V gene (if available) for TCR chains.
 
         Args:
-            source_subset_cols (list[str]): List of columns for the source node.
-            target_subset_cols (list[str]): List of columns for the target node.
-            source_unique_cols (list[str] | None, optional): List of unique columns for the source node. Defaults to None.
-            target_unique_cols (list[str] | None, optional): List of unique columns for the target node. Defaults to None.
+            source_subset_cols: List of columns for the source node.
+            target_subset_cols: List of columns for the target node.
+            source_unique_cols: List of unique columns for the source node. Defaults to None.
+            target_unique_cols: List of unique columns for the target node. Defaults to None.
 
         Yields:
-            tuple: A tuple containing the edge ID, source ID, target ID, edge type, and properties.
+            A tuple containing the edge ID, source ID, target ID, edge type, and properties.
         """
         source_subset_cols = source_subset_cols or []
         if not isinstance(source_subset_cols, list):

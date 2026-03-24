@@ -21,6 +21,7 @@ extensions = [
     "sphinxcontrib.bibtex",
     "sphinx_copybutton",
     "sphinx.ext.intersphinx",
+    "sphinx_autodoc_typehints",
 ]
 
 templates_path = ["_templates"]

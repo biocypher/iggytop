@@ -33,10 +33,10 @@ class CEDARAdapter(BaseAdapter):
         Retrieves the latest release of the CEDAR database.
 
         Args:
-            bc (BioCypher): An instance of the BioCypher class.
+            bc: An instance of the BioCypher class.
 
         Returns:
-            tuple[str, str]: Paths to the latest TCR and BCR release files.
+            Paths to the latest TCR and BCR release files.
         """
         self.set_metadata(source_url=self.DB_URL)
         # Download CEDAR
@@ -73,14 +73,14 @@ class CEDARAdapter(BaseAdapter):
         Reads and processes the CEDAR table from the downloaded database file.
 
         Args:
-            bc (BioCypher): An instance of the BioCypher class.
-            table_path (tuple[str, str]): Paths to the TCR and BCR table files.
-            receptors (list[str]): List of receptor types to include in the table.
-            test (bool, optional): If `True`, loads only a subset of the data for testing (default is False).
-            prefer_calculated (bool, optional): If `True`, calculated values are preferred over curated values. Defaults to True.
+            bc: An instance of the BioCypher class.
+            table_path: Paths to the TCR and BCR table files.
+            receptors: List of receptor types to include in the table.
+            test: If `True`, loads only a subset of the data for testing (default is False).
+            prefer_calculated: If `True`, calculated values are preferred over curated values. Defaults to True.
 
         Returns:
-            pd.DataFrame: A DataFrame containing the processed table data.
+            A DataFrame containing the processed table data.
 
         Raises:
             FileNotFoundError: If the table file cannot be found.

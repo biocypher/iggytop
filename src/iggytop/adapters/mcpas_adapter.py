@@ -26,10 +26,10 @@ class MCPASAdapter(BaseAdapter):
         Retrieves the latest release of the McPAS-TCR database.
 
         Args:
-            bc (BioCypher): An instance of the BioCypher class.
+            bc: An instance of the BioCypher class.
 
         Returns:
-            str: Path to the latest release file.
+            Path to the latest release file.
         """
         self.set_metadata(version="latest", source_url=self.DB_URL)
         mcpas_resource = FileDownload(
@@ -53,13 +53,13 @@ class MCPASAdapter(BaseAdapter):
         Reads and processes the MCPAS table from the downloaded database file.
 
         Args:
-            bc (BioCypher): An instance of the BioCypher class.
-            table_path (str): Path to the table file.
-            receptors (list[str]): List of receptor types to include in the table. (Ignored as only TCR is available).
-            test (bool, optional): If `True`, loads only a subset of the data for testing (default is False).
+            bc: An instance of the BioCypher class.
+            table_path: Path to the table file.
+            receptors: List of receptor types to include in the table. (Ignored as only TCR is available).
+            test: If `True`, loads only a subset of the data for testing (default is False).
 
         Returns:
-            pd.DataFrame: A DataFrame containing the processed table data.
+            A DataFrame containing the processed table data.
 
         Raises:
             FileNotFoundError: If the table file cannot be found.

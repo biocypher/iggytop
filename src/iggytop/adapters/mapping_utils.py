@@ -188,7 +188,13 @@ def map_species_terms(terms: list[str], zooma: bool = False) -> dict:
 
 
 def map_antigen_names(antigen_list: list[str]) -> list[str]:
-    """Clean antigen names by removing bracketed species/organism info"""
+    """Clean antigen names by removing bracketed species/organism info
+    Args:
+        antigen_list: List of antigen names to clean.
+
+    Returns:
+        Dictionary mapping original names to cleaned names.
+    """
     # TODO: improve antigen names harmonization
     cleaned_map = {}
     for name in antigen_list:

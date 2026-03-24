@@ -26,10 +26,10 @@ class ITRAPAdapter(BaseAdapter):
         Retrieves the latest release of the ITRAP database.
 
         Args:
-            bc (BioCypher): An instance of the BioCypher class.
+            bc: An instance of the BioCypher class.
 
         Returns:
-            str: Path to the latest release file.
+            Path to the latest release file.
         """
         self.set_metadata(source_url=self.DB_URL)
         itrap_resource = FileDownload(
@@ -51,13 +51,13 @@ class ITRAPAdapter(BaseAdapter):
         Reads and processes the ITRAP table from the downloaded database file.
 
         Args:
-            bc (BioCypher): An instance of the BioCypher class.
-            table_path (str): Path to the table file.
-            receptors (list[str]): List of receptor types to include in the table (Ignored as only TCR is available).
-            test (bool, optional): If `True`, loads only a subset of the data for testing (default is False).
+            bc: An instance of the BioCypher class.
+            table_path: Path to the table file.
+            receptors: List of receptor types to include in the table (Ignored as only TCR is available).
+            test: If `True`, loads only a subset of the data for testing (default is False).
 
         Returns:
-            pd.DataFrame: A DataFrame containing the processed table data.
+            A DataFrame containing the processed table data.
         """
         table = pd.read_csv(table_path)
 

@@ -135,10 +135,10 @@ def get_mhc_class(allele: str | None) -> str | None:
     """Find MHC class information from the MHC gene (allele) names.
 
     Args:
-        allele (str): MHC allele name.
+        allele: MHC allele name.
 
     Returns:
-        str: MHC class (I or II) or None if not found.
+        MHC class (I or II) or None if not found.
     """
     if allele is None or not isinstance(allele, str):
         return None
@@ -233,10 +233,10 @@ def get_tissue_source(tissue: str | None) -> str:
     """Standardize tissue source information while staying close to the original values.
 
     Args:
-        tissue (str): Original tissue source from database.
+        tissue: Original tissue source from database.
 
     Returns:
-        str: Standardized tissue name or original value.
+        Standardized tissue name or original value.
     """
     if tissue is None or not isinstance(tissue, str):
         return "nan"

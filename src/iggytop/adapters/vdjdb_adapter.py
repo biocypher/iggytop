@@ -38,10 +38,10 @@ class VDJDBAdapter(BaseAdapter):
         Retrieves the latest release of the VDJDB database from GitHub.
 
         Args:
-            bc (BioCypher): An instance of the BioCypher class.
+            bc: An instance of the BioCypher class.
 
         Returns:
-            str: The file path of the downloaded database.
+            The file path of the downloaded database.
 
         Raises:
             FileNotFoundError: If the database file cannot be found after downloading.
@@ -101,13 +101,13 @@ class VDJDBAdapter(BaseAdapter):
         Reads and processes the VDJdb table from the downloaded database file.
 
         Args:
-            bc (BioCypher): An instance of the BioCypher class.
-            table_path (str): Path to the table file.
-            receptors (list[str]): List of receptor types to include in the table (Ignored as only TCR is available).
-            test (bool, optional): If `True`, loads only a subset of the data for testing (default is False).
+            bc: An instance of the BioCypher class.
+            table_path: Path to the table file.
+            receptors: List of receptor types to include in the table (Ignored as only TCR is available).
+            test: If `True`, loads only a subset of the data for testing (default is False).
 
         Returns:
-            pd.DataFrame: A DataFrame containing the processed table data.
+            A DataFrame containing the processed table data.
 
         Raises:
             FileNotFoundError: If the table file cannot be found.
@@ -166,10 +166,10 @@ class VDJDBAdapter(BaseAdapter):
         Efficient transformation that handles ALL cases correctly.
         This is required to properly pair TRA and TRB chains based on complex.id. (They are on different rows in the raw database)
         Args:
-            df (pd.DataFrame): The input DataFrame containing the VDJdb data.
+            df: The input DataFrame containing the VDJdb data.
 
         Returns:
-            pd.DataFrame: A DataFrame with the transformed paired data.
+            A DataFrame with the transformed paired data.
         """
 
         # 1. Separate unpaired (complex.id == 0)
@@ -231,11 +231,11 @@ class VDJDBAdapter(BaseAdapter):
         Process single chain data (TRA or TRB only).
 
         Args:
-            df (pd.DataFrame): The input DataFrame containing the single chain data.
-            chain_type (str): The type of chain, either "tra" or "trb".
+            df: The input DataFrame containing the single chain data.
+            chain_type: The type of chain, either "tra" or "trb".
 
         Returns:
-            pd.DataFrame: A DataFrame with the processed single chain data.
+            A DataFrame with the processed single chain data.
         """
         if len(df) == 0:
             return df
