@@ -3,10 +3,6 @@ name: Avoid auto disabling of workflows
 on:
   schedule:
     - cron: "0 0 1,15 * *"
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 jobs:
   keepalive-job:
