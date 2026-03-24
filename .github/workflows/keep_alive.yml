@@ -1,0 +1,19 @@
+name: Avoid auto disabling of workflows
+
+on:
+  schedule:
+    - cron: "0 0 1,15 * *"
+  workflow_dispatch:
+jobs:
+  keepalive-job:
+    name: Keepalive Workflow
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Re-enable workflow
+        env:
+          GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN || github.token }}
+        shell: sh
+        run: |
+          gh api --verbose -X PUT "repos/${GITHUB_REPOSITORY}/actions/workflows/data_release.yml/enable"

@@ -1,0 +1,70 @@
+name: Bimonthly Data Release
+
+on:
+  schedule:
+    - cron: '0 0 1 */2 *' # 1st day of every 2nd month
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  test_and_release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: '3.11'
+
+      - name: Run ingestion (AnnData & AIRR JSON)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Separate Cache (for computation) and Release (for final assets)
+          mkdir -p /tmp/iggytop_cache
+          mkdir -p /tmp/iggytop_release
+
+          # Create raw versions for direct use (mirror source db's)
+          uv run create_anndata.py --cache-dir /tmp/iggytop_cache --not_deduplicate
+
+          cp /tmp/iggytop_cache/merged* /tmp/iggytop_release/
+
+      - name: Create iggytop dataset
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Create filtered and deduplicated Iggytop dataset
+          uv run create_anndata.py --cache-dir /tmp/iggytop_cache --filter-10x
+
+          cp /tmp/iggytop_cache/deduplicated* /tmp/iggytop_release/
+        # TBD: Add graph-based dataset
+
+      - name: Generate Release Notes Table
+        id: release_notes
+        run: |
+          uv run iggytop-release --release-dir /tmp/iggytop_release
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        if: github.event_name != 'pull_request' && !contains(github.actor, 'act')
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: data-${{ github.run_id }}
+          name: Data Release ${{ github.run_id }}
+          body_path: /tmp/iggytop_release/RELEASE_NOTES.md
+          files: |
+            /tmp/iggytop_release/*
+          draft: true
+          prerelease: true
+
+
+      - name: Keep container alive for inspection (Local only)
+        if: contains(github.actor, 'act')
+        run: |
+          echo "Workflow finished successfully."
+          echo "Assets are in: /tmp/iggytop_release"
+          echo "Cache is in: /tmp/iggytop_cache"
+          echo "Waiting 5 minutes before cleanup..."
+          sleep 300

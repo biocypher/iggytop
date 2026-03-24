@@ -6,28 +6,29 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'IggyTop'
-copyright = '2025, Raphael De Gottardi'
-author = 'Raphael De Gottardi'
+project = "IggyTop"
+copyright = "2025, Raphael De Gottardi"
+author = "Raphael De Gottardi"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.napoleon',
-    'sphinx.ext.autosummary',
-    'myst_nb',
-    'sphinxcontrib.bibtex',
-    'sphinx_copybutton',
-    'sphinx.ext.intersphinx',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.autosummary",
+    "myst_nb",
+    "sphinxcontrib.bibtex",
+    "sphinx_copybutton",
+    "sphinx.ext.intersphinx",
+    "sphinx_autodoc_typehints",
 ]
 
-templates_path = ['_templates']
+templates_path = ["_templates"]
 exclude_patterns = [
-    '_build',
-    'Thumbs.db',
-    '.DS_Store',
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
 ]
 
 myst_enable_extensions = [
@@ -40,15 +41,16 @@ myst_enable_extensions = [
     "html_image",
 ]
 nb_execution_mode = "off"  # Disable notebook execution during build
+nb_remove_code_source = True  # Hide all code cells by default in the rendered output
 
 # Specify the BibTeX file for citations
-bibtex_bibfiles = ['references.bib']
+bibtex_bibfiles = ["references.bib"]
 
 # Intersphinx configuration
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3', None),
-    'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
-    'biocypher': ('https://biocypher.org/', None),
+    "python": ("https://docs.python.org/3", None),
+    "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
+    "biocypher": ("https://biocypher.org/", None),
 }
 
 # Autodoc configuration
@@ -62,10 +64,10 @@ autodoc_default_options = {
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'sphinx_book_theme'
-html_static_path = ['_static']
-html_extra_path = ['extra_files']
-html_favicon = '_static/favicon.ico'
+html_theme = "sphinx_book_theme"
+html_static_path = ["_static"]
+html_extra_path = ["extra_files"]
+html_favicon = "_static/favicon.ico"
 html_title = project
 
 html_theme_options = {
@@ -86,8 +88,3 @@ napoleon_use_rtype = True
 napoleon_use_param = True
 napoleon_use_ivar = True
 napoleon_custom_sections = [("Params", "Parameters")]
-
-#Add paths for autodoc
-import os
-import sys
-sys.path.insert(0, os.path.abspath('../../src'))

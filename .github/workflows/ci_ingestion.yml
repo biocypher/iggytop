@@ -1,0 +1,34 @@
+name: CI Ingestion Check
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  check-ingestion:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: '3.11'
+
+      - name: Setup Cache Directory
+        run: |
+          mkdir -p /tmp/iggytop_ci_cache
+
+      - name: Run tests
+        run: |
+          uv run pytest tests/
+
+      - name: Run AnnData Ingestion (Test Mode)
+        run: uv run create_anndata.py --test-mode --cache-dir /tmp/iggytop_cache
+
+      - name: Run Knowledge Graph Ingestion (Test Mode)
+        run: uv run create_knowledge_graph.py --test-mode --cache-dir /tmp/iggytop_cache

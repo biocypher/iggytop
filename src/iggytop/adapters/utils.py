@@ -2,57 +2,73 @@
 
 import gzip
 import hashlib
+import importlib.resources
 import json
 import os
 import re
-import yaml
-import importlib.resources
 from datetime import datetime
+from logging import getLogger
 from typing import List
 
 import pandas as pd
+import requests
+import scirpy as ir
+import yaml
 from biocypher import APIRequest, BioCypher
 from scirpy.io._datastructures import AirrCell
 
-from logging import getLogger
 from .constants import REGISTRY_KEYS
 from .mapping_utils import map_antigen_names, map_species_terms
 
 AMINO_ACIDS = set("ACDEFGHIKLMNPQRSTVWY")
 
+
 def _set_up_config(output_format, cache_dir):
     # Load the base configuration
-    with importlib.resources.open_text('iggytop.config', 'biocypher_config.yaml') as file:
+    with importlib.resources.open_text("iggytop.config", "biocypher_config.yaml") as file:
         config = yaml.safe_load(file)
     if output_format:
         # Check if the output format is allowed
-        allowed_formats = ['airr', 'networkx', 'neo4j', 'docker']
+        allowed_formats = ["airr", "networkx", "neo4j", "docker"]
         if output_format not in allowed_formats:
             raise ValueError(f"Invalid output_format: {output_format}. Allowed formats are: {allowed_formats}")
-        # Modify the configuration 
-        if output_format == 'neo4j' or output_format == 'networkx':
-            config['biocypher']['offline'] = True
+        # Modify the configuration
+        if output_format == "neo4j" or output_format == "networkx":
+            config["biocypher"]["offline"] = True
 
-        config['biocypher']['dbms'] = output_format
-        if output_format == 'docker':
-                with importlib.resources.open_text('iggytop.config', 'biocypher_docker_config.yaml') as d_file:
-                    config = yaml.safe_load(d_file)
+        config["biocypher"]["dbms"] = output_format
+        if output_format == "docker":
+            with importlib.resources.open_text("iggytop.config", "biocypher_docker_config.yaml") as d_file:
+                config = yaml.safe_load(d_file)
 
     # Save the modified configuration to the cache directory
-    modified_config_path = os.path.join(cache_dir, 'biocypher_config.yaml')
-    with open(modified_config_path, 'w') as file:
+    modified_config_path = os.path.join(cache_dir, "biocypher_config.yaml")
+    with open(modified_config_path, "w") as file:
         yaml.safe_dump(config, file)
 
     return modified_config_path
 
+
 def _set_up_schema(cache_dir):
     # Load the schema configuration
-    schema_config_path = os.path.join(cache_dir, 'schema_config.yaml')
-    with importlib.resources.open_text('iggytop.config', 'schema_config.yaml') as schema_file:
-        with open(schema_config_path, 'w') as cache_schema_file:
+    schema_config_path = os.path.join(cache_dir, "schema_config.yaml")
+    with importlib.resources.open_text("iggytop.config", "schema_config.yaml") as schema_file:
+        with open(schema_config_path, "w") as cache_schema_file:
             cache_schema_file.write(schema_file.read())
 
     return schema_config_path
+
+
+def get_file_checksum(file_path: str) -> str | None:
+    """Calculates the SHA256 checksum of a file."""
+    if not os.path.exists(file_path):
+        return None
+    sha256_hash = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        for byte_block in iter(lambda: f.read(4096), b""):
+            sha256_hash.update(byte_block)
+    return sha256_hash.hexdigest()
+
 
 def _is_valid_peptide_sequence(seq: str) -> bool:
     """Checks if a given sequence is a valid peptide sequence."""
@@ -119,10 +135,10 @@ def get_mhc_class(allele: str | None) -> str | None:
     """Find MHC class information from the MHC gene (allele) names.
 
     Args:
-        allele (str): MHC allele name.
+        allele: MHC allele name.
 
     Returns:
-        str: MHC class (I or II) or None if not found.
+        MHC class (I or II) or None if not found.
     """
     if allele is None or not isinstance(allele, str):
         return None
@@ -135,25 +151,73 @@ def get_mhc_class(allele: str | None) -> str | None:
 
     # Class II matches
     class_ii_indicators = [
-        "HLA-DR", "HLA-DQ", "HLA-DP", "HLA-DM", "HLA-DO",
-        "DRB", "DRA", "DQB", "DQA", "DPB", "DPA",
-        "H-2A", "H-2E", "H2-A", "H2-E", "I-A", "I-E",
-        "CLASS II", "MH2", "MHC2", "MHC-II", "CLASSII", "MHCII", "MHC II", "CD4",
-        "DQ8", "DR3", "H-2G7"
+        "HLA-DR",
+        "HLA-DQ",
+        "HLA-DP",
+        "HLA-DM",
+        "HLA-DO",
+        "DRB",
+        "DRA",
+        "DQB",
+        "DQA",
+        "DPB",
+        "DPA",
+        "H-2A",
+        "H-2E",
+        "H2-A",
+        "H2-E",
+        "I-A",
+        "I-E",
+        "CLASS II",
+        "MH2",
+        "MHC2",
+        "MHC-II",
+        "CLASSII",
+        "MHCII",
+        "MHC II",
+        "CD4",
+        "DQ8",
+        "DR3",
+        "H-2G7",
     ]
     if any(x in allele for x in class_ii_indicators):
         return "II"
 
     # Class I matches
     class_i_indicators = [
-        "HLA-A", "HLA-B", "HLA-C", "HLA-E", "HLA-F", "HLA-G",
-        "CD1", "MR1",
-        "H-2K", "H-2D", "H-2L", "H-2B", "H-2Q", # Added H-2B from list
-        "H2-K", "H2-D", "H2-L", "H2-Q", "H2-B",
-        "QA-", "QB-", "H2-M",
-        "MAMU-A", "MAMU-B", "MAMU-I",
+        "HLA-A",
+        "HLA-B",
+        "HLA-C",
+        "HLA-E",
+        "HLA-F",
+        "HLA-G",
+        "CD1",
+        "MR1",
+        "H-2K",
+        "H-2D",
+        "H-2L",
+        "H-2B",
+        "H-2Q",  # Added H-2B from list
+        "H2-K",
+        "H2-D",
+        "H2-L",
+        "H2-Q",
+        "H2-B",
+        "QA-",
+        "QB-",
+        "H2-M",
+        "MAMU-A",
+        "MAMU-B",
+        "MAMU-I",
         "GAGA-BF",
-        "CLASS I", "MH1", "MHC1", "MHC-I", "CLASSI", "MHCI", "MHC I", "CD8"
+        "CLASS I",
+        "MH1",
+        "MHC1",
+        "MHC-I",
+        "CLASSI",
+        "MHCI",
+        "MHC I",
+        "CD8",
     ]
     if any(x in allele for x in class_i_indicators):
         return "I"
@@ -169,10 +233,10 @@ def get_tissue_source(tissue: str | None) -> str:
     """Standardize tissue source information while staying close to the original values.
 
     Args:
-        tissue (str): Original tissue source from database.
+        tissue: Original tissue source from database.
 
     Returns:
-        str: Standardized tissue name or original value.
+        Standardized tissue name or original value.
     """
     if tissue is None or not isinstance(tissue, str):
         return "nan"
@@ -197,9 +261,7 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
         type_col = getattr(REGISTRY_KEYS, f"CHAIN_{i}_TYPE_KEY")
 
         if cdr3_col in table.columns and type_col in table.columns:
-            table[cdr3_col] = table.apply(
-                lambda row: _process_cdr3_sequence(row[cdr3_col], is_igh=(row[type_col] == "IGH")), axis=1
-            )
+            table[cdr3_col] = table.apply(lambda row: _process_cdr3_sequence(row[cdr3_col], is_igh=(row[type_col] == "IGH")), axis=1)
 
     # Clean epitope sequences
     if REGISTRY_KEYS.EPITOPE_KEY in table.columns:
@@ -228,12 +290,8 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
         table[REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].replace(iri_mapping)
 
         # Fill missing antigen and antigen species pairs if at least one is missing using information from IEDB
-        organism_mapping = {
-            epitope: data["organism"] for epitope, data in epitope_map.items() if data["organism"] is not None
-        }
-        antigen_mapping = {
-            epitope: data["antigen"] for epitope, data in epitope_map.items() if data["antigen"] is not None
-        }
+        organism_mapping = {epitope: data["organism"] for epitope, data in epitope_map.items() if data["organism"] is not None}
+        antigen_mapping = {epitope: data["antigen"] for epitope, data in epitope_map.items() if data["antigen"] is not None}
 
         # Check if columns exist, create them if they don't
         if REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY not in table.columns:
@@ -261,12 +319,8 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
 
     # Harmonize/clean species terms for both, antigen species and receptor chain species, using rules defined in map_species_terms
     if REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY in table.columns:
-        antigen_species_harmonized_map = map_species_terms(
-            table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY].dropna().unique().tolist()
-        )
-        table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY] = table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY].replace(
-            antigen_species_harmonized_map
-        )
+        antigen_species_harmonized_map = map_species_terms(table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY].dropna().unique().tolist())
+        table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY] = table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY].replace(antigen_species_harmonized_map)
 
     if REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY in table.columns:
         chain_1_species_map = map_species_terms(table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY].dropna().unique().tolist())
@@ -382,8 +436,9 @@ def get_iedb_ids_batch(bc: BioCypher, epitopes: list[str], chunk_size: int = 150
 
     # Final statistics
     matched_count = sum(1 for ep, info in epitope_to_iedb.items() if info["iri"].startswith("iedb:"))
+    total_eps = len(epitopes)
     getLogger("biocypher").info(
-        f"Epitope mapping results: {matched_count} of {len(epitopes)} epitopes matched to IEDB IDs ({matched_count / len(epitopes) * 100:.1f}%)"
+        f"Epitope mapping results: {matched_count} of {total_eps} epitopes " f"matched to IEDB IDs ({matched_count / total_eps * 100:.1f}%)"
     )
     return epitope_to_iedb
 
@@ -472,13 +527,13 @@ def get_pmids_batch(bc: BioCypher, reference_urls: list[int], chunk_size: int = 
 
     # Final statistics
     matched_count = sum(1 for ref_id, pmid in reference_to_pmid.items() if pmid is not None)
+    total_refs = len(reference_ids)
     getLogger("biocypher").info(
-        f"PMID mapping results: {matched_count} of {len(reference_ids)} reference IDs matched to PubMed IDs ({matched_count / len(reference_ids) * 100:.1f}%)"
+        f"PMID mapping results: {matched_count} of {total_refs} reference IDs "
+        f"matched to PubMed IDs ({matched_count / total_refs * 100:.1f}%)"
     )
 
-    urls_to_pmids = {
-        url: reference_to_pmid[id_val] for url, id_val in reference_ids_dic.items() if id_val in reference_to_pmid
-    }
+    urls_to_pmids = {url: reference_to_pmid[id_val] for url, id_val in reference_ids_dic.items() if id_val in reference_to_pmid}
 
     return urls_to_pmids
 
@@ -521,13 +576,15 @@ def _get_reference_data(bc: BioCypher, reference_ids: list[int], base_url: str) 
         return []
 
 
-def save_airr_cells_json(airrcells: List[AirrCell], directory: str, filename: str = None) -> None:
+def save_airr_cells_json(airrcells: List[AirrCell], directory: str, filename: str = None, metadata: dict = None) -> None:
     """
     Save a list of AirrCell objects to a compressed JSON file with auto-generated filename.
 
     Args:
         airrcells (List[AirrCell]): List of AirrCell objects to save.
         directory (str): Directory path where to save the JSON file (e.g., "../data").
+        filename (str, optional): Filename without extension.
+        metadata (dict, optional): Metadata to include in the JSON file.
     """
     serialized_data = []
 
@@ -538,8 +595,12 @@ def save_airr_cells_json(airrcells: List[AirrCell], directory: str, filename: st
         }
         serialized_data.append(cell_data)
 
+    output_data = serialized_data
+    if metadata:
+        output_data = {"metadata": metadata, "cells": serialized_data}
+
     # Generate filename with current date
-    current_date = datetime.now().strftime("%d%m%Y%H%M%S")  # Format: DDMMYYYY
+    current_date = datetime.now().strftime("%Y%m%d%H%M%S")  # Format: YYYYMMDDHHMMSS
     if filename:
         filename = f"{filename}.json.gz"
     else:
@@ -553,9 +614,36 @@ def save_airr_cells_json(airrcells: List[AirrCell], directory: str, filename: st
 
     # Save as compressed JSON
     with gzip.open(filepath, "wt", encoding="utf-8") as f:
-        json.dump(serialized_data, f, indent=2, ensure_ascii=False)
+        json.dump(output_data, f, indent=2, ensure_ascii=False)
 
     getLogger("biocypher").info(f"Compressed JSON saved to: {filepath}")
+
+
+def get_previous_release_metadata(repo_name: str = "iggytop/iggytop") -> dict | None:
+    """
+    Fetches metadata from the latest GitHub release of iggytop.
+    """
+    api_url = f"https://api.github.com/repos/{repo_name}/releases/latest"
+    headers = {"Accept": "application/vnd.github.v3+json", "User-Agent": "iggytop-metadata-fetcher"}
+    github_token = os.getenv("GITHUB_TOKEN")
+    if github_token:
+        headers["Authorization"] = f"token {github_token}"
+
+    try:
+        response = requests.get(api_url, headers=headers, timeout=10)
+        if response.status_code == 200:
+            release_data = response.json()
+            # Try to find a metadata asset or parse it from the release body/assets
+            # For now, we'll look for a specific 'metadata.json' asset if it exists
+            for asset in release_data.get("assets", []):
+                if asset["name"] == "metadata.json":
+                    meta_url = asset["browser_download_url"]
+                    meta_res = requests.get(meta_url, timeout=10)
+                    if meta_res.status_code == 200:
+                        return meta_res.json()
+    except Exception:
+        pass
+    return None
 
 
 def save_airr_cells_csv(airr_cells: List, directory: str) -> None:
@@ -630,3 +718,61 @@ def save_airr_cells_csv(airr_cells: List, directory: str) -> None:
     getLogger("biocypher").info(f"Compressed CSV saved to: {filepath}")
     getLogger("biocypher").info(f"Shape: {df.shape}")
 
+
+def aggregate_unique_joined(series, separator="|"):
+    """
+    Helper function to aggregate unique values into a joined string.
+    Warns if string 'nan' are found.
+    """
+    values = set()
+    for v in series:
+        if pd.isna(v) or str(v).lower() == "nan":
+            continue
+
+        s_v = str(v).strip()
+        if s_v:
+            values.update([s_v])
+    if len(values) == 0:
+        values.update(["nan"])
+    return separator.join(sorted(values))
+
+
+def deduplicate_and_aggregate(adata, subset_cols, agg_cols, separator="|"):
+    """
+    Deduplicates AnnData based on subset_cols and aggregates values in agg_cols.
+    Uses scirpy airr_context to access TCR-specific columns if needed.
+    """
+    with ir.get.airr_context(adata, ["v_call", "junction_aa"], chain=["VJ_1", "VDJ_1"]) as m:
+        obs_df = m.obs.copy()
+
+        # Verify columns exist
+        for col in subset_cols + agg_cols:
+            if col not in obs_df.columns:
+                raise KeyError(f"Column '{col}' not found in AnnData observations.")
+
+        # Identify first occurrences based on subset_cols
+        # Use drop_duplicates to find indices of records to keep
+        # This is more robust than ~duplicated() when dealing with AIRR context/different views
+        keep_indices = obs_df.reset_index().drop_duplicates(subset=subset_cols).set_index("cell_id").index
+
+        # Define aggregation map
+        agg_map = {col: (lambda s, sep=separator: aggregate_unique_joined(s, sep)) for col in agg_cols}
+
+        # Group and aggregate
+        # observed=True is used to avoid 'Product space too large' errors
+        aggs = obs_df.groupby(subset_cols, observed=True, dropna=False, sort=False).agg(agg_map).reset_index()
+
+        # Map aggregated info back to the deduplicated AnnData
+        first_entries_keys = obs_df.loc[keep_indices, subset_cols].reset_index()
+        final_info = first_entries_keys.merge(aggs, on=subset_cols, how="left")
+
+    # Slice original AnnData using the identified indices
+    deduplicated_adata = adata[keep_indices, :].copy()
+
+    # Update aggregated columns
+    # Ensure index alignment
+    final_info.set_index("cell_id", inplace=True)
+    for col in agg_cols:
+        deduplicated_adata.obs[col] = final_info.loc[deduplicated_adata.obs.index, col]
+
+    return deduplicated_adata

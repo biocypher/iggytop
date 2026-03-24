@@ -1,15 +1,14 @@
 import pandas as pd
-import re
-
 from biocypher import BioCypher, FileDownload
+
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import harmonize_sequences, get_mhc_class
+from .utils import get_mhc_class, harmonize_sequences
 
 
 class ITRAPAdapter(BaseAdapter):
     """BioCypher adapter for the ITRAP benchmark dataset.
-    
+
     Data from: https://github.com/mnielLab/ITRAP_benchmark
     """
 
@@ -23,6 +22,16 @@ class ITRAPAdapter(BaseAdapter):
     """Receptor types available in ITRAP."""
 
     def get_latest_release(self, bc: BioCypher) -> str:
+        """
+        Retrieves the latest release of the ITRAP database.
+
+        Args:
+            bc: An instance of the BioCypher class.
+
+        Returns:
+            Path to the latest release file.
+        """
+        self.set_metadata(source_url=self.DB_URL)
         itrap_resource = FileDownload(
             name=self.DB_DIR,
             url_s=self.DB_URL,
@@ -39,8 +48,16 @@ class ITRAPAdapter(BaseAdapter):
 
     def read_table(self, bc: BioCypher, table_path: str, receptors: list[str], test: bool = False) -> pd.DataFrame:
         """
-        Reads and processes the ITRAP table.
-        Columns: peptide_HLA, cdr3_TRA, cdr3_TRB, v_gene_TRA, j_gene_TRA, v_gene_TRB, j_gene_TRB
+        Reads and processes the ITRAP table from the downloaded database file.
+
+        Args:
+            bc: An instance of the BioCypher class.
+            table_path: Path to the table file.
+            receptors: List of receptor types to include in the table (Ignored as only TCR is available).
+            test: If `True`, loads only a subset of the data for testing (default is False).
+
+        Returns:
+            A DataFrame containing the processed table data.
         """
         table = pd.read_csv(table_path)
 
@@ -103,7 +120,7 @@ class ITRAPAdapter(BaseAdapter):
             "AAKGRGAAL": ("Negative Control", "NC"),
         }
 
-        # Split peptide_HLA (e.g., "GILGFVFTL_HLA-A*02:01")
+        # Split peptide_HLA (e.g., "GILGFVFTL HLA-A*02:01")
         # Assuming format is PEPTIDE_HLA
         def split_peptide_hla(val):
             if pd.isna(val) or " " not in val:
@@ -127,7 +144,7 @@ class ITRAPAdapter(BaseAdapter):
         }
 
         table = table.rename(columns=rename_cols)
-        
+
         # Add metadata
         table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.TRA_KEY
         table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
@@ -140,7 +157,7 @@ class ITRAPAdapter(BaseAdapter):
         def apply_mapping(peptide):
             if peptide in antigen_mapping:
                 return antigen_mapping[peptide]
-            return (None, None) # Default species to human if not found
+            return (None, None)
 
         mapped_info = table[REGISTRY_KEYS.EPITOPE_KEY].apply(apply_mapping)
         table[REGISTRY_KEYS.ANTIGEN_KEY] = mapped_info.apply(lambda x: x[0])

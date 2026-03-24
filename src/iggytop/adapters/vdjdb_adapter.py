@@ -1,14 +1,14 @@
+import json
 import os
+from pathlib import Path
+
 import pandas as pd
 import requests
 from biocypher import BioCypher, FileDownload
-from pathlib import Path
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import harmonize_sequences, get_mhc_class, get_tissue_source
-import json
-
+from .utils import get_mhc_class, get_tissue_source, harmonize_sequences
 
 
 class VDJDBAdapter(BaseAdapter):
@@ -32,52 +32,49 @@ class VDJDBAdapter(BaseAdapter):
 
     available_receptors = ["TCR"]
     """Receptor types available in VDJDB."""
-    
+
     def get_latest_release(self, bc: BioCypher) -> str:
         """
         Retrieves the latest release of the VDJDB database from GitHub.
 
         Args:
-            bc (BioCypher): An instance of the BioCypher class.
+            bc: An instance of the BioCypher class.
 
         Returns:
-            str: The file path of the downloaded database.
+            The file path of the downloaded database.
 
         Raises:
             FileNotFoundError: If the database file cannot be found after downloading.
         """
         # Use GitHub REST API directly to avoid PyGithub authentication issues
         api_url = f"https://api.github.com/repos/{self.REPO_NAME}/releases/latest"
-        headers = {
-            "Accept": "application/vnd.github.v3+json",
-            "User-Agent": "iggytop-adapter"
-        }
+        headers = {"Accept": "application/vnd.github.v3+json", "User-Agent": "iggytop-adapter"}
         github_token = os.getenv("GITHUB_TOKEN")
-        
+
         # Try with token first if available
         if github_token:
             headers["Authorization"] = f"token {github_token}"
-        
-        response = requests.get(api_url, headers=headers)
-        
+
+        response = requests.get(api_url, headers=headers, timeout=30)
+
         # If we get 401 (unauthorized), the token might be invalid/expired
         # For public repos, we can retry without authentication
         if response.status_code == 401:
             if github_token:
                 # Token is invalid, try without it for public repo access
-                clean_headers = {
-                    "Accept": "application/vnd.github.v3+json",
-                    "User-Agent": "iggytop-adapter"
-                }
-                response = requests.get(api_url, headers=clean_headers)
-        
+                clean_headers = {"Accept": "application/vnd.github.v3+json", "User-Agent": "iggytop-adapter"}
+                response = requests.get(api_url, headers=clean_headers, timeout=30)
+
         response.raise_for_status()
-        
+
         release_data = response.json()
+        version_tag = release_data.get("tag_name", "latest")
         if not release_data.get("assets"):
             raise FileNotFoundError(f"No assets found in latest release for {self.REPO_NAME}")
-        
+
         db_url = release_data["assets"][0]["browser_download_url"]
+
+        self.set_metadata(version=version_tag, source_url=db_url)
 
         vdjdb_resource = FileDownload(
             name=self.DB_DIR,
@@ -87,7 +84,7 @@ class VDJDBAdapter(BaseAdapter):
         )
 
         vdjdb_paths = bc.download(vdjdb_resource)
-
+        db_path = None
         db_dir = Path(vdjdb_paths[0]).parent
         for root, _dirs, files in os.walk(db_dir):
             for file in files:
@@ -104,13 +101,13 @@ class VDJDBAdapter(BaseAdapter):
         Reads and processes the VDJdb table from the downloaded database file.
 
         Args:
-            bc (BioCypher): An instance of the BioCypher class.
-            table_path (str): Path to the table file.
-            receptors (list[str]): List of receptor types to include in the table. Not used here as only TCR is available.
-            test (bool, optional): If `True`, loads only a subset of the data for testing (default is False).
+            bc: An instance of the BioCypher class.
+            table_path: Path to the table file.
+            receptors: List of receptor types to include in the table (Ignored as only TCR is available).
+            test: If `True`, loads only a subset of the data for testing (default is False).
 
         Returns:
-            pd.DataFrame: A DataFrame containing the processed table data.
+            A DataFrame containing the processed table data.
 
         Raises:
             FileNotFoundError: If the table file cannot be found.
@@ -124,12 +121,12 @@ class VDJDBAdapter(BaseAdapter):
         table = self._transform_paired_data_efficient(table)
 
         rename_cols = {
-            "cdr3_chain_1": REGISTRY_KEYS.CHAIN_1_CDR3_KEY, 
-            "v.segm_chain_1": REGISTRY_KEYS.CHAIN_1_V_GENE_KEY, 
-            "j.segm_chain_1": REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,  
-            "cdr3_chain_2": REGISTRY_KEYS.CHAIN_2_CDR3_KEY,  
-            "v.segm_chain_2": REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,  
-            "j.segm_chain_2": REGISTRY_KEYS.CHAIN_2_J_GENE_KEY, 
+            "cdr3_chain_1": REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            "v.segm_chain_1": REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
+            "j.segm_chain_1": REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
+            "cdr3_chain_2": REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+            "v.segm_chain_2": REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
+            "j.segm_chain_2": REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             "species": REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
             "antigen.epitope": REGISTRY_KEYS.EPITOPE_KEY,
             "antigen.gene": REGISTRY_KEYS.ANTIGEN_KEY,
@@ -140,18 +137,15 @@ class VDJDBAdapter(BaseAdapter):
             "mhc.b": REGISTRY_KEYS.MHC_GENE_2_KEY,
             "meta.tissue": REGISTRY_KEYS.TISSUE_KEY,
         }
-        table['meta.tissue'] = table['meta'].apply(
-            lambda x: json.loads(x).get('tissue') if isinstance(x, str) else (x.get('tissue') if isinstance(x, dict) else None)
+        table["meta.tissue"] = table["meta"].apply(
+            lambda x: json.loads(x).get("tissue") if isinstance(x, str) else (x.get("tissue") if isinstance(x, dict) else None)
         )
         table = table.rename(columns=rename_cols)
         table = table[list(rename_cols.values())]
 
         # Remove 'PMID:' prefix from reference IDs
         table[REGISTRY_KEYS.PUBLICATION_KEY] = (
-            table[REGISTRY_KEYS.PUBLICATION_KEY]
-            .astype(str)
-            .str.replace(r"^PMID:", "", regex=True)
-            .replace("None", None)
+            table[REGISTRY_KEYS.PUBLICATION_KEY].astype(str).str.replace(r"^PMID:", "", regex=True).replace("None", None)
         )
 
         table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY] = table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY]
@@ -166,17 +160,16 @@ class VDJDBAdapter(BaseAdapter):
         table_preprocessed = harmonize_sequences(bc, table)
 
         return table_preprocessed
-    
 
     def _transform_paired_data_efficient(self, df):
         """
         Efficient transformation that handles ALL cases correctly.
         This is required to properly pair TRA and TRB chains based on complex.id. (They are on different rows in the raw database)
         Args:
-            df (pd.DataFrame): The input DataFrame containing the VDJdb data.
+            df: The input DataFrame containing the VDJdb data.
 
         Returns:
-            pd.DataFrame: A DataFrame with the transformed paired data.
+            A DataFrame with the transformed paired data.
         """
 
         # 1. Separate unpaired (complex.id == 0)
@@ -238,11 +231,11 @@ class VDJDBAdapter(BaseAdapter):
         Process single chain data (TRA or TRB only).
 
         Args:
-            df (pd.DataFrame): The input DataFrame containing the single chain data.
-            chain_type (str): The type of chain, either "tra" or "trb".
+            df: The input DataFrame containing the single chain data.
+            chain_type: The type of chain, either "tra" or "trb".
 
         Returns:
-            pd.DataFrame: A DataFrame with the processed single chain data.
+            A DataFrame with the processed single chain data.
         """
         if len(df) == 0:
             return df

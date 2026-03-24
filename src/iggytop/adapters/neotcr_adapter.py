@@ -3,7 +3,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_mhc_class, harmonize_sequences, get_tissue_source
+from .utils import get_mhc_class, get_tissue_source, harmonize_sequences
 
 
 class NEOTCRAdapter(BaseAdapter):
@@ -19,8 +19,18 @@ class NEOTCRAdapter(BaseAdapter):
     """Directory name for the downloaded database."""
     available_receptors = ["TCR"]
     """Receptor types available in NeoTCR."""
-    
+
     def get_latest_release(self, bc: BioCypher) -> str:
+        """
+        Retrieves the latest release of the NeoTCR database.
+
+        Args:
+            bc: An instance of the BioCypher class.
+
+        Returns:
+            Path to the latest release file.
+        """
+        self.set_metadata(source_url=self.RAW_URL)
         # Download NEOTCR
         neotcr_resource = FileDownload(
             name=self.DB_DIR,
@@ -33,7 +43,7 @@ class NEOTCRAdapter(BaseAdapter):
 
         if not neotcr_path:
             raise FileNotFoundError(f"Failed to download NEOTCR database from {self.RAW_URL}")
-        
+
         return neotcr_path[0]
 
     def read_table(self, bc: BioCypher, table_path: str, receptors: list[str], test: bool = False) -> pd.DataFrame:
@@ -41,13 +51,13 @@ class NEOTCRAdapter(BaseAdapter):
         Reads and processes the NeoTCR table from the downloaded database file.
 
         Args:
-            bc (BioCypher): An instance of the BioCypher class.
-            table_path (str): Path to the table file.
-            receptors (list[str]): List of receptor types to include in the table. Not used here as only TCR is available.
-            test (bool, optional): If `True`, loads only a subset of the data for testing (default is False).
+            bc: An instance of the BioCypher class.
+            table_path: Path to the table file.
+            receptors: List of receptor types to include in the table (Ignored as only TCR is available).
+            test: If `True`, loads only a subset of the data for testing (default is False).
 
         Returns:
-            pd.DataFrame: A DataFrame containing the processed table data.
+            A DataFrame containing the processed table data.
 
         Raises:
             FileNotFoundError: If the table file cannot be found.
@@ -92,19 +102,13 @@ class NEOTCRAdapter(BaseAdapter):
         table = table.explode(REGISTRY_KEYS.EPITOPE_KEY).reset_index(drop=True)
 
         # Trim Pubmed IDs
-        table[REGISTRY_KEYS.PUBLICATION_KEY] = (
-            table[REGISTRY_KEYS.PUBLICATION_KEY].astype(str).str.replace("PMID:", "").str.strip()
-        )
+        table[REGISTRY_KEYS.PUBLICATION_KEY] = table[REGISTRY_KEYS.PUBLICATION_KEY].astype(str).str.replace("PMID:", "").str.strip()
 
         table_preprocessed = harmonize_sequences(bc, table)
-        table_preprocessed[REGISTRY_KEYS.MHC_CLASS_KEY] = table_preprocessed[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(
-            get_mhc_class
-        )
+        table_preprocessed[REGISTRY_KEYS.MHC_CLASS_KEY] = table_preprocessed[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(get_mhc_class)
 
-        table_preprocessed[REGISTRY_KEYS.TISSUE_KEY] = table_preprocessed[REGISTRY_KEYS.TISSUE_KEY].apply(
-            get_tissue_source
-        )
-        
+        table_preprocessed[REGISTRY_KEYS.TISSUE_KEY] = table_preprocessed[REGISTRY_KEYS.TISSUE_KEY].apply(get_tissue_source)
+
         return table_preprocessed
 
     def get_nodes(self):

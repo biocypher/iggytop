@@ -1,23 +1,19 @@
 import os
-import pandas as pd
 
+import pandas as pd
 from biocypher import BioCypher, FileDownload
+
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_tissue_source, get_mhc_class, harmonize_sequences
+from .utils import get_mhc_class, get_tissue_source, harmonize_sequences
 
 
 class TRAITAdapter(BaseAdapter):
-    """A Comprehensive Database for T-cell Receptor-Antigen Interactions `TRAIT <https://pgx.zju.edu.cn/traitdb/>`_.
-
-    Args:
-        bc (BioCypher): BioCypher instance for DB download.
-        test (bool, optional): If `True`, only a subset of the data will be loaded for testing purposes. Defaults to False.
-    """
+    """A Comprehensive Database for T-cell Receptor-Antigen Interactions `TRAIT <https://pgx.zju.edu.cn/traitdb/>`_."""
 
     DB_URL = "https://pgx.zju.edu.cn/download.trait/Interactive_TCR-pMHC_Pairs.zip_20250312.zip"
     """URL to download the TRAIT database."""
-    
+
     DB_DIR = "trait_latest"
     """Directory name for the downloaded database."""
 
@@ -26,8 +22,18 @@ class TRAITAdapter(BaseAdapter):
 
     available_receptors = ["TCR"]
     """Receptor types available in TRAIT."""
-    
+
     def get_latest_release(self, bc: BioCypher) -> str:
+        """
+        Retrieves the latest release of the TRAIT database.
+
+        Args:
+            bc: An instance of the BioCypher class.
+
+        Returns:
+            Path to the latest release file.
+        """
+        self.set_metadata(source_url=self.DB_URL)
         trait_resource = FileDownload(
             name=self.DB_DIR,
             url_s=self.DB_URL,
@@ -59,13 +65,13 @@ class TRAITAdapter(BaseAdapter):
         Reads and processes the TRAIT table from the downloaded database file.
 
         Args:
-            bc (BioCypher): An instance of the BioCypher class.
-            table_path (str): Path to the table file.
-            receptors (list[str]): List of receptor types to include in the table. Not used here as only TCR is available.
-            test (bool, optional): If `True`, loads only a subset of the data for testing (default is False).
+            bc: An instance of the BioCypher class.
+            table_path: Path to the table file.
+            receptors: List of receptor types to include in the table (Ignored as only TCR is available).
+            test: If `True`, loads only a subset of the data for testing (default is False).
 
         Returns:
-            pd.DataFrame: A DataFrame containing the processed table data.
+            A DataFrame containing the processed table data.
 
         Raises:
             FileNotFoundError: If the table file cannot be found.
@@ -99,25 +105,17 @@ class TRAITAdapter(BaseAdapter):
 
         # Remove 'PMID:' prefix from reference IDs
         table[REGISTRY_KEYS.PUBLICATION_KEY] = (
-            table[REGISTRY_KEYS.PUBLICATION_KEY]
-            .astype(str)
-            .str.replace(r"^PMID:", "", regex=True)
-            .replace("None", None)
+            table[REGISTRY_KEYS.PUBLICATION_KEY].astype(str).str.replace(r"^PMID:", "", regex=True).replace("None", None)
         )
-        
+
         table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.TRA_KEY
         table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
         table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY] = table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY]
 
-
         table_preprocessed = harmonize_sequences(bc, table)
-        table_preprocessed[REGISTRY_KEYS.MHC_CLASS_KEY] = table_preprocessed[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(
-            get_mhc_class
-        )
+        table_preprocessed[REGISTRY_KEYS.MHC_CLASS_KEY] = table_preprocessed[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(get_mhc_class)
 
-        table_preprocessed[REGISTRY_KEYS.TISSUE_KEY] = table_preprocessed[REGISTRY_KEYS.TISSUE_KEY].apply(
-            get_tissue_source
-        )
+        table_preprocessed[REGISTRY_KEYS.TISSUE_KEY] = table_preprocessed[REGISTRY_KEYS.TISSUE_KEY].apply(get_tissue_source)
 
         return table_preprocessed
 

@@ -141,3 +141,7 @@ dmypy.json
 # But allow ipynb files in notebooks folder
 !notebooks/*.ipynb
 !docs/source/notebooks/*.ipynb
+
+# Docs generated content
+docs/source/generated/
+docs/jupyter_execute/
