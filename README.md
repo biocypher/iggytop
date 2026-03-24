@@ -87,21 +87,9 @@ separators used, and other options. More on its use can be found in the
 
 This repository uses [Sphinx](https://www.sphinx-doc.org/) for documentation.
 
-### Building the Documentation
+### Documentation
+We use [Sphinx](https://www.sphinx-doc.org/en/master/) for documentation, see (`./docs`).
 The full documentation is available online via [Read the Docs](https://iggytop.readthedocs.io/en/cicd/).
-To build the documentation locally, ensure you have the `docs` dependency group installed:
-
-```bash
-uv sync
-```
-
-Then, execute the following command:
-
-```bash
-uv run --group docs ./update_docs.sh
-```
-
-This will generate the documentation in the `docs/build` directory.
 
 ## Testing and CI/CD
 
