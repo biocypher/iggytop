@@ -32,7 +32,3 @@ jobs:
 
       - name: Run Knowledge Graph Ingestion (Test Mode)
         run: uv run create_knowledge_graph.py --test-mode --cache-dir /tmp/iggytop_cache
-
-      - name: Build documentation
-        run: |
-          uv run --group docs sphinx-build -b html docs/source docs/build
