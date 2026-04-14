@@ -1,8 +1,11 @@
 import argparse
 import gzip
 import json
-import os
+from datetime import datetime
 from importlib import resources
+from pathlib import Path
+
+from iggytop.adapters.utils import get_file_checksum
 
 
 def generate_release_assets(release_dir):
@@ -11,11 +14,16 @@ def generate_release_assets(release_dir):
     This information is the same for the merged and deduplicated datasets.
     """
 
+    release_dir = Path(release_dir)
     metadata = {}
-    for f in os.listdir(release_dir):
-        if f.startswith("merged_airr_cells") and f.endswith(".json.gz"):
-            file_path = os.path.join(release_dir, f)
-            with gzip.open(file_path, "rt") as gz:
+    assets = {}
+    for f in release_dir.iterdir():
+        # get checksums of asset files that will be attached to the release
+        if f.is_file():
+            assets[f.name] = get_file_checksum(f)
+        # get source file metadata from merged_airr_cells json
+        if f.name.startswith("merged_airr_cells") and f.name.endswith(".json.gz"):
+            with gzip.open(f, "rt") as gz:
                 data = json.load(gz)
                 metadata = data.get("metadata", {})
                 break
@@ -24,24 +32,41 @@ def generate_release_assets(release_dir):
         print("No metadata found.")
         return False
 
+    metadata["assets"] = assets
+
     # Ensure release directory exists
-    os.makedirs(release_dir, exist_ok=True)
+    release_dir.mkdir(parents=True, exist_ok=True)
 
     # Write release notes and metadata directly to release folder
-    table = "| Data Source | Version | Changed | Checksum (SHA256) |\n"
+    table = "| Data Source | Version | Date downloaded | Changed | Checksum (SHA256) |\n"
     table += "| --- | --- | --- | --- |\n"
     for name, info in metadata.get("sources", {}).items():
         changed_str = "⚠️ YES" if info.get("has_changed") else "No"
-        table += f"| {name} | {info.get('version', 'N/A')} | {changed_str} | `{info.get('checksum', 'N/A')[:10]}...` |\n"
+        try:
+            download_date = datetime.fromisoformat(info["download_date"]).strftime("%Y-%m-%d")
+        except (ValueError, TypeError, KeyError):
+            download_date = "N/A"
+        try:
+            checksums = info["checksums"]
+            # checksums can be list (multiple checksums) or str (single checksum)
+            if isinstance(checksums, str):
+                checksums = [checksums]
+            # for the table, let's show the first 8 chars only. Full information is in metadata
+            checksums_str = "|".join([c[:8] for c in checksums])
+        except KeyError:
+            checksums = "N/A"
+        table += f"| {name} | {info.get('version', 'N/A')} | {download_date} | {changed_str} | {checksums_str} |\n"
 
     template_text = resources.files("iggytop.io").joinpath("RELEASE_NOTES_TEMPLATE.md").read_text()
     release_notes_content = template_text.replace("{{SOURCE_TABLE}}", table)
 
-    release_notes_path = os.path.join(release_dir, "RELEASE_NOTES.md")
+    release_notes_path = release_dir / "RELEASE_NOTES.md"
     with open(release_notes_path, "w") as f:
         f.write(release_notes_content)
 
-    metadata_path = os.path.join(release_dir, "metadata.json")
+    # asset information in `metadata.json` will be used downstream by scirpy to fetch the latest release.
+    # Be careful when modifying this
+    metadata_path = release_dir / "metadata.json"
     with open(metadata_path, "w") as f:
         json.dump(metadata, f, indent=4)
 

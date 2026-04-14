@@ -32,6 +32,7 @@ Datasets are provided in AnnData (.h5ad) and AIRR JSON (.json.gz) formats.
 
 #### Data Source Information
 
-Both datasets (merged and deduplicated) use the same source datasets, reported here:
+Both datasets (merged and deduplicated) use the same source datasets, reported here. The full source
+information is available in `metadata.json`.
 
 {{SOURCE_TABLE}}
