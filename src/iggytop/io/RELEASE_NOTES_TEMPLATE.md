@@ -24,7 +24,7 @@ Datasets are provided in AnnData (.h5ad) and AIRR JSON (.json.gz) formats.
       - Data originating from the 10X dataset is filtered out (except data in the ITRAP dataset).
       - Records are deduplicated (see `create_anndata.py`)
 
-    Find out more about the deduplication and filtering in the [IggyTop documentation](https://iggytop.readthedocs.io/en/cicd/).
+    Find out more about the deduplication and filtering in the [IggyTop documentation](https://iggytop.readthedocs.io/en/latest/).
 
     `deduplicated_anndata.h5ad`
 

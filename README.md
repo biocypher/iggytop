@@ -24,7 +24,7 @@ A script is provided to build a knowledge graph with all these adapters. On a co
 The final output is the **IggyTop** database, which integrates immunoreceptor-epitope matching information from all supported data sources.
 
 ## Graphs vs Tables
-Two paths are covered: A tabular path, stacking the source databases and returning them in tabular format, and a knowledge graph path, converting the source data into a graph. We cover both paths extensively in the [documentation](https://iggytop.readthedocs.io/en/cicd/). For more details on the graph data structure, see [Graph Data Structure](https://iggytop.readthedocs.io/en/cicd/graph_data_structure.html). For the tabular approach, refer to [Tabular Data Structure](https://iggytop.readthedocs.io/en/cicd/tabular_data_structure.html).
+Two paths are covered: A tabular path, stacking the source databases and returning them in tabular format, and a knowledge graph path, converting the source data into a graph. We cover both paths extensively in the [documentation](https://iggytop.readthedocs.io/en/latest/). For more details on the graph data structure, see [Graph Data Structure](https://iggytop.readthedocs.io/en/latest/graph_data_structure.html). For the tabular approach, refer to [Tabular Data Structure](https://iggytop.readthedocs.io/en/latest/tabular_data_structure.html).
 
 
 ## Prerequisites
@@ -58,7 +58,7 @@ Two paths are covered: A tabular path, stacking the source databases and returni
    ```bash
    uv run create_anndata.py
    ```
-More information can be found in the [documentation](https://iggytop.readthedocs.io/en/cicd/).
+More information can be found in the [documentation](https://iggytop.readthedocs.io/en/latest/).
 
 ## Pipeline
 
@@ -89,7 +89,7 @@ This repository uses [Sphinx](https://www.sphinx-doc.org/) for documentation.
 
 ### Documentation
 We use [Sphinx](https://www.sphinx-doc.org/en/master/) for documentation, see (`./docs`).
-The full documentation is available online via [Read the Docs](https://iggytop.readthedocs.io/en/cicd/).
+The full documentation is available online via [Read the Docs](https://iggytop.readthedocs.io/en/latest/).
 
 ## Testing and CI/CD
 
