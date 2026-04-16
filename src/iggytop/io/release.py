@@ -39,22 +39,29 @@ def generate_release_assets(release_dir):
 
     # Write release notes and metadata directly to release folder
     table = "| Data Source | Version | Date downloaded | Changed | Checksum (SHA256) |\n"
-    table += "| --- | --- | --- | --- |\n"
+    table += "| --- | --- | --- | --- | --- |\n"
     for name, info in metadata.get("sources", {}).items():
         changed_str = "⚠️ YES" if info.get("has_changed") else "No"
         try:
             download_date = datetime.fromisoformat(info["download_date"]).strftime("%Y-%m-%d")
         except (ValueError, TypeError, KeyError):
             download_date = "N/A"
-        try:
-            checksums = info["checksums"]
-            # checksums can be list (multiple checksums) or str (single checksum)
-            if isinstance(checksums, str):
-                checksums = [checksums]
-            # for the table, let's show the first 8 chars only. Full information is in metadata
-            checksums_str = "|".join([c[:8] for c in checksums])
-        except KeyError:
-            checksums = "N/A"
+
+        # Check for both 'checksums' and 'checksum' keys
+        checksums = info.get("checksums") or info.get("checksum") or "N/A"
+
+        if isinstance(checksums, str):
+            checksums_list = [checksums]
+        elif isinstance(checksums, list):
+            checksums_list = checksums
+        else:
+            checksums_list = ["N/A"]
+
+        # for the table, let's show the first 8 chars only. Full information is in metadata
+        checksums_str = "|".join([str(c)[:8] for c in checksums_list if c])
+        if not checksums_str:
+            checksums_str = "N/A"
+
         table += f"| {name} | {info.get('version', 'N/A')} | {download_date} | {changed_str} | {checksums_str} |\n"
 
     template_text = resources.files("iggytop.io").joinpath("RELEASE_NOTES_TEMPLATE.md").read_text()
