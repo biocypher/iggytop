@@ -24,13 +24,12 @@ A script is provided to build a knowledge graph with all these adapters. On a co
 The final output is the **IggyTop** database, which integrates immunoreceptor-epitope matching information from all supported data sources.
 
 ## Graphs vs Tables
-Two paths are covered: A tabular path, stacking the source databases and returning them in tabular format, and a knowledge graph path, converting the source data into a graph. We cover both paths extensively in the [documentation](https://iggytop.readthedocs.io/en/cicd/). For more details on the graph data structure, see [Graph Data Structure](https://iggytop.readthedocs.io/en/cicd/graph_data_structure.html). For the tabular approach, refer to [Tabular Data Structure](https://iggytop.readthedocs.io/en/cicd/tabular_data_structure.html).
-
+Two paths are covered: A tabular path, stacking the source databases and returning them in tabular format, and a knowledge graph path, converting the source data into a graph. We cover both paths extensively in the [documentation](https://iggytop.readthedocs.io/en/latest/). For more details on the graph data structure, see [Graph Data Structure](https://iggytop.readthedocs.io/en/latest/graph_data_structure.html). For the tabular approach, refer to [Tabular Data Structure](https://iggytop.readthedocs.io/en/latest/tabular_data_structure.html).
 
 ## Prerequisites
 
-- [uv](https://docs.astral.sh/uv/) for dependency management
-- [docker](https://www.docker.com/get-started/) optional for neo4j (see below)
+- [uv](https://docs.astral.sh/uv/): for dependency management
+- [docker](https://www.docker.com/get-started/): optional for neo4j (see below)
 
 ## Installation
 
@@ -58,7 +57,7 @@ Two paths are covered: A tabular path, stacking the source databases and returni
    ```bash
    uv run create_anndata.py
    ```
-More information can be found in the [documentation](https://iggytop.readthedocs.io/en/cicd/).
+More information can be found in the [documentation](https://iggytop.readthedocs.io/en/latest/).
 
 ## Pipeline
 
@@ -84,18 +83,15 @@ separators used, and other options. More on its use can be found in the
 [Documentation](https://biocypher.org/BioCypher/reference/biocypher-config/).
 
 ## Documentation
-
-This repository uses [Sphinx](https://www.sphinx-doc.org/) for documentation.
-
-### Documentation
 We use [Sphinx](https://www.sphinx-doc.org/en/master/) for documentation, see (`./docs`).
-The full documentation is available online via [Read the Docs](https://iggytop.readthedocs.io/en/cicd/).
+The full documentation is available online via [Read the Docs](https://iggytop.readthedocs.io/en/latest/).
+It the documentation is updated upon commits (pr's) or manually, note that this can mean that the [database summary](https://iggytop.readthedocs.io/en/latest/notebooks/database_summary.html) was not built on the [latest release](https://github.com/biocypher/iggytop/releases/latest)
 
 ## Testing and CI/CD
 
 IggyTop uses GitHub Actions to automate **bimonthly data releases** and ensure data integrity through continuous integration.
 Currently this only involves the tabular part of Iggytop (`create_anndata.py`)
-
+Check out the latest release [here](https://github.com/biocypher/iggytop/releases/latest)
 ### Bimonthly Data Releases
 - **Frequency**: Automated releases on the **1st day of every 2nd month**. (first scheduled on **May 1,2026**)
 - **Release Assets**:
@@ -115,7 +111,7 @@ Ensure you have Docker and `act` installed, then run:
 act workflow_dispatch -W .github/workflows/ci_ingestion.yml
 ```
 
-## 🐳 Docker
+## Graph visualization using Neo4j on Docker
 
 This repo also contains a `docker compose` workflow to create the example
 database using BioCypher and load it into a dockerised Neo4j instance
