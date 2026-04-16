@@ -56,8 +56,8 @@ jobs:
           body_path: /tmp/iggytop_release/RELEASE_NOTES.md
           files: |
             /tmp/iggytop_release/*
-          draft: true
-          prerelease: true
+          draft: false
+          prerelease: false
 
 
       - name: Keep container alive for inspection (Local only)
