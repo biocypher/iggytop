@@ -145,3 +145,4 @@ dmypy.json
 # Docs generated content
 docs/source/generated/
 docs/jupyter_execute/
+releases/*
