@@ -55,7 +55,7 @@ Two paths are covered: A tabular path, stacking the source databases and returni
    or
 
    ```bash
-   uv run create_anndata.py --tag local
+   uv run create_anndata.py
    ```
 More information can be found in the [documentation](https://iggytop.readthedocs.io/en/latest/).
 
@@ -69,7 +69,7 @@ uv run create_knowledge_graph.py --adapters VDJDB CEDAR --filter-10x
 - `create_anndata.py`: this script can be used to obtain the harmonized, merged (and deduplicated) data from all (or selected) available databases in [anndata](https://anndata.readthedocs.io/en/stable/index.html) format.
 It will initialize the adapters but not generate the knowledge graph. The main purpose is integration of the available data into [Scirpy](https://scirpy.scverse.org/en/latest/). You can specify which adapters to include:
 ```bash
-uv run create_anndata.py --adapters VDJDB CEDAR --filter-10x --tag local
+uv run create_anndata.py --adapters VDJDB CEDAR --filter-10x
 ```
 - `src/iggytop/adapters` contains modules that define the adapter to the data source.
 

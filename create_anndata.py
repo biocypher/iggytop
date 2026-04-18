@@ -63,7 +63,7 @@ def main():
     parser.add_argument(
         "--tag",
         type=str,
-        required=True,
+        default="latest",
         help="Release tag to embed in metadata (e.g. data-YYYY.MM.DD.HHMMSS).",
     )
 

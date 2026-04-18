@@ -49,5 +49,5 @@ One major application of this tabular pipeline is its potential integration into
 You can run the pipeline locally to create custom subsets or use specific versions of the data:
 
 ```bash
-python create_anndata.py --adapters VDJDB MCPAS --filter-10x --tag local
+python create_anndata.py --adapters VDJDB MCPAS --filter-10x
 ```
