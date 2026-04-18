@@ -17,6 +17,10 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Generate release tag
+        id: tag
+        run: echo "tag=data-$(date -u +'%Y.%m.%d.%H%M%S')" >> "$GITHUB_OUTPUT"
+
       - name: Run ingestion (AnnData & AIRR JSON)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -26,7 +30,7 @@ jobs:
           mkdir -p /tmp/iggytop_release
 
           # Create raw versions for direct use (mirror source db's)
-          uv run create_anndata.py --cache-dir /tmp/iggytop_cache --not_deduplicate
+          uv run create_anndata.py --cache-dir /tmp/iggytop_cache --not_deduplicate --tag ${{ steps.tag.outputs.tag }}
 
           cp /tmp/iggytop_cache/merged* /tmp/iggytop_release/
 
@@ -35,7 +39,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Create filtered and deduplicated Iggytop dataset
-          uv run create_anndata.py --cache-dir /tmp/iggytop_cache --filter-10x
+          uv run create_anndata.py --cache-dir /tmp/iggytop_cache --filter-10x --tag ${{ steps.tag.outputs.tag }}
 
           cp /tmp/iggytop_cache/deduplicated* /tmp/iggytop_release/
         # TBD: Add graph-based dataset
@@ -51,8 +55,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
         with:
-          tag_name: data-${{ github.run_id }}
-          name: Data Release ${{ github.run_id }}
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: Data Release ${{ steps.tag.outputs.tag }}
           body_path: /tmp/iggytop_release/RELEASE_NOTES.md
           files: |
             /tmp/iggytop_release/*

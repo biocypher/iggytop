@@ -60,6 +60,12 @@ def main():
         default=False,
         help="Filter out 10X Genomics datasets (default: False).",
     )
+    parser.add_argument(
+        "--tag",
+        type=str,
+        default="latest",
+        help="Release tag to embed in metadata (e.g. data-YYYY.MM.DD.HHMMSS).",
+    )
 
     args = parser.parse_args()
 
@@ -100,7 +106,7 @@ def main():
     prev_sources = prev_metadata.get("sources", {})
 
     global_metadata = {
-        "iggytop_version": "latest",  # Could be fetched from bumpversion or package
+        "iggytop_version": args.tag,
         "release_date": datetime.now().isoformat(),
         "sources": {},
     }
@@ -170,7 +176,7 @@ def main():
             if merged_adata.obs[col].dtype == object:
                 merged_adata.obs[col] = merged_adata.obs[col].astype(str)
 
-        merged_adata.write_h5ad(cache_dir / "merged_anndata.h5ad")
+        merged_adata.write_h5ad(cache_dir / "merged_anndata.h5ad", compression="gzip")
         print(f"Merged AnnData saved to {cache_dir / 'merged_anndata.h5ad'}")
 
         if deduplicate:
@@ -196,7 +202,7 @@ def main():
             # Store metadata in AnnData
             deduplicated_adata.uns["iggytop_metadata"] = global_metadata
 
-            deduplicated_adata.write_h5ad(cache_dir / "deduplicated_anndata.h5ad")
+            deduplicated_adata.write_h5ad(cache_dir / "deduplicated_anndata.h5ad", compression="gzip")
             print(f"Deduplicated AnnData saved to {cache_dir / 'deduplicated_anndata.h5ad'}")
 
         # Optional: Export to AIRR JSON format
