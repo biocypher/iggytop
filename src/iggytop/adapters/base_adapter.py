@@ -338,7 +338,7 @@ class BaseAdapter(ABC):
         adata.uns["DB"] = {"name": self.DB_NAME, "date_downloaded": datetime.now().isoformat()}
 
         anndata_path = Path(self.cache_dir) / f"{self.DB_NAME}_anndata.h5ad"
-        adata.write_h5ad(cast(os.PathLike, anndata_path))
+        adata.write_h5ad(cast(os.PathLike, anndata_path), compression="gzip")
         print(f"Saved Anndata to {anndata_path}")
 
     def _generate_nodes_from_table(

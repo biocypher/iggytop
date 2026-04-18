@@ -176,7 +176,7 @@ def main():
             if merged_adata.obs[col].dtype == object:
                 merged_adata.obs[col] = merged_adata.obs[col].astype(str)
 
-        merged_adata.write_h5ad(cache_dir / "merged_anndata.h5ad")
+        merged_adata.write_h5ad(cache_dir / "merged_anndata.h5ad", compression="gzip")
         print(f"Merged AnnData saved to {cache_dir / 'merged_anndata.h5ad'}")
 
         if deduplicate:
@@ -202,7 +202,7 @@ def main():
             # Store metadata in AnnData
             deduplicated_adata.uns["iggytop_metadata"] = global_metadata
 
-            deduplicated_adata.write_h5ad(cache_dir / "deduplicated_anndata.h5ad")
+            deduplicated_adata.write_h5ad(cache_dir / "deduplicated_anndata.h5ad", compression="gzip")
             print(f"Deduplicated AnnData saved to {cache_dir / 'deduplicated_anndata.h5ad'}")
 
         # Optional: Export to AIRR JSON format
