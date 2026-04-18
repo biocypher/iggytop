@@ -28,7 +28,7 @@ jobs:
           uv run pytest tests/
 
       - name: Run AnnData Ingestion (Test Mode)
-        run: uv run create_anndata.py --test-mode --cache-dir /tmp/iggytop_cache
+        run: uv run create_anndata.py --test-mode --cache-dir /tmp/iggytop_cache --tag test
 
       - name: Run Knowledge Graph Ingestion (Test Mode)
         run: uv run create_knowledge_graph.py --test-mode --cache-dir /tmp/iggytop_cache
