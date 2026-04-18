@@ -60,6 +60,12 @@ def main():
         default=False,
         help="Filter out 10X Genomics datasets (default: False).",
     )
+    parser.add_argument(
+        "--tag",
+        type=str,
+        required=True,
+        help="Release tag to embed in metadata (e.g. data-YYYY.MM.DD.HHMMSS).",
+    )
 
     args = parser.parse_args()
 
@@ -100,7 +106,7 @@ def main():
     prev_sources = prev_metadata.get("sources", {})
 
     global_metadata = {
-        "iggytop_version": "latest",  # Could be fetched from bumpversion or package
+        "iggytop_version": args.tag,
         "release_date": datetime.now().isoformat(),
         "sources": {},
     }
