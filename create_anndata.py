@@ -25,7 +25,7 @@ from iggytop.adapters.vdjdb_adapter import VDJDBAdapter
 from scirpy.pp import index_chains
 
 
-def _save_adata(adata: ad.AnnData, path: Path, *, name: str, tag: str, metadata: dict):
+def _save_adata(adata: ad.AnnData, path: Path, *, name: str, metadata: dict):
     index_chains(adata)
     adata.uns["DB"] = {"name": name, "date_created": datetime.now().isoformat(), "version": metadata["iggytop_version"]}
     adata.uns["iggytop_metadata"] = metadata
