@@ -9,11 +9,10 @@ from iggytop.adapters.utils import get_file_checksum
 
 
 def generate_release_assets(release_dir):
-    """
-    Processes metadata from cache and generates RELEASE_NOTES.md and metadata.json.
+    """Process metadata from cache and generates RELEASE_NOTES.md and metadata.json.
+
     This information is the same for the merged and deduplicated datasets.
     """
-
     release_dir = Path(release_dir)
     metadata = {}
     assets = {}
@@ -26,7 +25,6 @@ def generate_release_assets(release_dir):
             with gzip.open(f, "rt") as gz:
                 data = json.load(gz)
                 metadata = data.get("metadata", {})
-                break
 
     if not metadata:
         print("No metadata found.")
