@@ -9,7 +9,7 @@ default_stages:
 minimum_pre_commit_version: 2.7.1
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.2.0
+    rev: v0.15.11
     hooks:
     -   id: ruff
         args:

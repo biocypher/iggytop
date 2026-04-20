@@ -1,4 +1,4 @@
-""" This module contains utility functions for cleaning up species terms and cleaning antigen names """
+"""This module contains utility functions for cleaning up species terms and cleaning antigen names"""
 
 import sys
 

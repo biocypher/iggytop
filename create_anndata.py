@@ -7,6 +7,8 @@ import anndata as ad
 import platformdirs
 import scirpy as ir
 from biocypher import BioCypher
+from scirpy.pp import index_chains
+
 from iggytop.adapters.cedar_adapter import CEDARAdapter
 from iggytop.adapters.iedb_adapter import IEDBAdapter
 from iggytop.adapters.itrap_adapter import ITRAPAdapter
@@ -22,7 +24,6 @@ from iggytop.adapters.utils import (
     save_airr_cells_json,
 )
 from iggytop.adapters.vdjdb_adapter import VDJDBAdapter
-from scirpy.pp import index_chains
 
 
 def _save_adata(adata: ad.AnnData, path: Path, *, name: str, metadata: dict):
@@ -80,9 +81,9 @@ def main():
     filter_10x = args.filter_10x
     adapters_to_include = args.adapters
     merge = True if len(adapters_to_include) > 1 else False
-    deduplicate = ~args.not_deduplicate
+    deduplicate = not args.not_deduplicate
     save_single_adapter_data = False
-    save_airr_json = ~args.adata_only
+    save_airr_json = not args.adata_only
     receptors_to_include = ["TCR", "BCR"]
     cache_dir = args.cache_dir
     os.makedirs(cache_dir, exist_ok=True)
