@@ -25,6 +25,14 @@ from iggytop.adapters.vdjdb_adapter import VDJDBAdapter
 from scirpy.pp import index_chains
 
 
+def _save_adata(adata: ad.AnnData, path: Path, *, name: str, metadata: dict):
+    index_chains(adata)
+    adata.uns["DB"] = {"name": name, "date_created": datetime.now().isoformat(), "version": metadata["iggytop_version"]}
+    adata.uns["iggytop_metadata"] = metadata
+    adata.write_h5ad(path, compression="gzip")
+    print(f"{path.name} saved to {path}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Run the AnnData ingestion workflow.")
     parser.add_argument("--test-mode", action="store_true", default=False, help="Run in test mode with a small subset of data.")
@@ -112,8 +120,8 @@ def main():
     }
 
     adapters = []
-    for AdapterClass in selected_adapters:
-        adapter = AdapterClass(bc, cache_dir, receptors_to_include, test_mode, filter_10x)
+    for adapter_class in selected_adapters:
+        adapter = adapter_class(bc, cache_dir, receptors_to_include, test_mode, filter_10x)
         adapters.append(adapter)
 
         # Update adapter metadata with change information
@@ -154,13 +162,13 @@ def main():
                 a.obs[col] = None
 
         # Quick summary table
-        for f in adatas:
+        for f, adata in adatas.items():
             print(
                 {
                     "File": f,
-                    "Observations": adatas[f].n_obs,
-                    "Variables": adatas[f].n_vars,
-                    "Columns": len(adatas[f].obs.columns),
+                    "Observations": adata.n_obs,
+                    "Variables": adata.n_vars,
+                    "Columns": len(adata.obs.columns),
                 }
             )
 
@@ -175,9 +183,6 @@ def main():
         for col in merged_adata.obs.columns:
             if merged_adata.obs[col].dtype == object:
                 merged_adata.obs[col] = merged_adata.obs[col].astype(str)
-
-        merged_adata.write_h5ad(cache_dir / "merged_anndata.h5ad", compression="gzip")
-        print(f"Merged AnnData saved to {cache_dir / 'merged_anndata.h5ad'}")
 
         if deduplicate:
             # Deduplicate and aggregate specific attributes
@@ -197,13 +202,10 @@ def main():
                 raise
 
             print(f"Number of entries after deduplication: {deduplicated_adata.n_obs}")
-            index_chains(deduplicated_adata)
 
-            # Store metadata in AnnData
-            deduplicated_adata.uns["iggytop_metadata"] = global_metadata
-
-            deduplicated_adata.write_h5ad(cache_dir / "deduplicated_anndata.h5ad", compression="gzip")
-            print(f"Deduplicated AnnData saved to {cache_dir / 'deduplicated_anndata.h5ad'}")
+        # Dave result to AnnData
+        _save_adata(deduplicated_adata, cache_dir / "deduplicated_anndata.h5ad", name="iggytop_deduplicated", metadata=global_metadata)
+        _save_adata(merged_adata, cache_dir / "merged_anndata.h5ad", name="iggytop_merged", metadata=global_metadata)
 
         # Optional: Export to AIRR JSON format
         if save_airr_json:
