@@ -9,7 +9,7 @@ authors = [
 ]
 license = { text = "MIT" }
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 dependencies = [
     "biocypher>=0.11.0",
     "pandas>=2.0.1",
@@ -26,6 +26,7 @@ dependencies = [
     "scirpy>=0.22.3",
     "openpyxl>=3.1.5,<4.0.0",
     "ijson>=3.4.0.post0",
+    "tidytcells>=2.2.0",
 ]
 
 [dependency-groups]
@@ -67,7 +68,7 @@ build-backend = "hatchling.build"
 
 [tool.ruff]
 line-length = 140
-target-version = "py311"
+target-version = "py313"
 exclude = [".git", ".venv", "__pycache__", "*.pyc", "*.ipynb"]
 
 [tool.ruff.lint]
