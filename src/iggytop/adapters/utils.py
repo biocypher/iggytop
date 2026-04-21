@@ -4,6 +4,7 @@ import gzip
 import hashlib
 import importlib.resources
 import json
+import logging
 import os
 import re
 from datetime import datetime
@@ -21,7 +22,68 @@ from scirpy.io._datastructures import AirrCell
 from .constants import REGISTRY_KEYS
 from .mapping_utils import map_antigen_names, map_species_terms
 
-AMINO_ACIDS = set("ACDEFGHIKLMNPQRSTVWY")
+_TT_LOGGING_CONFIGURED = False
+_IG_LOCI = {"IGH", "IGL", "IGK"}
+
+
+class _DeduplicatingTTFileHandler(logging.FileHandler):
+    """File handler that writes each tt warning message only once."""
+
+    def __init__(self, filename: str):
+        super().__init__(filename, mode="a", encoding="utf-8")
+        self._seen_lines = set()
+
+        if os.path.exists(filename):
+            with open(filename, encoding="utf-8") as existing_file:
+                for line in existing_file:
+                    normalized = line.strip()
+                    if normalized:
+                        self._seen_lines.add(normalized)
+
+    def emit(self, record: logging.LogRecord) -> None:
+        rendered = self.format(record).strip()
+        if not rendered:
+            return
+
+        self.acquire()
+        try:
+            if rendered in self._seen_lines:
+                return
+            self._seen_lines.add(rendered)
+            super().emit(record)
+        finally:
+            self.release()
+
+
+def _configure_tt_warning_logging() -> None:
+    """Route tidytcells warnings to a dedicated file without terminal output."""
+    global _TT_LOGGING_CONFIGURED
+    if _TT_LOGGING_CONFIGURED:
+        return
+
+    log_dir = os.getenv("IGGYTOP_LOG_DIR", "biocypher-log")
+    os.makedirs(log_dir, exist_ok=True)
+    log_path = os.path.join(log_dir, "tt_standardization_warnings.log")
+
+    tt_logger = getLogger("tidytcells")
+    tt_logger.setLevel(logging.WARNING)
+    tt_logger.propagate = False
+
+    if not any(isinstance(handler, _DeduplicatingTTFileHandler) for handler in tt_logger.handlers):
+        handler = _DeduplicatingTTFileHandler(log_path)
+        handler.setLevel(logging.WARNING)
+        # Keep a stable line format so duplicates are easy to detect.
+        handler.setFormatter(logging.Formatter("%(name)s|%(levelname)s|%(message)s"))
+        tt_logger.addHandler(handler)
+    print("Find logs related to tidytcells standardization in the tidytcells_warnings.log file in the biocypher-log directory.")
+    _TT_LOGGING_CONFIGURED = True
+
+
+def _is_ig_locus(locus: str | None) -> bool:
+    """Return True when a chain locus corresponds to BCR/IG chains."""
+    if not isinstance(locus, str):
+        return False
+    return locus.strip().upper() in _IG_LOCI
 
 
 def _set_up_config(output_format, cache_dir):
@@ -71,14 +133,6 @@ def get_file_checksum(file_path: str) -> str | None:
     return sha256_hash.hexdigest()
 
 
-def _is_valid_peptide_sequence(seq: str) -> bool:
-    """Checks if a given sequence is a valid peptide sequence."""
-    if isinstance(seq, str) and len(seq) > 2:
-        return all([aa in AMINO_ACIDS for aa in seq])
-    else:
-        return False
-
-
 def _process_cdr3_sequence(seq: str, is_igh: bool = False) -> str | None:
     # just kept for species other than human and mouse (not supported by tidytcells)
     if seq is None:
@@ -88,7 +142,7 @@ def _process_cdr3_sequence(seq: str, is_igh: bool = False) -> str | None:
     seq = str(seq).upper().strip().replace(" ", "").replace("\n", "")
 
     # Validate that the sequence contains only valid amino acids (optional: define valid AAs if needed)
-    if not _is_valid_peptide_sequence(seq):
+    if tt.aa.standardize(seq) is None:
         return None
 
     # Check if sequence has a valid CDR3 format
@@ -233,13 +287,28 @@ def get_tissue_source(tissue: str | None) -> str:
         return tissue.upper().strip()
 
 
+def _process_mhc(gene: str, species: str | None, is_ig: bool = False) -> str | None:
+    if gene is None or species is None:
+        return gene
+    if "musculus" in species.lower() or "homo" in species.lower():
+        return tt.mh.standardize(
+            symbol=gene,
+            species=(
+                "musmusculus"
+                if "musculus" in species.lower()
+                else None  # defaults to homosapiens and other species are not supported by tidytcells
+            ),
+            on_fail="keep",
+        )
+
+
 def _process_gene(gene: str, species: str | None, is_ig: bool = False) -> str | None:
     if gene is None or species is None:
         return gene
     if "musculus" in species.lower() or "homo" in species.lower():
         if is_ig:
             return tt.ig.standardize(
-                gene,
+                symbol=gene,
                 species=(
                     "musmusculus"
                     if "musculus" in species.lower()
@@ -249,7 +318,7 @@ def _process_gene(gene: str, species: str | None, is_ig: bool = False) -> str | 
             )
         else:
             return tt.tr.standardize(
-                gene,
+                symbol=gene,
                 species=(
                     "musmusculus"
                     if "musculus" in species.lower()
@@ -265,13 +334,15 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
     """
     Preprocesses CDR3 sequences, epitope sequences, and gene names in a harmonized way.
     The following steps are performed:
-    1. Clean CDR3 sequences (normalizes junction_aas)
-    2. Clean epitope sequences (remove flanking residues)
-    3. Normalize VDJ-gene names to IMGT standards
-    4. Add IEDB IRI and corresponding antigen information (species and antigen name) where missing
-    5. Harmonize species terms for antigen species and receptor chain species
+    1. Clean epitope sequences (remove flanking residues)
+    2. Add IEDB IRI and corresponding antigen information (species and antigen name) where missing
+    3. Harmonize species terms for antigen species and receptor chain species
+    4. Normalize VDJ-gene names to IMGT standards
+    5. Clean CDR3 sequences (normalizes junction_aas)
 
     """
+    _configure_tt_warning_logging()
+
     # Clean epitope sequences
     if REGISTRY_KEYS.EPITOPE_KEY in table.columns:
         table[REGISTRY_KEYS.EPITOPE_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].apply(_process_epitope_sequence)
@@ -345,7 +416,7 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
             lambda row: _process_gene(
                 row[v_gene_col],
                 row[species_col] if isinstance(row[species_col], str) else None,
-                is_ig=(row[receptor_type] in {"IGH", "IGL", "IGK"}),
+                is_ig=_is_ig_locus(row[receptor_type]),
             ),
             axis=1,
         )
@@ -353,19 +424,16 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
             lambda row: _process_gene(
                 row[j_gene_col],
                 row[species_col] if isinstance(row[species_col], str) else None,
-                is_ig=(row[receptor_type] in {"IGH", "IGL", "IGK"}),
+                is_ig=_is_ig_locus(row[receptor_type]),
             ),
             axis=1,
         )
         table["j_gene_col_for_tt"] = table.apply(  # only standardizable gene names are passed into downstream processing by tt
             lambda row: (
-                tt.tr.standardize(
-                    gene=row[j_gene_col],
-                    species=(
-                        "musmusculus"
-                        if "musculus" in str(row[species_col]).lower()
-                        else None  # defaults to homosapiens and other species are not supported by tidytcells
-                    ),
+                _process_gene(
+                    row[j_gene_col],
+                    row[species_col] if isinstance(row[species_col], str) else None,
+                    is_ig=_is_ig_locus(row[receptor_type]),
                 )
                 if row[j_gene_col] is not None and ("musculus" in str(row[species_col]).lower() or "homo" in str(row[species_col]).lower())
                 else None
@@ -375,7 +443,16 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
 
         table[cdr3_col] = table.apply(
             lambda row: (
-                tt.junction.standardize(str(row[cdr3_col]), species="musmusculus", j_symbol=row["j_gene_col_for_tt"], on_fail="keep")
+                tt.junction.standardize(
+                    str(row[cdr3_col]),
+                    species=(
+                        "musmusculus"
+                        if "musculus" in str(row[species_col]).lower()
+                        else None  # defaults to homosapiens and other species are not supported by tidytcells
+                    ),
+                    j_symbol=row["j_gene_col_for_tt"],
+                    on_fail="keep",
+                )
                 if "musculus" in str(row[species_col]).lower() or "homo" in str(row[species_col]).lower()
                 else _process_cdr3_sequence(row[cdr3_col], is_igh=(row[receptor_type] == "IGH"))
             ),
