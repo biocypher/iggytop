@@ -63,7 +63,9 @@ def _configure_tt_warning_logging() -> None:
 
     log_dir = os.getenv("IGGYTOP_LOG_DIR", "biocypher-log")
     os.makedirs(log_dir, exist_ok=True)
-    log_path = os.path.join(log_dir, "tt_standardization_warnings.log")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_filename = f"tt_standardization_warnings_{timestamp}.log"
+    log_path = os.path.join(log_dir, log_filename)
 
     tt_logger = getLogger("tidytcells")
     tt_logger.setLevel(logging.WARNING)
@@ -75,7 +77,7 @@ def _configure_tt_warning_logging() -> None:
         # Keep a stable line format so duplicates are easy to detect.
         handler.setFormatter(logging.Formatter("%(name)s|%(levelname)s|%(message)s"))
         tt_logger.addHandler(handler)
-    print("Find logs related to tidytcells standardization in the tidytcells_warnings.log file in the biocypher-log directory.")
+    print(f"Find logs related to tidytcells standardization in the {log_filename} file.")
     _TT_LOGGING_CONFIGURED = True
 
 
@@ -308,12 +310,7 @@ def _process_gene(gene: str, species: str | None, is_ig: bool = False) -> str | 
     if "musculus" in species.lower() or "homo" in species.lower():
         if is_ig:
             return tt.ig.standardize(
-                symbol=gene,
-                species=(
-                    "musmusculus"
-                    if "musculus" in species.lower()
-                    else None  # defaults to homosapiens and other species are not supported by tidytcells
-                ),
+                symbol=gene,  # Only available for human
                 on_fail="keep",
             )
         else:
@@ -884,7 +881,7 @@ def deduplicate_and_aggregate(adata, subset_cols, agg_cols, separator="|"):
     Deduplicates AnnData based on subset_cols and aggregates values in agg_cols.
     Uses scirpy airr_context to access TCR-specific columns if needed.
     """
-    with ir.get.airr_context(adata, ["v_call", "junction_aa"], chain=["VJ_1", "VDJ_1"]) as m:
+    with ir.get.airr_context(adata, ["v_call", "j_call", "junction_aa"], chain=["VJ_1", "VDJ_1"]) as m:
         obs_df = m.obs.copy()
 
         # Verify columns exist
