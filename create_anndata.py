@@ -52,15 +52,15 @@ def main():
     )
     parser.add_argument(
         "--not_deduplicate",
-        action="store_false",
-        default=True,
-        help="Whether to deduplicate the merged AnnData.",
+        action="store_true",
+        default=False,
+        help="Whether to skip deduplicating the merged AnnData.",
     )
     parser.add_argument(
         "--adata_only",
         action="store_true",
         default=False,
-        help="Whether to save the AnnData as AIRR JSON.",
+        help="Whether not to save the AnnData as AIRR JSON.",
     )
     parser.add_argument(
         "--filter-10x",
@@ -204,9 +204,10 @@ def main():
 
             print(f"Number of entries after deduplication: {deduplicated_adata.n_obs}")
 
-        # Dave result to AnnData
-        _save_adata(deduplicated_adata, cache_dir / "deduplicated_anndata.h5ad", name="iggytop_deduplicated", metadata=global_metadata)
+        # Save result to AnnData
         _save_adata(merged_adata, cache_dir / "merged_anndata.h5ad", name="iggytop_merged", metadata=global_metadata)
+        if deduplicate:
+            _save_adata(deduplicated_adata, cache_dir / "deduplicated_anndata.h5ad", name="iggytop_deduplicated", metadata=global_metadata)
 
         # Optional: Export to AIRR JSON format
         if save_airr_json:
