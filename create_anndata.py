@@ -191,6 +191,8 @@ def main():
                 "VJ_1_junction_aa",
                 "VJ_1_v_call",
                 "VDJ_1_v_call",
+                "VJ_1_j_call",
+                "VDJ_1_j_call",
                 "VDJ_1_junction_aa",
                 "epitope_sequence",
             ]  # epitope IRI can be ambiguous
