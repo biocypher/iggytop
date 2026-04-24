@@ -339,13 +339,13 @@ def _process_cdr3_with_j_gene(
         return _process_cdr3_sequence(cdr3, is_igh=is_igh)
 
     standardized_species = "musmusculus" if "musculus" in normalized_species else None
-
+    # None defaults to human
     try:
         return tt.junction.standardize(
-            str(cdr3),
+            str(cdr3).strip(),
             species=standardized_species,
             j_symbol=j_symbol,
-            on_fail="keep",
+            on_fail=None,
         )
     except ValueError:
         # Invalid J symbols (e.g. donor notes or error strings) should not abort harmonization.
