@@ -4,7 +4,6 @@ import gzip
 import hashlib
 import importlib.resources
 import json
-import logging
 import os
 import re
 from datetime import datetime
@@ -22,63 +21,9 @@ from scirpy.io._datastructures import AirrCell
 from .constants import REGISTRY_KEYS
 from .mapping_utils import map_antigen_names, map_species_terms
 
-_TT_LOGGING_CONFIGURED = False
+_tidytcells_logging = __import__("iggytop.tidytcells.logging")  # configure tidytcells logging on import
+
 _IG_LOCI = {"IGH", "IGL", "IGK"}
-
-
-class _DeduplicatingTTFileHandler(logging.FileHandler):
-    """File handler that writes each tt warning message only once."""
-
-    def __init__(self, filename: str):
-        super().__init__(filename, mode="a", encoding="utf-8")
-        self._seen_lines = set()
-
-        if os.path.exists(filename):
-            with open(filename, encoding="utf-8") as existing_file:
-                for line in existing_file:
-                    normalized = line.strip()
-                    if normalized:
-                        self._seen_lines.add(normalized)
-
-    def emit(self, record: logging.LogRecord) -> None:
-        rendered = self.format(record).strip()
-        if not rendered:
-            return
-
-        self.acquire()
-        try:
-            if rendered in self._seen_lines:
-                return
-            self._seen_lines.add(rendered)
-            super().emit(record)
-        finally:
-            self.release()
-
-
-def _configure_tt_warning_logging() -> None:
-    """Route tidytcells warnings to a dedicated file without terminal output."""
-    global _TT_LOGGING_CONFIGURED
-    if _TT_LOGGING_CONFIGURED:
-        return
-
-    log_dir = os.getenv("IGGYTOP_LOG_DIR", "biocypher-log")
-    os.makedirs(log_dir, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_filename = f"tt_standardization_warnings_{timestamp}.log"
-    log_path = os.path.join(log_dir, log_filename)
-
-    tt_logger = getLogger("tidytcells")
-    tt_logger.setLevel(logging.WARNING)
-    tt_logger.propagate = False
-
-    if not any(isinstance(handler, _DeduplicatingTTFileHandler) for handler in tt_logger.handlers):
-        handler = _DeduplicatingTTFileHandler(log_path)
-        handler.setLevel(logging.WARNING)
-        # Keep a stable line format so duplicates are easy to detect.
-        handler.setFormatter(logging.Formatter("%(name)s|%(levelname)s|%(message)s"))
-        tt_logger.addHandler(handler)
-    print(f"Find logs related to tidytcells standardization in the {log_filename} file.")
-    _TT_LOGGING_CONFIGURED = True
 
 
 def _is_ig_locus(locus: str | None) -> bool:
@@ -363,7 +308,6 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
     5. Clean CDR3 sequences (normalizes junction_aas)
 
     """
-    _configure_tt_warning_logging()
 
     # Clean epitope sequences
     if REGISTRY_KEYS.EPITOPE_KEY in table.columns:
