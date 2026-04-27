@@ -2,7 +2,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-
+[![docs](https://img.shields.io/readthedocs/iggytop)](https://img.shields.io/readthedocs/iggytop)
 ![figure1](./overview.png)
 
 This repository uses [BioCypher](https://biocypher.org) framework for harmonization of databases with existing immunoreceptor-epitope matching information.
