@@ -235,18 +235,17 @@ def get_tissue_source(tissue: str | None) -> str:
 
 
 def _process_mhc(gene: str, species: str | None, is_ig: bool = False) -> str | None:
+    # this function is currently unused, wait for tidytcells to support more species
+    # tt currently only recognises HLA (see https://tidytcells.readthedocs.io/en/stable/generated/tidytcells.mh.html)
     if gene is None or species is None:
         return gene
     if "musculus" in species.lower() or "homo" in species.lower():
         return tt.mh.standardize(
             symbol=gene,
-            species=(
-                "musmusculus"
-                if "musculus" in species.lower()
-                else None  # defaults to homosapiens and other species are not supported by tidytcells
-            ),
+            species=("musmusculus" if "musculus" in species.lower() else None),
             on_fail="keep",
         )
+    return gene
 
 
 def _process_gene(gene: str, species: str | None, is_ig: bool = False) -> str | None:
