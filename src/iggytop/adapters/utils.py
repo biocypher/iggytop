@@ -251,9 +251,13 @@ def _process_mhc(gene: str, species: str | None, is_ig: bool = False) -> str | N
 
 
 def _process_gene(gene: str, species: str | None, is_ig: bool = False) -> str | None:
-    if gene is None or species is None:
+    species_tt = species.lower() if isinstance(species, str) else ""
+    if gene is None or not ("musculus" in species_tt or "homo" in species_tt):
         return gene
-    if "musculus" in species.lower() or "homo" in species.lower():
+    else:
+        species_tt = (
+            "musmusculus" if "musculus" in species_tt else None  # defaults to homosapiens and other species are not supported by tidytcells
+        )
         if is_ig:
             return tt.ig.standardize(
                 symbol=gene,  # Only available for human
@@ -262,15 +266,9 @@ def _process_gene(gene: str, species: str | None, is_ig: bool = False) -> str | 
         else:
             return tt.tr.standardize(
                 symbol=gene,
-                species=(
-                    "musmusculus"
-                    if "musculus" in species.lower()
-                    else None  # defaults to homosapiens and other species are not supported by tidytcells
-                ),
+                species=species_tt,
                 on_fail="keep",
             )
-    else:
-        return gene
 
 
 def _process_cdr3_with_j_gene(
@@ -280,22 +278,31 @@ def _process_cdr3_with_j_gene(
     is_igh: bool,
 ) -> str | None:
     """Standardize CDR3 with tidytcells, but tolerate malformed J symbols."""
-    normalized_species = str(species).lower() if isinstance(species, str) else ""
-    if "musculus" not in normalized_species and "homo" not in normalized_species:
+    # Classic regex harmonization as fallback for non-human/mouse species.
+    species_tt = species.lower() if isinstance(species, str) else ""
+    if not ("musculus" in species_tt or "homo" in species_tt) or is_igh:
         return _process_cdr3_sequence(cdr3, is_igh=is_igh)
-
-    standardized_species = "musmusculus" if "musculus" in normalized_species else None
-    # None defaults to human
-    try:
-        return tt.junction.standardize(
-            str(cdr3).strip(),
-            species=standardized_species,
-            j_symbol=j_symbol,
-            on_fail=None,
+    else:
+        species_tt = (
+            "musmusculus" if "musculus" in species_tt else None  # defaults to homosapiens and other species are not supported by tidytcells
         )
-    except ValueError:
-        # Invalid J symbols (e.g. donor notes or error strings) should not abort harmonization.
-        return _process_cdr3_sequence(cdr3, is_igh=is_igh)
+        try:
+            return tt.junction.standardize(
+                str(cdr3).strip(),
+                species=species_tt,
+                j_symbol=j_symbol,
+                on_fail="keep",
+            )
+        except ValueError as e:
+            # Invalid J symbols (e.g. donor notes or error strings) should not abort harmonization.
+            getLogger("tidytcells").warning(
+                f"Invalid J symbol '{j_symbol}' for CDR3 '{cdr3}' and species '{species_tt}': {str(e)}. Retrying without J symbol."
+            )
+            return tt.junction.standardize(
+                str(cdr3).strip(),
+                species=species_tt,
+                on_fail="keep",
+            )
 
 
 def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
@@ -395,24 +402,12 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
             ),
             axis=1,
         )
-        table["j_gene_col_for_tt"] = table.apply(  # only standardizable gene names are passed into downstream processing by tt
-            lambda row: (
-                _process_gene(
-                    row[j_gene_col],
-                    row[species_col] if isinstance(row[species_col], str) else None,
-                    is_ig=_is_ig_locus(row[receptor_type]),
-                )
-                if row[j_gene_col] is not None and ("musculus" in str(row[species_col]).lower() or "homo" in str(row[species_col]).lower())
-                else None
-            ),
-            axis=1,
-        )
 
         table[cdr3_col] = table.apply(
             lambda row: _process_cdr3_with_j_gene(
                 row[cdr3_col],
                 row[species_col] if isinstance(row[species_col], str) else None,
-                row["j_gene_col_for_tt"],
+                row[j_gene_col],
                 is_igh=_is_ig_locus(row[receptor_type]) and str(row[receptor_type]).strip().upper() == "IGH",
             ),
             axis=1,
