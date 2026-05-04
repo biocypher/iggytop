@@ -1,4 +1,4 @@
-""" This module contains utility functions for harmonizing data for iggytop """
+"""This module contains utility functions for harmonizing data for iggytop"""
 
 import gzip
 import hashlib
@@ -13,14 +13,26 @@ from typing import List
 import pandas as pd
 import requests
 import scirpy as ir
+import tidytcells as tt
 import yaml
 from biocypher import APIRequest, BioCypher
 from scirpy.io._datastructures import AirrCell
 
+from iggytop.tidytcells.logging import configure_tidytcells_logging
+
 from .constants import REGISTRY_KEYS
 from .mapping_utils import map_antigen_names, map_species_terms
 
-AMINO_ACIDS = set("ACDEFGHIKLMNPQRSTVWY")
+configure_tidytcells_logging()
+
+_IG_LOCI = {"IGH", "IGL", "IGK"}
+
+
+def _is_ig_locus(locus: str | None) -> bool:
+    """Return True when a chain locus corresponds to BCR/IG chains."""
+    if not isinstance(locus, str):
+        return False
+    return locus.strip().upper() in _IG_LOCI
 
 
 def _set_up_config(output_format, cache_dir):
@@ -70,15 +82,8 @@ def get_file_checksum(file_path: str) -> str | None:
     return sha256_hash.hexdigest()
 
 
-def _is_valid_peptide_sequence(seq: str) -> bool:
-    """Checks if a given sequence is a valid peptide sequence."""
-    if isinstance(seq, str) and len(seq) > 2:
-        return all([aa in AMINO_ACIDS for aa in seq])
-    else:
-        return False
-
-
 def _process_cdr3_sequence(seq: str, is_igh: bool = False) -> str | None:
+    # just kept for species other than human and mouse (not supported by tidytcells)
     if seq is None:
         return None
 
@@ -86,7 +91,7 @@ def _process_cdr3_sequence(seq: str, is_igh: bool = False) -> str | None:
     seq = str(seq).upper().strip().replace(" ", "").replace("\n", "")
 
     # Validate that the sequence contains only valid amino acids (optional: define valid AAs if needed)
-    if not _is_valid_peptide_sequence(seq):
+    if tt.aa.standardize(seq) is None:
         return None
 
     # Check if sequence has a valid CDR3 format
@@ -116,19 +121,6 @@ def _process_epitope_sequence(seq: str | None) -> str | None:
     result = "".join(result.split())
 
     return result
-
-
-def _normalize_vdj_gene_name(gene: str) -> str:
-    """Process VDJ-gene names to align with IMGT standards, skip alleles information"""
-    if pd.isna(gene):
-        return None
-    gene = gene.strip()
-    # Replace TCRA → TRA, TCRB → TRB, etc.
-    gene = re.sub(r"^TCR([ABGD])", r"TR\1", gene)
-    # Remove allele annotation like *01 or *01_F
-    gene = re.sub(r"\*.*$", "", gene)
-
-    return gene.strip()
 
 
 def get_mhc_class(allele: str | None) -> str | None:
@@ -244,39 +236,90 @@ def get_tissue_source(tissue: str | None) -> str:
         return tissue.upper().strip()
 
 
+def _process_mhc(gene: str, species: str | None, is_ig: bool = False) -> str | None:
+    # this function is currently unused, wait for tidytcells to support more species
+    # tt currently only recognises HLA (see https://tidytcells.readthedocs.io/en/stable/generated/tidytcells.mh.html)
+    if gene is None or species is None:
+        return gene
+    if "musculus" in species.lower() or "homo" in species.lower():
+        return tt.mh.standardize(
+            symbol=gene,
+            species=("musmusculus" if "musculus" in species.lower() else None),
+            on_fail="keep",
+        )
+    return gene
+
+
+def _process_gene(gene: str, species: str | None, is_ig: bool = False) -> str | None:
+    species_tt = species.lower() if isinstance(species, str) else ""
+    if gene is None or not ("musculus" in species_tt or "homo" in species_tt):
+        return gene
+    else:
+        species_tt = (
+            "musmusculus" if "musculus" in species_tt else None  # defaults to homosapiens and other species are not supported by tidytcells
+        )
+        if is_ig:
+            return tt.ig.standardize(
+                symbol=gene,  # Only available for human
+                on_fail="keep",
+            )
+        else:
+            return tt.tr.standardize(
+                symbol=gene,
+                species=species_tt,
+                on_fail="keep",
+            )
+
+
+def _process_cdr3_with_j_gene(
+    cdr3: str | None,
+    species: str | None,
+    j_symbol: str | None,
+    is_igh: bool,
+) -> str | None:
+    """Standardize CDR3 with tidytcells, but tolerate malformed J symbols."""
+    # Classic regex harmonization as fallback for non-human/mouse species.
+    species_tt = species.lower() if isinstance(species, str) else ""
+    if not ("musculus" in species_tt or "homo" in species_tt) or is_igh:
+        return _process_cdr3_sequence(cdr3, is_igh=is_igh)
+    else:
+        species_tt = (
+            "musmusculus" if "musculus" in species_tt else None  # defaults to homosapiens and other species are not supported by tidytcells
+        )
+        try:
+            return tt.junction.standardize(
+                str(cdr3).strip(),
+                species=species_tt,
+                j_symbol=j_symbol,
+                on_fail="keep",
+            )
+        except ValueError as e:
+            # Invalid J symbols (e.g. donor notes or error strings) should not abort harmonization.
+            getLogger("tidytcells").warning(
+                f"Invalid J symbol '{j_symbol}' for CDR3 '{cdr3}' and species '{species_tt}': {str(e)}. Retrying without J symbol."
+            )
+            return tt.junction.standardize(
+                str(cdr3).strip(),
+                species=species_tt,
+                on_fail="keep",
+            )
+
+
 def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
     """
     Preprocesses CDR3 sequences, epitope sequences, and gene names in a harmonized way.
     The following steps are performed:
-    1. Clean CDR3 sequences (normalizes junction_aas)
-    2. Clean epitope sequences (remove flanking residues)
-    3. Normalize VDJ-gene names to IMGT standards
-    4. Add IEDB IRI and corresponding antigen information (species and antigen name) where missing
-    5. Harmonize species terms for antigen species and receptor chain species
+    1. Clean epitope sequences (remove flanking residues)
+    2. Add IEDB IRI and corresponding antigen information (species and antigen name) where missing
+    3. Harmonize species terms for antigen species and receptor chain species
+    4. Normalize VDJ-gene names to IMGT standards
+    5. Clean CDR3 sequences (normalizes junction_aas)
 
     """
-    # Clean CDR3 sequences (normalize junction_aas)
-    for i in [1, 2]:
-        cdr3_col = getattr(REGISTRY_KEYS, f"CHAIN_{i}_CDR3_KEY")
-        type_col = getattr(REGISTRY_KEYS, f"CHAIN_{i}_TYPE_KEY")
-
-        if cdr3_col in table.columns and type_col in table.columns:
-            table[cdr3_col] = table.apply(lambda row: _process_cdr3_sequence(row[cdr3_col], is_igh=(row[type_col] == "IGH")), axis=1)
 
     # Clean epitope sequences
     if REGISTRY_KEYS.EPITOPE_KEY in table.columns:
         table[REGISTRY_KEYS.EPITOPE_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].apply(_process_epitope_sequence)
-
-    # Normalize V and J genes
-    vj_genes_cols = [
-        REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
-        REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
-        REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
-        REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
-    ]
-    for col in vj_genes_cols:
-        if col in table.columns:
-            table[col] = table[col].apply(_normalize_vdj_gene_name)
 
     # Map epitope sequences to IEDB-IRI mapping + extract species names
     if REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY not in table.columns:
@@ -333,6 +376,42 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
     # Clean/delete brackets from the antigen names
     antigen_names_clean = map_antigen_names(table[REGISTRY_KEYS.ANTIGEN_KEY].dropna().unique().tolist())
     table[REGISTRY_KEYS.ANTIGEN_KEY] = table[REGISTRY_KEYS.ANTIGEN_KEY].replace(antigen_names_clean)
+
+    # Normalize V and J genes
+    # Clean CDR3 sequences (normalize junction_aas)
+    for i in [1, 2]:
+        receptor_type = getattr(REGISTRY_KEYS, f"CHAIN_{i}_TYPE_KEY")
+        cdr3_col = getattr(REGISTRY_KEYS, f"CHAIN_{i}_CDR3_KEY")
+        v_gene_col = getattr(REGISTRY_KEYS, f"CHAIN_{i}_V_GENE_KEY")
+        j_gene_col = getattr(REGISTRY_KEYS, f"CHAIN_{i}_J_GENE_KEY")
+        species_col = getattr(REGISTRY_KEYS, f"CHAIN_{i}_ORGANISM_KEY")
+
+        table[v_gene_col] = table.apply(
+            lambda row: _process_gene(
+                row[v_gene_col],
+                row[species_col] if isinstance(row[species_col], str) else None,
+                is_ig=_is_ig_locus(row[receptor_type]),
+            ),
+            axis=1,
+        )
+        table[j_gene_col] = table.apply(
+            lambda row: _process_gene(
+                row[j_gene_col],
+                row[species_col] if isinstance(row[species_col], str) else None,
+                is_ig=_is_ig_locus(row[receptor_type]),
+            ),
+            axis=1,
+        )
+
+        table[cdr3_col] = table.apply(
+            lambda row: _process_cdr3_with_j_gene(
+                row[cdr3_col],
+                row[species_col] if isinstance(row[species_col], str) else None,
+                row[j_gene_col],
+                is_igh=_is_ig_locus(row[receptor_type]) and str(row[receptor_type]).strip().upper() == "IGH",
+            ),
+            axis=1,
+        )
 
     return table
 
@@ -438,7 +517,7 @@ def get_iedb_ids_batch(bc: BioCypher, epitopes: list[str], chunk_size: int = 150
     matched_count = sum(1 for ep, info in epitope_to_iedb.items() if info["iri"].startswith("iedb:"))
     total_eps = len(epitopes)
     getLogger("biocypher").info(
-        f"Epitope mapping results: {matched_count} of {total_eps} epitopes " f"matched to IEDB IDs ({matched_count / total_eps * 100:.1f}%)"
+        f"Epitope mapping results: {matched_count} of {total_eps} epitopes matched to IEDB IDs ({matched_count / total_eps * 100:.1f}%)"
     )
     return epitope_to_iedb
 
@@ -742,7 +821,7 @@ def deduplicate_and_aggregate(adata, subset_cols, agg_cols, separator="|"):
     Deduplicates AnnData based on subset_cols and aggregates values in agg_cols.
     Uses scirpy airr_context to access TCR-specific columns if needed.
     """
-    with ir.get.airr_context(adata, ["v_call", "junction_aa"], chain=["VJ_1", "VDJ_1"]) as m:
+    with ir.get.airr_context(adata, ["v_call", "j_call", "junction_aa"], chain=["VJ_1", "VDJ_1"]) as m:
         obs_df = m.obs.copy()
 
         # Verify columns exist

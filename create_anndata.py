@@ -7,6 +7,8 @@ import anndata as ad
 import platformdirs
 import scirpy as ir
 from biocypher import BioCypher
+from scirpy.pp import index_chains
+
 from iggytop.adapters.cedar_adapter import CEDARAdapter
 from iggytop.adapters.iedb_adapter import IEDBAdapter
 from iggytop.adapters.itrap_adapter import ITRAPAdapter
@@ -22,7 +24,6 @@ from iggytop.adapters.utils import (
     save_airr_cells_json,
 )
 from iggytop.adapters.vdjdb_adapter import VDJDBAdapter
-from scirpy.pp import index_chains
 
 
 def _save_adata(adata: ad.AnnData, path: Path, *, name: str, metadata: dict):
@@ -51,15 +52,15 @@ def main():
     )
     parser.add_argument(
         "--not_deduplicate",
-        action="store_false",
-        default=True,
-        help="Whether to deduplicate the merged AnnData.",
+        action="store_true",
+        default=False,
+        help="Whether to skip deduplicating the merged AnnData.",
     )
     parser.add_argument(
         "--adata_only",
         action="store_true",
         default=False,
-        help="Whether to save the AnnData as AIRR JSON.",
+        help="Whether not to save the AnnData as AIRR JSON.",
     )
     parser.add_argument(
         "--filter-10x",
@@ -80,9 +81,9 @@ def main():
     filter_10x = args.filter_10x
     adapters_to_include = args.adapters
     merge = True if len(adapters_to_include) > 1 else False
-    deduplicate = ~args.not_deduplicate
+    deduplicate = not args.not_deduplicate
     save_single_adapter_data = False
-    save_airr_json = ~args.adata_only
+    save_airr_json = not args.adata_only
     receptors_to_include = ["TCR", "BCR"]
     cache_dir = args.cache_dir
     os.makedirs(cache_dir, exist_ok=True)
@@ -190,6 +191,8 @@ def main():
                 "VJ_1_junction_aa",
                 "VJ_1_v_call",
                 "VDJ_1_v_call",
+                "VJ_1_j_call",
+                "VDJ_1_j_call",
                 "VDJ_1_junction_aa",
                 "epitope_sequence",
             ]  # epitope IRI can be ambiguous
@@ -203,9 +206,10 @@ def main():
 
             print(f"Number of entries after deduplication: {deduplicated_adata.n_obs}")
 
-        # Dave result to AnnData
-        _save_adata(deduplicated_adata, cache_dir / "deduplicated_anndata.h5ad", name="iggytop_deduplicated", metadata=global_metadata)
+        # Save result to AnnData
         _save_adata(merged_adata, cache_dir / "merged_anndata.h5ad", name="iggytop_merged", metadata=global_metadata)
+        if deduplicate:
+            _save_adata(deduplicated_adata, cache_dir / "deduplicated_anndata.h5ad", name="iggytop_deduplicated", metadata=global_metadata)
 
         # Optional: Export to AIRR JSON format
         if save_airr_json:
