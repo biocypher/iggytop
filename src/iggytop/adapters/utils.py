@@ -18,10 +18,12 @@ import yaml
 from biocypher import APIRequest, BioCypher
 from scirpy.io._datastructures import AirrCell
 
+from iggytop.tidytcells.logging import configure_tidytcells_logging
+
 from .constants import REGISTRY_KEYS
 from .mapping_utils import map_antigen_names, map_species_terms
 
-_tidytcells_logging = __import__("iggytop.tidytcells.logging")  # configure tidytcells logging on import
+configure_tidytcells_logging()
 
 _IG_LOCI = {"IGH", "IGL", "IGK"}
 
