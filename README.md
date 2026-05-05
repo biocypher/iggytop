@@ -3,6 +3,7 @@
 [![Python Version](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![docs](https://img.shields.io/readthedocs/iggytop)](https://img.shields.io/readthedocs/iggytop)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20037575.svg)](https://zenodo.org/records/20037575)
 ![figure1](./overview.png)
 
 This repository uses [BioCypher](https://biocypher.org) framework for harmonization of databases with existing immunoreceptor-epitope matching information.
@@ -162,3 +163,13 @@ an Issue if you discover any problems.
 
 This project is licensed under the MIT License - see the LICENSE file for
 details.
+
+## Citation
+
+If you use IggyTop in your research, please cite it using the following DOI:
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20037575.svg)](https://zenodo.org/records/20037575)
+
+You can find the full citation details on the [Zenodo page](https://zenodo.org/records/20037575).
+
+We also provide a CITATION.cff file for customized citations.
