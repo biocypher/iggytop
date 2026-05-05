@@ -19,6 +19,12 @@ jobs:
         with:
           python-version: '3.13'
 
+      - name: Install dependencies
+        run: uv sync --all-groups
+
+      - name: Install Python kernel
+        run: uv run python -m ipykernel install --user --name python3
+
       - name: Setup Cache Directory
         run: |
           mkdir -p /tmp/iggytop_ci_cache

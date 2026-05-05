@@ -37,6 +37,7 @@ dev = [
     "pytest>=8.0.0",
     "pytest-mock>=3.10.0",
     "pytest-timeout>=2.4.0",
+    "nbconvert>=7.0.0",
 ]
 docs = [
     "sphinx>=8.1.3",

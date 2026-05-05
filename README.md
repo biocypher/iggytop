@@ -102,8 +102,16 @@ Before any data is released, the CI pipeline (based on Github Actions) runs a va
 
 **How to run tests locally:**
 ```bash
+# Install all dependencies (including docs for notebook testing)
+uv sync --all-groups
+
+# Install Jupyter kernel for notebook execution (one-time setup)
+uv run python -m ipykernel install --user --name python3
+
+# Run all tests (including notebook validation)
 uv run pytest tests/
 ```
+**Why the kernel installation?** The test suite includes validation of Jupyter notebooks (tutorials and database summaries) to ensure they execute without errors. This requires a Jupyter kernel registered with the name "python3" to match the notebooks' configuration. The installation is a one-time setup per environment.
 **How to test the CI pipelines**
 Ensure you have Docker and `act` installed, then run:
 ```bash
