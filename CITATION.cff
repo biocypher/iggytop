@@ -21,6 +21,8 @@ authors:
     given-names: "Gregor"
     affiliations:
       - "Boehringer Ingelheim"
+      - "scverse"
+      
 license: "MIT License"
 keywords:
   - immunology
