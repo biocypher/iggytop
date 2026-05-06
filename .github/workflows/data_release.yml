@@ -69,7 +69,7 @@ jobs:
         run: uv sync --group docs --frozen
 
       - name: Generate docs
-        run: uv run sphinx -E -b html docs/source docs/build/html -W
+        run: uv run python -m sphinx -E -b html docs/source docs/build/html -W
 
       # Only scheduled runs promote the prerelease to the latest release.
       # Manual workflow_dispatch runs stop at the prerelease so a human can promote it later.
