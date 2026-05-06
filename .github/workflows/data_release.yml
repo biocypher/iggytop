@@ -65,11 +65,8 @@ jobs:
           draft: false
           prerelease: true
 
-      - name: Install docs dependencies
-        run: uv sync --group docs --frozen
-
       - name: Generate docs
-        run: uv run python -m sphinx -E -b html docs/source docs/build/html -W
+        run: uv run --group docs --frozen python -m sphinx -E -b html docs/source docs/build/html
 
       # Only scheduled runs promote the prerelease to the latest release.
       # Manual workflow_dispatch runs stop at the prerelease so a human can promote it later.
