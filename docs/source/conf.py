@@ -40,8 +40,11 @@ myst_enable_extensions = [
     "html_admonition",
     "html_image",
 ]
-nb_execution_mode = "off"  # Disable notebook execution during build
-nb_remove_code_source = True  # Hide all code cells by default in the rendered output
+
+nb_execution_mode = "force"  # Re-run notebooks on every docs build
+nb_execution_timeout = 600  
+nb_execution_raise_on_error = True  # Fail docs build if any notebook cell errors
+nb_remove_code_source = False  # Keep code cells visible by default in the rendered output
 
 # Specify the BibTeX file for citations
 bibtex_bibfiles = ["references.bib"]
