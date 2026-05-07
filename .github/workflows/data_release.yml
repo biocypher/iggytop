@@ -8,6 +8,8 @@ on:
 jobs:
   test_and_release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -49,9 +51,9 @@ jobs:
         run: |
           uv run iggytop-release --release-dir /tmp/iggytop_release
 
-      - name: Create Release
+      - name: Create Pre-Release
         uses: softprops/action-gh-release@v2
-        if: github.event_name != 'pull_request' && !contains(github.actor, 'act')
+        if: ${{ !contains(github.actor, 'act') }}
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
         with:
@@ -61,7 +63,18 @@ jobs:
           files: |
             /tmp/iggytop_release/*
           draft: false
-          prerelease: false
+          prerelease: true
+
+      - name: Generate docs
+        run: uv run --group docs --frozen python -m sphinx -E -b html docs/source docs/build/html
+
+      # Only scheduled runs promote the prerelease to the latest release.
+      # Manual workflow_dispatch runs stop at the prerelease so a human can promote it later.
+      - name: Promote Pre-Release
+        if: ${{ github.event_name == 'schedule' && !contains(github.actor, 'act') }}
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+        run: gh release edit "${{ steps.tag.outputs.tag }}" --prerelease=false --latest
 
 
       - name: Keep container alive for inspection (Local only)

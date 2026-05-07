@@ -291,7 +291,7 @@ def _process_cdr3_with_j_gene(
                 str(cdr3).strip(),
                 species=species_tt,
                 j_symbol=j_symbol,
-                on_fail="keep",
+                on_fail=None,
             )
         except ValueError as e:
             # Invalid J symbols (e.g. donor notes or error strings) should not abort harmonization.
@@ -301,7 +301,7 @@ def _process_cdr3_with_j_gene(
             return tt.junction.standardize(
                 str(cdr3).strip(),
                 species=species_tt,
-                on_fail="keep",
+                on_fail=None,
             )
 
 

@@ -8,4 +8,6 @@ This section contains tutorials on how to use IggyTop.
 :caption: Available Tutorials
 
 notebooks/Scirpy_query_annotation.ipynb
+notebooks/tutorial_3k_tcr.ipynb
+notebooks/database_summary.ipynb
 ```

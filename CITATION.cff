@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "biocypher/iggytop: Data Release data-2026.05.05.110331"
+doi: "10.5281/zenodo.20037575"
+url: "https://zenodo.org/records/20037575"
+version: "data-2026.05.05.110331"
+authors:
+  - family-names: "De Gottardi"
+    given-names: "Raphael"
+    affiliations:
+      - "ETHZ x ZHAW"
+  - family-names: "Dragan"
+    given-names: "Valeriia"
+  - family-names: "Lobentanzer"
+    given-names: "Sebastian"
+  - family-names: "Dratva"
+    given-names: "Lisa M."
+  - family-names: "Kim"
+    given-names: "Martin"
+  - family-names: "Sturm"
+    given-names: "Gregor"
+    affiliations:
+      - "Boehringer Ingelheim"
+      - "scverse"
+      
+license: "MIT License"
+keywords:
+  - immunology
+  - knowledge graph
+  - bioinformatics
