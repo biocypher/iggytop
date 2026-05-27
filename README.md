@@ -6,9 +6,9 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20037575.svg)](https://zenodo.org/records/20037575)
 ![figure1](./overview.png)
 
-This repository uses [BioCypher](https://biocypher.org) framework for harmonization of databases with existing immunoreceptor-epitope matching information.
+This repository uses the [BioCypher](https://biocypher.org) framework to harmonize databases with existing immunoreceptor-epitope matching information. The aggregated data is provided in tabular and graph formats.
 
-BioCypher is designed to facilitate the standardized integration of heterogeneous data sources through a regulated framework. The BioCypher framework implements a modular architecture where each data source is processed through dedicated transformation scripts called adapters. These adapters serve as the primary interface between raw data sources and the BioCypher knowledge graph infrastructure. This project provides adapters for the following databases:
+BioCypher provides a modular architecture where each data source is processed through dedicated transformation scripts called adapters. These adapters are the interface between raw data sources and the BioCypher knowledge graph infrastructure. This project provides adapters for the following databases:
 
 - [IEDB](https://www.iedb.org/)
 - [VDJdb](https://github.com/antigenomics/vdjdb-db)
@@ -19,18 +19,29 @@ BioCypher is designed to facilitate the standardized integration of heterogeneou
 - [TCR3d](https://tcr3d.ibbr.umd.edu/)
 - [NeoTCR](https://github.com/lyotvincent/NeoTCR?tab=readme-ov-file)
 
-These include data from both, original sources, extracting data directly from studies, such es McPAS-TCR, and from already pulled sources such as TRAIT.
-A script is provided to build a knowledge graph with all these adapters. On a consumer laptop, building the full graph typically takes 20-30 mins.
+The aggregated data from all adapters is available in the (bimonthly) [releases](https://github.com/biocypher/iggytop/releases). These releases are used by [Scirpy](https://scirpy.scverse.org/en/v0.24.0/index.html), which provides a simple interface to access the data in [anndata](https://anndata.readthedocs.io/en/latest/) format. You can also rebuild the DB using the provided code with custom parameters. On a consumer laptop, building the full DB typically takes 20-30 minutes.
 
-The final output is the **IggyTop** database, which integrates immunoreceptor-epitope matching information from all supported data sources.
+## Quick start (Scirpy)
 
-## Graphs vs Tables
-Two paths are covered: A tabular path, stacking the source databases and returning them in tabular format, and a knowledge graph path, converting the source data into a graph. We cover both paths extensively in the [documentation](https://iggytop.readthedocs.io/en/latest/). For more details on the graph data structure, see [Graph Data Structure](https://iggytop.readthedocs.io/en/latest/graph_data_structure.html). For the tabular approach, refer to [Tabular Data Structure](https://iggytop.readthedocs.io/en/latest/tabular_data_structure.html).
+To use the database in Python, install [Scirpy](https://scirpy.scverse.org/en/v0.24.0/index.html) (>=v0.24.0). Then use [this function](https://scirpy.scverse.org/en/v0.24.0/generated/scirpy.datasets.iggytop.html) to load the dataset in anndata format:
+
+```python
+import scirpy as ir
+
+iggytop = ir.datasets.iggytop(deduplicated=True, tag='latest')
+
+# Or (e.g. for VDJdb only)
+vdjdb = scirpy.datasets.vdjdb(tag='latest')
+```
+
+
+## Graphs vs. Tables
+Two paths are covered: a tabular path that stacks source databases into a large table (used in Scirpy and Releases), and a knowledge graph path that converts the source data into a graph. Both are documented in the [documentation](https://iggytop.readthedocs.io/en/latest/). For details, see [Graph Data Structure](https://iggytop.readthedocs.io/en/latest/graph_data_structure.html) and [Tabular Data Structure](https://iggytop.readthedocs.io/en/latest/tabular_data_structure.html).
 
 ## Prerequisites
-
+To run DB/graph generation locally:
 - [uv](https://docs.astral.sh/uv/): for dependency management
-- [docker](https://www.docker.com/get-started/): optional for neo4j (see below)
+- [docker](https://www.docker.com/get-started/): optional for Neo4j (see below)
 
 ## Installation
 
@@ -62,44 +73,39 @@ More information can be found in the [documentation](https://iggytop.readthedocs
 
 ## Pipeline
 
-- `create_knowledge_graph.py`: the main script that orchestrates the pipeline.
-It brings together the BioCypher package with the data sources. It calls the `io.create_knowledge_graph()` function which creates a knowledge graph including all available databases and saves it to airr format in a json file. use the `--adapters` flag to select single source databases
-```bash
-uv run create_knowledge_graph.py --adapters VDJDB CEDAR --filter-10x
-```
-- `create_anndata.py`: this script can be used to obtain the harmonized, merged (and deduplicated) data from all (or selected) available databases in [anndata](https://anndata.readthedocs.io/en/stable/index.html) format.
-It will initialize the adapters but not generate the knowledge graph. The main purpose is integration of the available data into [Scirpy](https://scirpy.scverse.org/en/latest/). You can specify which adapters to include:
+- `create_anndata.py`: obtain harmonized, merged (and deduplicated) data from all (or selected) databases in [anndata](https://anndata.readthedocs.io/en/stable/index.html) format. It initializes the adapters but does not generate the knowledge graph. The main purpose is integration into [Scirpy](https://scirpy.scverse.org/en/latest/). You can specify which adapters to include:
 ```bash
 uv run create_anndata.py --adapters VDJDB CEDAR --filter-10x
 ```
-- `src/iggytop/adapters` contains modules that define the adapter to the data source.
+- `create_knowledge_graph.py`: the main script that orchestrates the pipeline to build a knowledge graph from tabular data. It brings together the BioCypher package with the data sources, and calls `io.create_knowledge_graph()` to create a knowledge graph (all available databases by default) and save it in AIRR JSON format. Use the `--adapters` flag to select specific source databases:
+```bash
+uv run create_knowledge_graph.py --adapters VDJDB CEDAR --filter-10x
+```
 
-- `src/iggytop/config/schema_config.yaml`: a configuration file
-that defines the schema of the knowledge graph. It is used by BioCypher to map
-the data source to the knowledge representation on the basis of ontology (see
-[this part of the BioCypher tutorial](https://biocypher.org/tutorial-ontology.html)).
+- `src/iggytop/adapters` contains modules that define each data source adapter.
 
-- `src/iggytop/config/biocypher_config.yaml`: a configuration file that defines some BioCypher parameters, such as the mode, the
-separators used, and other options. More on its use can be found in the
-[Documentation](https://biocypher.org/BioCypher/reference/biocypher-config/).
+- `src/iggytop/config/schema_config.yaml`: defines the schema of the knowledge graph. It is used by BioCypher to map the data source to the knowledge representation based on ontology (see [this part of the BioCypher tutorial](https://biocypher.org/tutorial-ontology.html)).
+
+- `src/iggytop/config/biocypher_config.yaml`: defines BioCypher parameters such as the mode, separators, and other options. More on its use can be found in the [documentation](https://biocypher.org/BioCypher/reference/biocypher-config/).
 
 ## Documentation
-We use [Sphinx](https://www.sphinx-doc.org/en/master/) for documentation, see (`./docs`).
+We use [Sphinx](https://www.sphinx-doc.org/en/master/) for documentation (see `./docs`).
 The full documentation is available online via [Read the Docs](https://iggytop.readthedocs.io/en/latest/).
-It the documentation is updated upon commits (pr's) or manually, note that this can mean that the [database summary](https://iggytop.readthedocs.io/en/latest/notebooks/database_summary.html) was not built on the [latest release](https://github.com/biocypher/iggytop/releases/latest)
+
 
 ## Testing and CI/CD
 
 IggyTop uses GitHub Actions to automate **bimonthly data releases** and ensure data integrity through continuous integration.
-Currently this only involves the tabular part of Iggytop (`create_anndata.py`)
-Check out the latest release [here](https://github.com/biocypher/iggytop/releases/latest)
-### Bimonthly Data Releases
-- **Frequency**: Automated releases on the **1st day of every 2nd month**. (first scheduled on **May 1,2026**)
+Currently this only involves the tabular part of IggyTop (`create_anndata.py`).
+Check out the latest release [here](https://github.com/biocypher/iggytop/releases/latest).
+## Bimonthly Data Releases
+Find the releases [here](https://github.com/biocypher/iggytop/releases)
+- **Frequency**: Automated releases on the **1st day of every 2nd month** (first scheduled on **May 1, 2026**).
 - **Release Assets**:
    Check out the release notes for more information on the released datasets.
 
-### Automated Testing
-Before any data is released, the CI pipeline (based on Github Actions) runs a validation suite to catch breaking changes in upstream databases.
+## Automated Testing
+Before any data is released, the CI pipeline (based on GitHub Actions) runs a validation suite to catch breaking changes in upstream databases.
 
 **How to run tests locally:**
 ```bash
@@ -113,6 +119,7 @@ uv run python -m ipykernel install --user --name python3
 uv run pytest tests/
 ```
 **Why the kernel installation?** The test suite includes validation of Jupyter notebooks (tutorials and database summaries) to ensure they execute without errors. This requires a Jupyter kernel registered with the name "python3" to match the notebooks' configuration. The installation is a one-time setup per environment.
+
 **How to test the CI pipelines**
 Ensure you have Docker and `act` installed, then run:
 ```bash
@@ -123,8 +130,8 @@ act workflow_dispatch -W .github/workflows/ci_ingestion.yml
 ## Graph visualization using Neo4j on Docker
 
 This repo also contains a `docker compose` workflow to create the example
-database using BioCypher and load it into a dockerised Neo4j instance
-automatically. To run it, simply execute
+database using BioCypher and load it into a Dockerized Neo4j instance
+automatically. To run it, execute
 ```
 docker compose up -d --build
 ```
@@ -134,8 +141,8 @@ BioCypher as the DB `docker`, which you can connect to and browse at
 localhost:7474. Authentication is set to `neo4j/neo4jpassword` by default
 and can be modified in the `docker_variables.env` file.
 
-Open http://localhost:7474 to access the neo4j database. You can now run queries against the database.
-To get a visual representation of the tcr3d knowledge grraph constructed by iggytop, run the following CYPHER query:
+Open http://localhost:7474 to access the Neo4j database. You can now run queries against the database.
+To get a visual representation of the TCR3d knowledge graph constructed by IggyTop, run the following Cypher query:
 ```
 MATCH (n) return n
 ```
@@ -148,8 +155,8 @@ container are copied and automatically imported into the DB in the second
 container.
 
 
-## Related work:
-If you find a dataset (eg training data for a model) and would like to find the source of the records using the IggyTop dataset, check out [this tool](https://github.com/RaphaelDeGottardi/TCR_source_detection).
+## Related work
+If you find a dataset (e.g. training data for a model) and would like to find the source of the records using the IggyTop dataset, check out [this tool](https://github.com/RaphaelDeGottardi/TCR_source_detection).
 
 This project is built on (and part of) the [BioCypher](https://github.com/biocypher/biocypher) framework. Make sure to check out this cool project!
 
