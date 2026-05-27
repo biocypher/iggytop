@@ -30,6 +30,8 @@ def _save_adata(adata: ad.AnnData, path: Path, *, name: str, metadata: dict):
     index_chains(adata)
     adata.uns["DB"] = {"name": name, "date_created": datetime.now().isoformat(), "version": metadata["iggytop_version"]}
     adata.uns["iggytop_metadata"] = metadata
+    # Opt in to writing pd.arrays.StringArray in obs/var.
+    ad.settings.allow_write_nullable_strings = True
     adata.write_h5ad(path, compression="gzip")
     print(f"{path.name} saved to {path}")
 
