@@ -26,6 +26,22 @@ from .mapping_utils import map_antigen_names, map_species_terms
 configure_tidytcells_logging()
 
 _IG_LOCI = {"IGH", "IGL", "IGK"}
+_MISSING_TOKENS = {"", "nan", "none", "null", "n.a.", "na", "n/a"}
+
+
+def normalize_table_strings(table: pd.DataFrame) -> pd.DataFrame:
+    """Normalize table values to strings or None only."""
+    table = table.copy()
+
+    for col in table.columns:
+        series = table[col]
+        ser = series.astype("string")
+        mask = ser.str.strip().str.lower().isin(_MISSING_TOKENS)
+        ser = ser.mask(mask, pd.NA)
+        ser = ser.astype(object)
+        table[col] = ser.where(~ser.isna(), None)
+
+    return table
 
 
 def _is_ig_locus(locus: str | None) -> bool:
@@ -221,8 +237,8 @@ def get_mhc_class(allele: str | None) -> str | None:
     return None
 
 
-def get_tissue_source(tissue: str | None) -> str:
-    """Standardize tissue source information while staying close to the original values.
+def get_tissue_source(tissue: str | None) -> str | None:
+    """Standardize tissue source information while staying close to the original values. Could be improved
 
     Args:
         tissue: Original tissue source from database.
@@ -231,13 +247,12 @@ def get_tissue_source(tissue: str | None) -> str:
         Standardized tissue name or original value.
     """
     if tissue is None or not isinstance(tissue, str):
-        return "nan"
-    else:
-        return tissue.upper().strip()
+        return None
+    return tissue.upper().strip()
 
 
 def _process_mhc(gene: str, species: str | None, is_ig: bool = False) -> str | None:
-    # this function is currently unused, wait for tidytcells to support more species
+    # this function is currently only used for human records, wait for tidytcells to support more species
     # tt currently only recognises HLA (see https://tidytcells.readthedocs.io/en/stable/generated/tidytcells.mh.html)
     if gene is None or species is None:
         return gene
@@ -314,6 +329,7 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
     3. Harmonize species terms for antigen species and receptor chain species
     4. Normalize VDJ-gene names to IMGT standards
     5. Clean CDR3 sequences (normalizes junction_aas)
+    6. Convert MHC gene names to IMGT (for human)
 
     """
 
@@ -380,6 +396,7 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
     # Normalize V and J genes
     # Clean CDR3 sequences (normalize junction_aas)
     for i in [1, 2]:
+        getLogger("biocypher").info(f"Harmonizing V/J gene names and CDR3 sequences for chain {i} with tidytcells.")
         receptor_type = getattr(REGISTRY_KEYS, f"CHAIN_{i}_TYPE_KEY")
         cdr3_col = getattr(REGISTRY_KEYS, f"CHAIN_{i}_CDR3_KEY")
         v_gene_col = getattr(REGISTRY_KEYS, f"CHAIN_{i}_V_GENE_KEY")
@@ -407,11 +424,35 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
             lambda row: _process_cdr3_with_j_gene(
                 row[cdr3_col],
                 row[species_col] if isinstance(row[species_col], str) else None,
-                row[j_gene_col],
-                is_igh=_is_ig_locus(row[receptor_type]) and str(row[receptor_type]).strip().upper() == "IGH",
+                row[j_gene_col] if isinstance(row[j_gene_col], str) else None,
+                is_igh=str(row[receptor_type]).strip().upper() == "IGH",
             ),
             axis=1,
         )
+    getLogger("biocypher").info("Processing MHC gene names for human records with tidytcells.")
+    table[REGISTRY_KEYS.MHC_GENE_1_KEY] = table.apply(
+        lambda row: (
+            _process_mhc(
+                row[REGISTRY_KEYS.MHC_GENE_1_KEY],
+                "homosapiens",  # currently only supported species
+                is_ig=False,
+            )
+            if (
+                isinstance(row[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY], str)
+                and row[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY].lower() == "homo sapiens"
+            )
+            or (
+                isinstance(row[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY], str)
+                and row[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY].lower() == "homo sapiens"
+            )
+            else row[REGISTRY_KEYS.MHC_GENE_1_KEY]
+        ),
+        axis=1,
+    )
+
+    table[REGISTRY_KEYS.MHC_CLASS_KEY] = table[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(get_mhc_class)
+    if REGISTRY_KEYS.TISSUE_KEY in table.columns:
+        table[REGISTRY_KEYS.TISSUE_KEY] = table[REGISTRY_KEYS.TISSUE_KEY].apply(get_tissue_source)
 
     return table
 
@@ -812,7 +853,7 @@ def aggregate_unique_joined(series, separator="|"):
         if s_v:
             values.update([s_v])
     if len(values) == 0:
-        values.update(["nan"])
+        return None
     return separator.join(sorted(values))
 
 

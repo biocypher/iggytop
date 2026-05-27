@@ -334,7 +334,7 @@ class BaseAdapter(ABC):
         # Convert object columns to string to avoid serialization issues with h5py (e.g. for PMID)
         for col in adata.obs.columns:
             if adata.obs[col].dtype == object:
-                adata.obs[col] = adata.obs[col].astype(str)
+                adata.obs[col] = adata.obs[col].astype("string")
 
         adata.uns["DB"] = {"name": self.DB_NAME, "date_downloaded": datetime.now().isoformat()}
 

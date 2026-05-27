@@ -3,7 +3,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_mhc_class, get_tissue_source, harmonize_sequences
+from .utils import harmonize_sequences, normalize_table_strings
 
 
 class MCPASAdapter(BaseAdapter):
@@ -67,8 +67,7 @@ class MCPASAdapter(BaseAdapter):
         table = pd.read_csv(table_path, encoding="utf-8-sig")
         if test:
             table = table.sample(frac=0.001, random_state=42)
-        # Replace NaN and empty strings with None
-        table = table.replace(["", "nan"], None).where(pd.notnull, None)
+        table = normalize_table_strings(table)
 
         table["Pathology"] = table.apply(
             lambda row: "HomoSapiens" if row["Category"] == "Autoimmune" else row["Pathology"],
@@ -100,10 +99,6 @@ class MCPASAdapter(BaseAdapter):
 
         # Preprocesses CDR3 sequences, epitope sequences, and gene names
         table_preprocessed = harmonize_sequences(bc, table)
-
-        table_preprocessed[REGISTRY_KEYS.MHC_CLASS_KEY] = table_preprocessed[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(get_mhc_class)
-
-        table_preprocessed[REGISTRY_KEYS.TISSUE_KEY] = table_preprocessed[REGISTRY_KEYS.TISSUE_KEY].apply(get_tissue_source)
 
         return table_preprocessed
 

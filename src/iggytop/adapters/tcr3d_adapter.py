@@ -3,7 +3,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_mhc_class, harmonize_sequences
+from .utils import harmonize_sequences, normalize_table_strings
 
 
 class TCR3DAdapter(BaseAdapter):
@@ -64,8 +64,7 @@ class TCR3DAdapter(BaseAdapter):
         if test:
             table = table.sample(frac=0.01, random_state=42)
 
-        # Replace missing values
-        table = table.replace(["", "nan", "n.a.", "null"], None).where(pd.notnull, None)
+        table = normalize_table_strings(table)
 
         rename_cols = {
             "TCR_complex": REGISTRY_KEYS.MHC_CLASS_KEY,
@@ -94,8 +93,6 @@ class TCR3DAdapter(BaseAdapter):
             lambda x: x.split(",") if x is not None and "," in x else x
         )
         table = table.explode(REGISTRY_KEYS.EPITOPE_KEY).reset_index(drop=True)
-
-        table[REGISTRY_KEYS.MHC_CLASS_KEY] = table[REGISTRY_KEYS.MHC_CLASS_KEY].apply(get_mhc_class)
 
         # Create a column placeholder for the antigen species
         table_preprocessed = harmonize_sequences(bc, table)

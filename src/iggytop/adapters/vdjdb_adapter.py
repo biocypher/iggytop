@@ -8,7 +8,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_mhc_class, get_tissue_source, harmonize_sequences
+from .utils import harmonize_sequences, normalize_table_strings
 
 
 class VDJDBAdapter(BaseAdapter):
@@ -116,9 +116,9 @@ class VDJDBAdapter(BaseAdapter):
         if test:
             table = table.sample(frac=0.01, random_state=42)
 
-        table = table.replace(["", "nan"], None).where(pd.notnull, None)
-
         table = self._transform_paired_data_efficient(table)
+
+        table = normalize_table_strings(table)
 
         rename_cols = {
             "cdr3_chain_1": REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
@@ -151,10 +151,6 @@ class VDJDBAdapter(BaseAdapter):
         table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY] = table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY]
         table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.TRA_KEY
         table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
-
-        table[REGISTRY_KEYS.MHC_CLASS_KEY] = table[REGISTRY_KEYS.MHC_CLASS_KEY].apply(get_mhc_class)
-
-        table[REGISTRY_KEYS.TISSUE_KEY] = table[REGISTRY_KEYS.TISSUE_KEY].apply(get_tissue_source)
 
         # Preprocesses CDR3 sequences, epitope sequences, and gene names
         table_preprocessed = harmonize_sequences(bc, table)

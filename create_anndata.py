@@ -185,7 +185,7 @@ def main():
         # Convert object columns to string to avoid serialization issues with h5py (e.g. for PMID)
         for col in merged_adata.obs.columns:
             if merged_adata.obs[col].dtype == object:
-                merged_adata.obs[col] = merged_adata.obs[col].astype(str)
+                merged_adata.obs[col] = merged_adata.obs[col].astype("string")
 
         if deduplicate:
             # Deduplicate and aggregate specific attributes

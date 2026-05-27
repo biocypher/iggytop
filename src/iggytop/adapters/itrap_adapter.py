@@ -3,7 +3,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_mhc_class, harmonize_sequences
+from .utils import harmonize_sequences, normalize_table_strings
 
 
 class ITRAPAdapter(BaseAdapter):
@@ -63,6 +63,8 @@ class ITRAPAdapter(BaseAdapter):
 
         if test:
             table = table.sample(frac=0.1, random_state=42)
+
+        table = normalize_table_strings(table)
 
         # Mapping between peptide and antigen/source information based on 10X genomics documentation
         # https://pages.10xgenomics.com/rs/446-PBO-704/images/10x_AN047_IP_A_New_Way_of_Exploring_Immunity_Digital.pdf
@@ -162,12 +164,6 @@ class ITRAPAdapter(BaseAdapter):
         mapped_info = table[REGISTRY_KEYS.EPITOPE_KEY].apply(apply_mapping)
         table[REGISTRY_KEYS.ANTIGEN_KEY] = mapped_info.apply(lambda x: x[0])
         table[REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY] = mapped_info.apply(lambda x: x[1])
-
-        # Determine MHC Class
-        table[REGISTRY_KEYS.MHC_CLASS_KEY] = table[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(get_mhc_class)
-
-        # Replace missing values
-        table = table.replace(["", "nan", "n.a.", "null"], None).where(pd.notnull, None)
 
         # Preprocess and harmonize
         table_preprocessed = harmonize_sequences(bc, table)
