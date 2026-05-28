@@ -3,7 +3,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_mhc_class, get_tissue_source, harmonize_sequences
+from .utils import harmonize_sequences, normalize_table_strings
 
 
 class NEOTCRAdapter(BaseAdapter):
@@ -67,7 +67,7 @@ class NEOTCRAdapter(BaseAdapter):
         if test:
             table = table.sample(frac=0.05, random_state=42)
 
-        table = table.replace(["", "nan"], None).where(pd.notnull, None)
+        table = normalize_table_strings(table)
 
         # Rename and harmonize columns
         rename_cols = {
@@ -105,9 +105,6 @@ class NEOTCRAdapter(BaseAdapter):
         table[REGISTRY_KEYS.PUBLICATION_KEY] = table[REGISTRY_KEYS.PUBLICATION_KEY].astype(str).str.replace("PMID:", "").str.strip()
 
         table_preprocessed = harmonize_sequences(bc, table)
-        table_preprocessed[REGISTRY_KEYS.MHC_CLASS_KEY] = table_preprocessed[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(get_mhc_class)
-
-        table_preprocessed[REGISTRY_KEYS.TISSUE_KEY] = table_preprocessed[REGISTRY_KEYS.TISSUE_KEY].apply(get_tissue_source)
 
         return table_preprocessed
 

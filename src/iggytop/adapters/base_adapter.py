@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, Sequence, cast
 
+import anndata as ad
 import pandas as pd
 from scirpy.io._convert_anndata import from_airr_cells
 from scirpy.io._datastructures import AirrCell
@@ -333,11 +334,13 @@ class BaseAdapter(ABC):
         # Convert object columns to string to avoid serialization issues with h5py (e.g. for PMID)
         for col in adata.obs.columns:
             if adata.obs[col].dtype == object:
-                adata.obs[col] = adata.obs[col].astype(str)
+                adata.obs[col] = adata.obs[col].astype("string")
 
         adata.uns["DB"] = {"name": self.DB_NAME, "date_downloaded": datetime.now().isoformat()}
 
         anndata_path = Path(self.cache_dir) / f"{self.DB_NAME}_anndata.h5ad"
+        # Opt in to writing pd.arrays.StringArray in obs/var.
+        ad.settings.allow_write_nullable_strings = True
         adata.write_h5ad(cast(os.PathLike, anndata_path), compression="gzip")
         print(f"Saved Anndata to {anndata_path}")
 
