@@ -166,8 +166,10 @@ def map_species_terms(terms: list[str], zooma: bool = False) -> dict:
                         return term
         return None
 
-    # Step 1: Normalize all terms
-    normalized_terms = {term: normalize_species(term) for term in terms if term}
+    # Step 1: Normalize all terms (deduplicate first to avoid redundant API calls for http URIs)
+    unique_terms = set(t for t in terms if t)
+    normalized_unique = {term: normalize_species(term) for term in unique_terms}
+    normalized_terms = {term: normalized_unique[term] for term in terms if term}
 
     # print("Normalized terms:", normalized_terms)
     results = {}
