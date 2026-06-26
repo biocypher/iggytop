@@ -215,7 +215,8 @@ class BaseAdapter(ABC):
                     alpha_chain.update(
                         {
                             "locus": getattr(row, REGISTRY_KEYS.CHAIN_1_TYPE_KEY, None),
-                            "junction_aa": c1_cdr3,
+                            "junction_aa": getattr(row, REGISTRY_KEYS.CHAIN_1_JUNCTION_AA_KEY, None),
+                            "cdr3_aa": c1_cdr3,
                             "v_call": getattr(row, REGISTRY_KEYS.CHAIN_1_V_GENE_KEY, None),
                             "j_call": getattr(row, REGISTRY_KEYS.CHAIN_1_J_GENE_KEY, None),
                             "consensus_count": 0,
@@ -229,7 +230,8 @@ class BaseAdapter(ABC):
                     beta_chain.update(
                         {
                             "locus": getattr(row, REGISTRY_KEYS.CHAIN_2_TYPE_KEY, None),
-                            "junction_aa": c2_cdr3,
+                            "junction_aa": getattr(row, REGISTRY_KEYS.CHAIN_2_JUNCTION_AA_KEY, None),
+                            "cdr3_aa": c2_cdr3,
                             "v_call": getattr(row, REGISTRY_KEYS.CHAIN_2_V_GENE_KEY, None),
                             "j_call": getattr(row, REGISTRY_KEYS.CHAIN_2_J_GENE_KEY, None),
                             "consensus_count": 0,

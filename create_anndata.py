@@ -191,6 +191,10 @@ def main():
                 merged_adata.obs[col] = merged_adata.obs[col].astype("string")
 
         if deduplicate:
+            # Drop records where junction is missing for both chains — they can't be meaningfully deduplicated
+            has_junction = merged_adata.obs["VJ_1_junction_aa"].notna() | merged_adata.obs["VDJ_1_junction_aa"].notna()
+            merged_adata_for_dedup = merged_adata[has_junction].copy()
+
             # Deduplicate and aggregate specific attributes
             subset_cols = [
                 "VJ_1_junction_aa",
@@ -204,7 +208,7 @@ def main():
             agg_cols = ["PMID", "source"]
 
             try:
-                deduplicated_adata = deduplicate_and_aggregate(merged_adata, subset_cols, agg_cols)
+                deduplicated_adata = deduplicate_and_aggregate(merged_adata_for_dedup, subset_cols, agg_cols)
             except (ValueError, KeyError) as e:
                 print(f"Deduplication failed due to unexpected data state: {e}")
                 raise

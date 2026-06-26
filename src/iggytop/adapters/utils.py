@@ -106,35 +106,6 @@ def get_file_checksum(file_path: str) -> str | None:
     return sha256_hash.hexdigest()
 
 
-def _process_cdr3_sequence(seq: str, is_igh: bool = False) -> str | None:
-    # just kept for species other than human and mouse (not supported by tidytcells)
-    if seq is None:
-        return None
-
-    # Clean and normalize the sequence
-    seq = str(seq).upper().strip().replace(" ", "").replace("\n", "")
-
-    # Validate that the sequence contains only valid amino acids
-    if not re.fullmatch(r"[ACDEFGHIKLMNPQRSTVWY]+", seq):
-        return None
-
-    # Check if sequence has a valid CDR3 format
-    starts_with_c = seq.startswith("C")
-    ends_with_fw = seq.endswith("F") or (is_igh and seq.endswith("W"))
-
-    if starts_with_c and ends_with_fw:
-        return seq
-
-    # Pad the sequence appropriately
-    seq = seq.lstrip("C")  # remove leading C if already present
-    if is_igh:
-        seq = seq.rstrip("FW")  # remove existing F or W if present
-        return f"C{seq}W"
-    else:
-        seq = seq.rstrip("F")
-        return f"C{seq}F"
-
-
 def _process_epitope_sequence(seq: str | None) -> str | None:
     """Remove flanking residues in epitope sequences."""
     if seq is None:
@@ -293,52 +264,51 @@ def _process_gene(gene: str, species: str | None, is_ig: bool = False) -> str | 
         return result.symbol if result.is_standardized else gene
 
 
-def _process_cdr3_with_j_gene(
+def _process_cdr3_to_junction(
     cdr3: str | None,
     species: str | None,
     j_symbol: str | None,
     locus: str | None,
     is_igh: bool,
-) -> str | None:
-    """Standardize CDR3 with tidytcells, but tolerate malformed J symbols."""
-    # Classic regex harmonization as fallback for non-human/mouse species.
-    species_tt = species.lower() if isinstance(species, str) else ""
-    if not ("musculus" in species_tt or "homo" in species_tt) or is_igh:
-        return _process_cdr3_sequence(cdr3, is_igh=is_igh)
-    else:
-        species_tt = (
-            "musmusculus" if "musculus" in species_tt else None  # defaults to homosapiens and other species are not supported by tidytcells
+) -> tuple[str | None, str | None]:
+    """Standardize input sequence to (cdr3, junction) using tidytcells alignment.
+
+    Returns (cdr3, junction) where cdr3 excludes and junction includes the conserved
+    flanking Cys/Phe-Trp residues. On failure, returns (original_input, attempted_fix).
+    """
+    if cdr3 is None:
+        return (None, None)
+    species_tt = "musmusculus" if isinstance(species, str) and "musculus" in species.lower() else None
+    resolved_locus = locus if isinstance(locus, str) else "IGH" if is_igh else "TR"
+    try:
+        result = tt.junction.standardize(
+            cdr3,
+            locus=resolved_locus,
+            species=species_tt,
+            j_symbol=j_symbol,
+            log_failures=False,
         )
-        resolved_locus = locus if isinstance(locus, str) and locus.strip() else "TR"
-        try:
-            result = tt.junction.standardize(
-                str(cdr3).strip(),
-                locus=resolved_locus,
-                species=species_tt,
-                j_symbol=j_symbol,
-                log_failures=False,
-            )
-        except ValueError as e:
-            # j_symbol incompatible with locus (e.g. TRGJ2 for TRA)
-            _tt_warnings.add(f"CDR3 '{cdr3}' | J '{j_symbol}' | locus '{resolved_locus}' | {e}")
-            result = tt.junction.standardize(
-                str(cdr3).strip(),
-                locus=resolved_locus,
-                species=species_tt,
-                log_failures=False,
-            )
-            return result.junction if result.is_standardized else None
-        if result.is_standardized:
-            return result.junction
-        if j_symbol is not None:
-            _tt_warnings.add(f"CDR3 '{cdr3}' | J '{j_symbol}' | species '{species_tt}' | {result.error}")
-            result = tt.junction.standardize(
-                str(cdr3).strip(),
-                locus=resolved_locus,
-                species=species_tt,
-                log_failures=False,
-            )
-        return result.junction if result.is_standardized else None
+    except ValueError as e:
+        # j_symbol incompatible with locus (e.g. TRGJ2 for TRA)
+        _tt_warnings.add(f"CDR3 '{cdr3}' | J '{j_symbol}' | locus '{resolved_locus}' | {e}")
+        result = tt.junction.standardize(
+            cdr3,
+            locus=resolved_locus,
+            species=species_tt,
+            log_failures=False,
+        )
+        return (result.cdr3, result.junction) if result.is_standardized else (cdr3, result.attempted_fix)
+    if result.is_standardized:
+        return (result.cdr3, result.junction)
+    if j_symbol is not None:
+        _tt_warnings.add(f"CDR3 '{cdr3}' | J '{j_symbol}' | species '{species_tt}' | {result.error}")
+        result = tt.junction.standardize(
+            cdr3,
+            locus=resolved_locus,
+            species=species_tt,
+            log_failures=False,
+        )
+    return (result.cdr3, result.junction) if result.is_standardized else (cdr3, result.attempted_fix)
 
 
 def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
@@ -414,12 +384,12 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
     antigen_names_clean = map_antigen_names(table[REGISTRY_KEYS.ANTIGEN_KEY].dropna().unique().tolist())
     table[REGISTRY_KEYS.ANTIGEN_KEY] = table[REGISTRY_KEYS.ANTIGEN_KEY].replace(antigen_names_clean)
 
-    # Normalize V and J genes
-    # Clean CDR3 sequences (normalize junction_aas)
+    # Normalize V and J genes, standardize CDR3 sequences and compute junctions
     for i in [1, 2]:
         getLogger("biocypher").info(f"Harmonizing V/J gene names and CDR3 sequences for chain {i} with tidytcells.")
         receptor_type = getattr(REGISTRY_KEYS, f"CHAIN_{i}_TYPE_KEY")
         cdr3_col = getattr(REGISTRY_KEYS, f"CHAIN_{i}_CDR3_KEY")
+        junction_col = getattr(REGISTRY_KEYS, f"CHAIN_{i}_JUNCTION_AA_KEY")
         v_gene_col = getattr(REGISTRY_KEYS, f"CHAIN_{i}_V_GENE_KEY")
         j_gene_col = getattr(REGISTRY_KEYS, f"CHAIN_{i}_J_GENE_KEY")
         species_col = getattr(REGISTRY_KEYS, f"CHAIN_{i}_ORGANISM_KEY")
@@ -441,8 +411,8 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
             axis=1,
         )
 
-        table[cdr3_col] = table.apply(
-            lambda row: _process_cdr3_with_j_gene(
+        results = table.apply(
+            lambda row: _process_cdr3_to_junction(
                 row[cdr3_col],
                 row[species_col] if isinstance(row[species_col], str) else None,
                 row[j_gene_col] if isinstance(row[j_gene_col], str) else None,
@@ -451,6 +421,8 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
             ),
             axis=1,
         )
+        table[cdr3_col] = results.apply(lambda t: t[0])
+        table[junction_col] = results.apply(lambda t: t[1])
     getLogger("biocypher").info("Processing MHC gene names for human records with tidytcells.")
     table[REGISTRY_KEYS.MHC_GENE_1_KEY] = table.apply(
         lambda row: (
