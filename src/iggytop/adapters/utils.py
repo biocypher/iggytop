@@ -18,15 +18,23 @@ import yaml
 from biocypher import APIRequest, BioCypher
 from scirpy.io._datastructures import AirrCell
 
-from iggytop.tidytcells.logging import configure_tidytcells_logging
-
 from .constants import REGISTRY_KEYS
 from .mapping_utils import map_antigen_names, map_species_terms
 
-configure_tidytcells_logging()
-
 _IG_LOCI = {"IGH", "IGL", "IGK"}
 _MISSING_TOKENS = {"", "nan", "none", "null", "n.a.", "na", "n/a"}
+_tt_warnings: set[str] = set()
+_TT_LOG_PATH = os.path.join("biocypher-log", f"tt_warnings_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+
+
+def _flush_tt_warnings() -> None:
+    """Write all collected tidytcells warnings to the run's log file."""
+    if not _tt_warnings:
+        return
+    os.makedirs(os.path.dirname(_TT_LOG_PATH), exist_ok=True)
+    with open(_TT_LOG_PATH, "w", encoding="utf-8") as fh:
+        for msg in sorted(_tt_warnings):
+            fh.write(msg + "\n")
 
 
 def normalize_table_strings(table: pd.DataFrame) -> pd.DataFrame:
@@ -106,8 +114,8 @@ def _process_cdr3_sequence(seq: str, is_igh: bool = False) -> str | None:
     # Clean and normalize the sequence
     seq = str(seq).upper().strip().replace(" ", "").replace("\n", "")
 
-    # Validate that the sequence contains only valid amino acids (optional: define valid AAs if needed)
-    if tt.aa.standardize(seq) is None:
+    # Validate that the sequence contains only valid amino acids
+    if not re.fullmatch(r"[ACDEFGHIKLMNPQRSTVWY]+", seq):
         return None
 
     # Check if sequence has a valid CDR3 format
@@ -257,11 +265,14 @@ def _process_mhc(gene: str, species: str | None, is_ig: bool = False) -> str | N
     if gene is None or species is None:
         return gene
     if "musculus" in species.lower() or "homo" in species.lower():
-        return tt.mh.standardize(
+        result = tt.mh.standardize(
             symbol=gene,
             species=("musmusculus" if "musculus" in species.lower() else None),
-            on_fail="keep",
+            log_failures=False,
         )
+        if not result.is_standardized:
+            _tt_warnings.add(f"MH gene '{gene}' | species '{species}' | {result.error}")
+        return result.symbol if result.is_standardized else gene
     return gene
 
 
@@ -274,22 +285,19 @@ def _process_gene(gene: str, species: str | None, is_ig: bool = False) -> str | 
             "musmusculus" if "musculus" in species_tt else None  # defaults to homosapiens and other species are not supported by tidytcells
         )
         if is_ig:
-            return tt.ig.standardize(
-                symbol=gene,  # Only available for human
-                on_fail="keep",
-            )
+            result = tt.ig.standardize(symbol=gene, log_failures=False)  # Only available for human
         else:
-            return tt.tr.standardize(
-                symbol=gene,
-                species=species_tt,
-                on_fail="keep",
-            )
+            result = tt.tr.standardize(symbol=gene, species=species_tt, log_failures=False)
+        if not result.is_standardized:
+            _tt_warnings.add(f"{'IG' if is_ig else 'TR'} gene '{gene}' | species '{species}' | {result.error}")
+        return result.symbol if result.is_standardized else gene
 
 
 def _process_cdr3_with_j_gene(
     cdr3: str | None,
     species: str | None,
     j_symbol: str | None,
+    locus: str | None,
     is_igh: bool,
 ) -> str | None:
     """Standardize CDR3 with tidytcells, but tolerate malformed J symbols."""
@@ -301,23 +309,36 @@ def _process_cdr3_with_j_gene(
         species_tt = (
             "musmusculus" if "musculus" in species_tt else None  # defaults to homosapiens and other species are not supported by tidytcells
         )
+        resolved_locus = locus if isinstance(locus, str) and locus.strip() else "TR"
         try:
-            return tt.junction.standardize(
+            result = tt.junction.standardize(
                 str(cdr3).strip(),
+                locus=resolved_locus,
                 species=species_tt,
                 j_symbol=j_symbol,
-                on_fail=None,
+                log_failures=False,
             )
         except ValueError as e:
-            # Invalid J symbols (e.g. donor notes or error strings) should not abort harmonization.
-            getLogger("tidytcells").warning(
-                f"Invalid J symbol '{j_symbol}' for CDR3 '{cdr3}' and species '{species_tt}': {str(e)}. Retrying without J symbol."
-            )
-            return tt.junction.standardize(
+            # j_symbol incompatible with locus (e.g. TRGJ2 for TRA)
+            _tt_warnings.add(f"CDR3 '{cdr3}' | J '{j_symbol}' | locus '{resolved_locus}' | {e}")
+            result = tt.junction.standardize(
                 str(cdr3).strip(),
+                locus=resolved_locus,
                 species=species_tt,
-                on_fail=None,
+                log_failures=False,
             )
+            return result.junction if result.is_standardized else None
+        if result.is_standardized:
+            return result.junction
+        if j_symbol is not None:
+            _tt_warnings.add(f"CDR3 '{cdr3}' | J '{j_symbol}' | species '{species_tt}' | {result.error}")
+            result = tt.junction.standardize(
+                str(cdr3).strip(),
+                locus=resolved_locus,
+                species=species_tt,
+                log_failures=False,
+            )
+        return result.junction if result.is_standardized else None
 
 
 def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
@@ -425,6 +446,7 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
                 row[cdr3_col],
                 row[species_col] if isinstance(row[species_col], str) else None,
                 row[j_gene_col] if isinstance(row[j_gene_col], str) else None,
+                locus=str(row[receptor_type]).strip().upper() if isinstance(row[receptor_type], str) else None,
                 is_igh=str(row[receptor_type]).strip().upper() == "IGH",
             ),
             axis=1,

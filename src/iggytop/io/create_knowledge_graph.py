@@ -13,7 +13,7 @@ from iggytop.adapters.mcpas_adapter import MCPASAdapter
 from iggytop.adapters.neotcr_adapter import NEOTCRAdapter
 from iggytop.adapters.tcr3d_adapter import TCR3DAdapter
 from iggytop.adapters.trait_adapter import TRAITAdapter
-from iggytop.adapters.utils import _set_up_config, _set_up_schema, save_airr_cells_json
+from iggytop.adapters.utils import _TT_LOG_PATH, _flush_tt_warnings, _set_up_config, _set_up_schema, save_airr_cells_json
 from iggytop.adapters.vdjdb_adapter import VDJDBAdapter
 
 logger = logging.getLogger(__name__)  # inherits the log config from biocypher
@@ -60,6 +60,7 @@ def create_knowledge_graph(
     schema_config_path = _set_up_schema(cache_dir)
 
     bc = BioCypher(biocypher_config_path=config_path, schema_config_path=schema_config_path, cache_directory=cache_dir)
+    print(f"Tidytcells standardization warnings: {_TT_LOG_PATH}")
 
     adapter_classes = {
         "VDJDB": VDJDBAdapter,
@@ -82,6 +83,8 @@ def create_knowledge_graph(
         logger.info(f"Added data from {AdapterClass.__name__}")
 
     bc.summary()
+
+    _flush_tt_warnings()
 
     if output_format == "airr":
         airr_cells = bc.get_kg()

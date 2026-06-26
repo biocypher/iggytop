@@ -104,3 +104,6 @@ convention = "google" # Use Google-style docstrings
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[tool.uv.sources]
+tidytcells = { git = "https://github.com/yutanagano/tidytcells.git", rev = "v3.0.0-alpha" }

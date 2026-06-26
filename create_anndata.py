@@ -17,6 +17,8 @@ from iggytop.adapters.neotcr_adapter import NEOTCRAdapter
 from iggytop.adapters.tcr3d_adapter import TCR3DAdapter
 from iggytop.adapters.trait_adapter import TRAITAdapter
 from iggytop.adapters.utils import (
+    _TT_LOG_PATH,
+    _flush_tt_warnings,
     _set_up_config,
     _set_up_schema,
     deduplicate_and_aggregate,
@@ -97,6 +99,7 @@ def main():
     schema_config_path = _set_up_schema(cache_dir)
 
     bc = BioCypher(biocypher_config_path=config_path, schema_config_path=schema_config_path, cache_directory=cache_dir)
+    print(f"Tidytcells standardization warnings: {_TT_LOG_PATH}")
 
     adapter_classes = {
         "VDJDB": VDJDBAdapter,
@@ -225,6 +228,8 @@ def main():
                     filename="deduplicated_airr_cells",
                     metadata=global_metadata,
                 )
+
+    _flush_tt_warnings()
 
 
 if __name__ == "__main__":
