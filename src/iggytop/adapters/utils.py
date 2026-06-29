@@ -332,7 +332,7 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
     if REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY not in table.columns:
         valid_epitopes = table[REGISTRY_KEYS.EPITOPE_KEY].dropna().unique().tolist()
         if len(valid_epitopes) > 0:
-            # Sent API request to get IEDB IRIss and antigen infirmation for epitopes
+            # Sent API request to get IEDB IRIss and antigen information for epitopes
             epitope_map = get_iedb_ids_batch(bc, valid_epitopes)
 
         # Add column with IEDB IRIs corresponding to the epitope AA sequence
