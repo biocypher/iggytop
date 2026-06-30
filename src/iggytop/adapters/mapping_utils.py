@@ -42,6 +42,7 @@ def map_species_terms(terms: list[str], zooma: bool = False) -> dict:
         "YFV": "Yellow fever virus",
         "Mouse": "Mus musculus",
         "Human": "Homo sapiens",
+        "autoimmune": "Homo sapiens",
     }
 
     def normalize_species(term: str) -> str:
@@ -52,8 +53,9 @@ def map_species_terms(terms: list[str], zooma: bool = False) -> dict:
             return label
         term = term.strip()
         term = re.sub(r"^([a-zA-Z]+)(\d+)(?![a-zA-Z])", r"\1 \2", term)
+        term_lower = term.lower()
         for prefix in manual_disambiguation:
-            if term.startswith(prefix):
+            if term_lower.startswith(prefix.lower()):
                 suffix = term[len(prefix) :]
                 query_term = manual_disambiguation[prefix] + suffix
                 break
