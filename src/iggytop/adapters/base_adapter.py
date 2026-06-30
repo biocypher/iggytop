@@ -257,7 +257,7 @@ class BaseAdapter(ABC):
                     else:
                         resolved_org = f"{c1_org} X {c2_org}"  # Transgenic or ambiguous case, keep both organisms in the string for now
                 if not pd.isnull(resolved_org):
-                    cell["source_organism"] = resolved_org
+                    cell[REGISTRY_KEYS.SOURCE_ORGANISM_KEY] = resolved_org
 
                 for f in REGISTRY_KEYS:
                     # f is a column name (value from REGISTRY_KEYS)

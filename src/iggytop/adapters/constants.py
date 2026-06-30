@@ -38,6 +38,7 @@ class _REGISTRY_KEYS_NT(NamedTuple):
     MHC_GENE_2_KEY: str = "MHC_gene_2"
     TISSUE_KEY: str = "tissue"
     PUBLICATION_KEY: str = "PMID"
+    SOURCE_ORGANISM_KEY: str = "source_organism"
 
 
 REGISTRY_KEYS = _REGISTRY_KEYS_NT()
