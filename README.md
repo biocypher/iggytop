@@ -18,6 +18,7 @@ BioCypher provides a modular architecture where each data source is processed th
 - [TRAIT](https://pgx.zju.edu.cn/traitdb/)
 - [TCR3d](https://tcr3d.ibbr.umd.edu/)
 - [NeoTCR](https://github.com/lyotvincent/NeoTCR?tab=readme-ov-file)
+- [BATCAVE](https://github.com/meyer-lab-cshl/BATMAN-paper)
 
 The aggregated data from all adapters is available in the (bimonthly) [releases](https://github.com/biocypher/iggytop/releases). These releases are used by [Scirpy](https://scirpy.scverse.org/en/v0.24.0/index.html), which provides a simple interface to access the data in [anndata](https://anndata.readthedocs.io/en/latest/) format. You can also rebuild the DB using the provided code with custom parameters. On a consumer laptop, building the full DB typically takes 20-30 minutes.
 

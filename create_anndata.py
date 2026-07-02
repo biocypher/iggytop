@@ -9,6 +9,7 @@ import scirpy as ir
 from biocypher import BioCypher
 from scirpy.pp import index_chains
 
+from iggytop.adapters.batcave_adapter import BATCAVEAdapter
 from iggytop.adapters.cedar_adapter import CEDARAdapter
 from iggytop.adapters.iedb_adapter import IEDBAdapter
 from iggytop.adapters.itrap_adapter import ITRAPAdapter
@@ -47,7 +48,7 @@ def main():
         default=platformdirs.user_cache_dir("iggytop_airr"),
         help="Directory for caching results.",
     )
-    default_adapters = ["ITRAP", "VDJDB", "MCPAS", "IEDB", "TCR3D", "NEOTCR", "CEDAR", "TRAIT"]
+    default_adapters = ["ITRAP", "VDJDB", "MCPAS", "IEDB", "TCR3D", "NEOTCR", "CEDAR", "TRAIT", "BATCAVE"]
     parser.add_argument(
         "--adapters",
         nargs="+",
@@ -110,6 +111,7 @@ def main():
         "TCR3D": TCR3DAdapter,
         "NEOTCR": NEOTCRAdapter,
         "CEDAR": CEDARAdapter,
+        "BATCAVE": BATCAVEAdapter,
     }
 
     selected_adapters = [adapter_classes[name] for name in adapters_to_include if name in adapter_classes]
@@ -192,7 +194,8 @@ def main():
 
         if deduplicate:
             # Drop records where junction is missing for both chains — they can't be meaningfully deduplicated
-            has_junction = merged_adata.obs["VJ_1_junction_aa"].notna() | merged_adata.obs["VDJ_1_junction_aa"].notna()
+            with ir.get.airr_context(merged_adata, ["junction_aa"], chain=["VJ_1", "VDJ_1"]) as m:
+                has_junction = m.obs["VJ_1_junction_aa"].notna() | m.obs["VDJ_1_junction_aa"].notna()
             merged_adata_for_dedup = merged_adata[has_junction].copy()
 
             # Deduplicate and aggregate specific attributes
