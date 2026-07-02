@@ -14,6 +14,9 @@ class TRAITAdapter(BaseAdapter):
     DB_URL = "https://pgx.zju.edu.cn/download.trait/Interactive_TCR-pMHC_Pairs.zip_20250312.zip"
     """URL to download the TRAIT database."""
 
+    DB_VERSION = "2025-03-12"
+    """Version of the TRAIT database, taken from the date embedded in `DB_URL`."""
+
     DB_DIR = "trait_latest"
     """Directory name for the downloaded database."""
 
@@ -33,7 +36,7 @@ class TRAITAdapter(BaseAdapter):
         Returns:
             Path to the latest release file.
         """
-        self.set_metadata(source_url=self.DB_URL)
+        self.set_metadata(version=self.DB_VERSION, source_url=self.DB_URL)
         trait_resource = FileDownload(
             name=self.DB_DIR,
             url_s=self.DB_URL,

@@ -105,7 +105,13 @@ class BaseAdapter(ABC):
             latest_mtime = max(mtimes)
             self._metadata["download_date"] = datetime.fromtimestamp(latest_mtime).isoformat()
 
-    def set_metadata(self, version: str = None, source_url: str = None, previous_version: str = None):
+    def set_metadata(
+        self,
+        version: str = None,
+        source_url: str = None,
+        previous_version: str = None,
+        previous_checksum: str | list | None = None,
+    ):
         """
         Sets the metadata for the adapter.
 
@@ -113,13 +119,17 @@ class BaseAdapter(ABC):
             version: The version of the database. Defaults to None.
             source_url: The URL of the source. Defaults to None.
             previous_version: The version of the database in the previous release. Defaults to None.
+            previous_checksum: The checksum(s) of the source file(s) in the previous release. Defaults to None.
         """
         if version:
             self._metadata["version"] = version
         if source_url:
             self._metadata["source_url"] = source_url
-        if previous_version is not None and version is not None:
-            self._metadata["has_changed"] = version != previous_version
+
+        if previous_checksum is not None:
+            self._metadata["has_changed"] = self._metadata.get("checksum") != previous_checksum
+        elif previous_version is not None:
+            self._metadata["has_changed"] = self._metadata["version"] != previous_version
 
     @property
     def metadata(self) -> dict[str, Any]:

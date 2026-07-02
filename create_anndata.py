@@ -133,8 +133,10 @@ def main():
         adapters.append(adapter)
 
         # Update adapter metadata with change information
-        prev_source_version = prev_sources.get(adapter.db_name, {}).get("version")
-        adapter.set_metadata(previous_version=prev_source_version)
+        prev_source = prev_sources.get(adapter.db_name, {})
+        prev_source_version = prev_source.get("version")
+        prev_source_checksum = prev_source.get("checksum")
+        adapter.set_metadata(previous_version=prev_source_version, previous_checksum=prev_source_checksum)
         global_metadata["sources"][adapter.db_name] = adapter.metadata
 
         adapter.create_anndata()

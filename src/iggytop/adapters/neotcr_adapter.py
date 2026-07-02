@@ -13,6 +13,8 @@ class NEOTCRAdapter(BaseAdapter):
     """URL to download the NeoTCR database."""
     FILE_NAME = "NeoTCR_data-20221220.xlsx"
     """File name of the NeoTCR database."""
+    DB_VERSION = "2022-12-20"
+    """Version of the NeoTCR database, taken from the date embedded in `RAW_URL`."""
     DB_NAME = "NEOTCR"
     """Name of the database."""
     DB_DIR = "neotcr_latest"
@@ -30,7 +32,7 @@ class NEOTCRAdapter(BaseAdapter):
         Returns:
             Path to the latest release file.
         """
-        self.set_metadata(source_url=self.RAW_URL)
+        self.set_metadata(version=self.DB_VERSION, source_url=self.RAW_URL)
         # Download NEOTCR
         neotcr_resource = FileDownload(
             name=self.DB_DIR,

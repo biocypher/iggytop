@@ -3,15 +3,21 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import harmonize_sequences, normalize_table_strings
+from .utils import get_github_file_last_modified, harmonize_sequences, normalize_table_strings
 
 
 class BATCAVEAdapter(BaseAdapter):
     """BioCypher adapter for the `BATCAVE <https://github.com/meyer-lab-cshl/BATCAVE-paper>`_ mutational scan database."""
 
-    RAW_URL_MHCI = "https://github.com/meyer-lab-cshl/BATMAN-paper/raw/main/results_batman/tcr_epitope_datasets/mutational_scan_datasets/database/TCR_pMHCI_mutational_scan_database.xlsx"
+    REPO_NAME = "meyer-lab-cshl/BATMAN-paper"
+    """GitHub repository hosting the BATCAVE database files."""
+    FILE_PATH_MHCI = "results_batman/tcr_epitope_datasets/mutational_scan_datasets/database/TCR_pMHCI_mutational_scan_database.xlsx"
+    """Path (within the repo) to the MHC-I BATCAVE database file."""
+    FILE_PATH_MHCII = "results_batman/tcr_epitope_datasets/mutational_scan_datasets/database/TCR_pMHCII_mutational_scan_database.xlsx"
+    """Path (within the repo) to the MHC-II BATCAVE database file."""
+    RAW_URL_MHCI = f"https://github.com/{REPO_NAME}/raw/main/{FILE_PATH_MHCI}"
     """URL to download the MHC-I BATCAVE database."""
-    RAW_URL_MHCII = "https://github.com/meyer-lab-cshl/BATMAN-paper/raw/main/results_batman/tcr_epitope_datasets/mutational_scan_datasets/database/TCR_pMHCII_mutational_scan_database.xlsx"
+    RAW_URL_MHCII = f"https://github.com/{REPO_NAME}/raw/main/{FILE_PATH_MHCII}"
     """URL to download the MHC-II BATCAVE database."""
     DB_NAME = "BATCAVE"
     """Name of the database."""
@@ -32,7 +38,11 @@ class BATCAVEAdapter(BaseAdapter):
         Returns:
             Tuple of (mhci_path, mhcii_path).
         """
-        self.set_metadata(source_url=self.RAW_URL_MHCI)
+        mhci_date = get_github_file_last_modified(self.REPO_NAME, self.FILE_PATH_MHCI)
+        mhcii_date = get_github_file_last_modified(self.REPO_NAME, self.FILE_PATH_MHCII)
+        dates = [d for d in (mhci_date, mhcii_date) if d]
+        version = max(dates) if dates else "latest"
+        self.set_metadata(version=version, source_url=self.RAW_URL_MHCI)
 
         mhci_resource = FileDownload(
             name=self.DB_DIR_MHCI,

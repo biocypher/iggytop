@@ -733,7 +733,41 @@ def save_airr_cells_json(airrcells: List[AirrCell], directory: str, filename: st
     getLogger("biocypher").info(f"Compressed JSON saved to: {filepath}")
 
 
-def get_previous_release_metadata(repo_name: str = "iggytop/iggytop") -> dict | None:
+def get_github_file_last_modified(repo_name: str, file_path: str, branch: str = "main") -> str | None:
+    """
+    Fetches the date of the most recent commit that touched a file in a public GitHub repository.
+
+    Used as a stand-in "version" for source databases that are hosted as a single file on GitHub
+    and don't otherwise expose a version number.
+
+    Args:
+        repo_name: GitHub repository in "owner/repo" format.
+        file_path: Path to the file within the repository.
+        branch: Branch to check. Defaults to "main".
+
+    Returns:
+        The commit date as an ISO date string (YYYY-MM-DD), or None if it could not be determined.
+    """
+    api_url = f"https://api.github.com/repos/{repo_name}/commits"
+    params = {"path": file_path, "sha": branch, "per_page": 1}
+    headers = {"Accept": "application/vnd.github.v3+json", "User-Agent": "iggytop-metadata-fetcher"}
+    github_token = os.getenv("GITHUB_TOKEN")
+    if github_token:
+        headers["Authorization"] = f"token {github_token}"
+
+    try:
+        response = requests.get(api_url, headers=headers, params=params, timeout=10)
+        if response.status_code == 200:
+            commits = response.json()
+            if commits:
+                commit_date = commits[0]["commit"]["committer"]["date"]
+                return commit_date[:10]  # YYYY-MM-DD
+    except Exception:
+        pass
+    return None
+
+
+def get_previous_release_metadata(repo_name: str = "biocypher/iggytop") -> dict | None:
     """
     Fetches metadata from the latest GitHub release of iggytop.
     """
