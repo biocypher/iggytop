@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import pytest
 from biocypher import BioCypher
+
 from iggytop.adapters.cedar_adapter import CEDARAdapter
 from iggytop.adapters.iedb_adapter import IEDBAdapter
 from iggytop.adapters.itrap_adapter import ITRAPAdapter
@@ -45,7 +46,7 @@ def test_iedb_availability(bc):
 
 def test_cedar_availability(bc):
     adapter = CEDARAdapter(bc, test=True)
-    assert adapter.metadata["version"] == "latest"
+    assert adapter.metadata["version"] == "v3"
     assert adapter.metadata["source_url"] == CEDARAdapter.DB_URL
     tcr_path, bcr_path = adapter._table_path
     assert os.path.exists(tcr_path)
@@ -54,7 +55,7 @@ def test_cedar_availability(bc):
 
 def test_neotcr_availability(bc):
     adapter = NEOTCRAdapter(bc, test=True)
-    assert adapter.metadata["version"] == "latest"
+    assert adapter.metadata["version"] == NEOTCRAdapter.DB_VERSION
     assert adapter.metadata["source_url"] == NEOTCRAdapter.RAW_URL
     assert os.path.exists(adapter._table_path)
 
@@ -68,14 +69,15 @@ def test_tcr3d_availability(bc):
 
 def test_trait_availability(bc):
     adapter = TRAITAdapter(bc, test=True)
-    assert adapter.metadata["version"] == "latest"
+    assert adapter.metadata["version"] == TRAITAdapter.DB_VERSION
     assert adapter.metadata["source_url"] == TRAITAdapter.DB_URL
     assert os.path.exists(adapter._table_path)
 
 
 def test_itrap_availability(bc):
     adapter = ITRAPAdapter(bc, test=True)
-    assert adapter.metadata["version"] == "latest"
+    # Version is the last-modified date of the file on GitHub, so it isn't a fixed value.
+    assert adapter.metadata["version"] is not None
     assert adapter.metadata["source_url"] == ITRAPAdapter.DB_URL
     assert os.path.exists(adapter._table_path)
 
