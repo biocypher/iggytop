@@ -6,6 +6,7 @@ import networkx as nx
 import platformdirs
 from biocypher import BioCypher
 
+from iggytop.adapters.batcave_adapter import BATCAVEAdapter
 from iggytop.adapters.cedar_adapter import CEDARAdapter
 from iggytop.adapters.iedb_adapter import IEDBAdapter
 from iggytop.adapters.itrap_adapter import ITRAPAdapter
@@ -32,6 +33,7 @@ def create_knowledge_graph(
         "NEOTCR",
         "CEDAR",
         "ITRAP",
+        "BATCAVE",
     ],
     output_format: str | None = None,
     filter_10x: bool = False,
@@ -49,7 +51,7 @@ def create_knowledge_graph(
             Available receptor types: ["TCR", "BCR"].
             Defaults to including both TCR and BCR.
         adapters_to_include (List[str], optional): List of adapter names to run.
-            Available adapters: ["VDJDB", "MCPAS", "TRAIT", "IEDB", "TCR3D", "NEOTCR", "CEDAR", "ITRAP"].
+            Available adapters: ["VDJDB", "MCPAS", "TRAIT", "IEDB", "TCR3D", "NEOTCR", "CEDAR", "ITRAP","BATCAVE"].
             Defaults to providing all available adapters.
         output_format (str, optional): Output format, currently either 'airr','neo4j' or 'networkx'
         filter_10x (bool, optional): Whether to filter out 10X Genomics datasets. Defaults to False.
@@ -71,6 +73,7 @@ def create_knowledge_graph(
         "ITRAP": ITRAPAdapter,
         "NEOTCR": NEOTCRAdapter,
         "CEDAR": CEDARAdapter,
+        "BATCAVE": BATCAVEAdapter,
     }
 
     selected_adapters = [adapter_classes[name] for name in adapters_to_include if name in adapter_classes]

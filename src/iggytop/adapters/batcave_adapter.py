@@ -144,8 +144,8 @@ class BATCAVEAdapter(BaseAdapter):
         table_preprocessed = harmonize_sequences(bc, table)
 
         # avoid running api calls which do not hit (most epitopes unknown to IEDB)
-        table[REGISTRY_KEYS.EPITOPE_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY + "_mutant"]
-        table.drop(columns=[REGISTRY_KEYS.EPITOPE_KEY + "_mutant"], inplace=True)
+        table_preprocessed[REGISTRY_KEYS.EPITOPE_KEY] = table_preprocessed[REGISTRY_KEYS.EPITOPE_KEY + "_mutant"]
+        table_preprocessed.drop(columns=[REGISTRY_KEYS.EPITOPE_KEY + "_mutant"], inplace=True)
 
         return table_preprocessed
 

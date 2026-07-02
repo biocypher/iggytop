@@ -138,7 +138,6 @@ class IEDBAdapter(BaseAdapter):
             table_path: Paths to the TCR and BCR table files.
             receptors: List of receptor types to include in the table.
             test: If `True`, loads only a subset of the data for testing (default is False).
-            prefer_calculated: If `True`, calculated values are preferred over curated values. Defaults to True.
 
         Returns:
             A DataFrame containing the processed table data.
