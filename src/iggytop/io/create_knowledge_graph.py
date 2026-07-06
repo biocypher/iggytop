@@ -6,6 +6,7 @@ import networkx as nx
 import platformdirs
 from biocypher import BioCypher
 
+from iggytop.adapters.batcave_adapter import BATCAVEAdapter
 from iggytop.adapters.cedar_adapter import CEDARAdapter
 from iggytop.adapters.iedb_adapter import IEDBAdapter
 from iggytop.adapters.itrap_adapter import ITRAPAdapter
@@ -13,7 +14,7 @@ from iggytop.adapters.mcpas_adapter import MCPASAdapter
 from iggytop.adapters.neotcr_adapter import NEOTCRAdapter
 from iggytop.adapters.tcr3d_adapter import TCR3DAdapter
 from iggytop.adapters.trait_adapter import TRAITAdapter
-from iggytop.adapters.utils import _set_up_config, _set_up_schema, save_airr_cells_json
+from iggytop.adapters.utils import _TT_LOG_PATH, _flush_tt_warnings, _set_up_config, _set_up_schema, save_airr_cells_json
 from iggytop.adapters.vdjdb_adapter import VDJDBAdapter
 
 logger = logging.getLogger(__name__)  # inherits the log config from biocypher
@@ -32,6 +33,7 @@ def create_knowledge_graph(
         "NEOTCR",
         "CEDAR",
         "ITRAP",
+        "BATCAVE",
     ],
     output_format: str | None = None,
     filter_10x: bool = False,
@@ -49,7 +51,7 @@ def create_knowledge_graph(
             Available receptor types: ["TCR", "BCR"].
             Defaults to including both TCR and BCR.
         adapters_to_include (List[str], optional): List of adapter names to run.
-            Available adapters: ["VDJDB", "MCPAS", "TRAIT", "IEDB", "TCR3D", "NEOTCR", "CEDAR", "ITRAP"].
+            Available adapters: ["VDJDB", "MCPAS", "TRAIT", "IEDB", "TCR3D", "NEOTCR", "CEDAR", "ITRAP","BATCAVE"].
             Defaults to providing all available adapters.
         output_format (str, optional): Output format, currently either 'airr','neo4j' or 'networkx'
         filter_10x (bool, optional): Whether to filter out 10X Genomics datasets. Defaults to False.
@@ -60,6 +62,7 @@ def create_knowledge_graph(
     schema_config_path = _set_up_schema(cache_dir)
 
     bc = BioCypher(biocypher_config_path=config_path, schema_config_path=schema_config_path, cache_directory=cache_dir)
+    print(f"Tidytcells standardization warnings: {_TT_LOG_PATH}")
 
     adapter_classes = {
         "VDJDB": VDJDBAdapter,
@@ -70,6 +73,7 @@ def create_knowledge_graph(
         "ITRAP": ITRAPAdapter,
         "NEOTCR": NEOTCRAdapter,
         "CEDAR": CEDARAdapter,
+        "BATCAVE": BATCAVEAdapter,
     }
 
     selected_adapters = [adapter_classes[name] for name in adapters_to_include if name in adapter_classes]
@@ -82,6 +86,8 @@ def create_knowledge_graph(
         logger.info(f"Added data from {AdapterClass.__name__}")
 
     bc.summary()
+
+    _flush_tt_warnings()
 
     if output_format == "airr":
         airr_cells = bc.get_kg()

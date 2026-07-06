@@ -15,6 +15,7 @@ Similar to the [tabular data structure](./tabular_data_structure.md), IggyTop le
 - **Gene Normalization**: V(D)J genes are aligned with IMGT standards.
 - **Sequence Processing**: Harmonization of CDR3 and epitope sequences.
 
+The harmonization is based on [tidytcells](https://tidytcells.readthedocs.io/en/stable/index.html) wherever possible and tries to follow [AIRR](https://docs.airr-community.org/en/stable/) and [IMGT](https://www.imgt.org/) standards.
 ### 2. Graph Construction
 Instead of just stacking tables, the pipeline uses the BioCypher framework to:
 - Instantiate **Nodes** for sequences (TRA, TRB, IGH, IGL) and epitopes based on the [Ontology](#ontology).

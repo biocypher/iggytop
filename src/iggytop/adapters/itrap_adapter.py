@@ -3,7 +3,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import harmonize_sequences, normalize_table_strings
+from .utils import get_github_file_last_modified, harmonize_sequences, normalize_table_strings
 
 
 class ITRAPAdapter(BaseAdapter):
@@ -12,7 +12,11 @@ class ITRAPAdapter(BaseAdapter):
     Data from: https://github.com/mnielLab/ITRAP_benchmark
     """
 
-    DB_URL = "https://raw.githubusercontent.com/mnielLab/ITRAP_benchmark/main/ITRAP.csv"
+    REPO_NAME = "mnielLab/ITRAP_benchmark"
+    """GitHub repository hosting the ITRAP database file."""
+    FILE_PATH = "ITRAP.csv"
+    """Path (within the repo) to the ITRAP database file."""
+    DB_URL = f"https://raw.githubusercontent.com/{REPO_NAME}/main/{FILE_PATH}"
     """URL to download the ITRAP database."""
     DB_DIR = "itrap_latest"
     """Directory name for the downloaded database."""
@@ -31,7 +35,8 @@ class ITRAPAdapter(BaseAdapter):
         Returns:
             Path to the latest release file.
         """
-        self.set_metadata(source_url=self.DB_URL)
+        version = get_github_file_last_modified(self.REPO_NAME, self.FILE_PATH) or "latest"
+        self.set_metadata(version=version, source_url=self.DB_URL)
         itrap_resource = FileDownload(
             name=self.DB_DIR,
             url_s=self.DB_URL,

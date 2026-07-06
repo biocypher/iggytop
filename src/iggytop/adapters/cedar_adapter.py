@@ -38,7 +38,7 @@ class CEDARAdapter(BaseAdapter):
         Returns:
             Paths to the latest TCR and BCR release files.
         """
-        self.set_metadata(source_url=self.DB_URL)
+        self.set_metadata(version="v3", source_url=self.DB_URL)
         # Download CEDAR
         cedar_resource = FileDownload(
             name=self.DB_DIR,

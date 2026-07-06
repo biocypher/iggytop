@@ -18,15 +18,23 @@ import yaml
 from biocypher import APIRequest, BioCypher
 from scirpy.io._datastructures import AirrCell
 
-from iggytop.tidytcells.logging import configure_tidytcells_logging
-
 from .constants import REGISTRY_KEYS
 from .mapping_utils import map_antigen_names, map_species_terms
 
-configure_tidytcells_logging()
-
 _IG_LOCI = {"IGH", "IGL", "IGK"}
 _MISSING_TOKENS = {"", "nan", "none", "null", "n.a.", "na", "n/a"}
+_tt_warnings: set[str] = set()
+_TT_LOG_PATH = os.path.join("biocypher-log", f"tt_warnings_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+
+
+def _flush_tt_warnings() -> None:
+    """Write all collected tidytcells warnings to the run's log file."""
+    if not _tt_warnings:
+        return
+    os.makedirs(os.path.dirname(_TT_LOG_PATH), exist_ok=True)
+    with open(_TT_LOG_PATH, "w", encoding="utf-8") as fh:
+        for msg in sorted(_tt_warnings):
+            fh.write(msg + "\n")
 
 
 def normalize_table_strings(table: pd.DataFrame) -> pd.DataFrame:
@@ -96,35 +104,6 @@ def get_file_checksum(file_path: str) -> str | None:
         for byte_block in iter(lambda: f.read(4096), b""):
             sha256_hash.update(byte_block)
     return sha256_hash.hexdigest()
-
-
-def _process_cdr3_sequence(seq: str, is_igh: bool = False) -> str | None:
-    # just kept for species other than human and mouse (not supported by tidytcells)
-    if seq is None:
-        return None
-
-    # Clean and normalize the sequence
-    seq = str(seq).upper().strip().replace(" ", "").replace("\n", "")
-
-    # Validate that the sequence contains only valid amino acids (optional: define valid AAs if needed)
-    if tt.aa.standardize(seq) is None:
-        return None
-
-    # Check if sequence has a valid CDR3 format
-    starts_with_c = seq.startswith("C")
-    ends_with_fw = seq.endswith("F") or (is_igh and seq.endswith("W"))
-
-    if starts_with_c and ends_with_fw:
-        return seq
-
-    # Pad the sequence appropriately
-    seq = seq.lstrip("C")  # remove leading C if already present
-    if is_igh:
-        seq = seq.rstrip("FW")  # remove existing F or W if present
-        return f"C{seq}W"
-    else:
-        seq = seq.rstrip("F")
-        return f"C{seq}F"
 
 
 def _process_epitope_sequence(seq: str | None) -> str | None:
@@ -257,11 +236,14 @@ def _process_mhc(gene: str, species: str | None, is_ig: bool = False) -> str | N
     if gene is None or species is None:
         return gene
     if "musculus" in species.lower() or "homo" in species.lower():
-        return tt.mh.standardize(
+        result = tt.mh.standardize(
             symbol=gene,
             species=("musmusculus" if "musculus" in species.lower() else None),
-            on_fail="keep",
+            log_failures=False,
         )
+        if not result.is_standardized:
+            _tt_warnings.add(f"MH gene '{gene}' | species '{species}' | {result.error}")
+        return result.symbol if result.is_standardized else gene
     return gene
 
 
@@ -274,50 +256,59 @@ def _process_gene(gene: str, species: str | None, is_ig: bool = False) -> str | 
             "musmusculus" if "musculus" in species_tt else None  # defaults to homosapiens and other species are not supported by tidytcells
         )
         if is_ig:
-            return tt.ig.standardize(
-                symbol=gene,  # Only available for human
-                on_fail="keep",
-            )
+            result = tt.ig.standardize(symbol=gene, log_failures=False)  # Only available for human
         else:
-            return tt.tr.standardize(
-                symbol=gene,
-                species=species_tt,
-                on_fail="keep",
-            )
+            result = tt.tr.standardize(symbol=gene, species=species_tt, log_failures=False)
+        if not result.is_standardized:
+            _tt_warnings.add(f"{'IG' if is_ig else 'TR'} gene '{gene}' | species '{species}' | {result.error}")
+        return result.symbol if result.is_standardized else gene
 
 
-def _process_cdr3_with_j_gene(
+def _process_cdr3_to_junction(
     cdr3: str | None,
     species: str | None,
     j_symbol: str | None,
+    locus: str | None,
     is_igh: bool,
-) -> str | None:
-    """Standardize CDR3 with tidytcells, but tolerate malformed J symbols."""
-    # Classic regex harmonization as fallback for non-human/mouse species.
-    species_tt = species.lower() if isinstance(species, str) else ""
-    if not ("musculus" in species_tt or "homo" in species_tt) or is_igh:
-        return _process_cdr3_sequence(cdr3, is_igh=is_igh)
-    else:
-        species_tt = (
-            "musmusculus" if "musculus" in species_tt else None  # defaults to homosapiens and other species are not supported by tidytcells
+) -> tuple[str | None, str | None]:
+    """Standardize input sequence to (cdr3, junction) using tidytcells alignment.
+
+    Returns (cdr3, junction) where cdr3 excludes and junction includes the conserved
+    flanking Cys/Phe-Trp residues. On failure, returns (original_input, attempted_fix).
+    """
+    if cdr3 is None:
+        return (None, None)
+    species_tt = "musmusculus" if isinstance(species, str) and "musculus" in species.lower() else None
+    resolved_locus = locus if isinstance(locus, str) else "IGH" if is_igh else "TR"
+    try:
+        result = tt.junction.standardize(
+            cdr3,
+            locus=resolved_locus,
+            species=species_tt,
+            j_symbol=j_symbol,
+            log_failures=False,
         )
-        try:
-            return tt.junction.standardize(
-                str(cdr3).strip(),
-                species=species_tt,
-                j_symbol=j_symbol,
-                on_fail=None,
-            )
-        except ValueError as e:
-            # Invalid J symbols (e.g. donor notes or error strings) should not abort harmonization.
-            getLogger("tidytcells").warning(
-                f"Invalid J symbol '{j_symbol}' for CDR3 '{cdr3}' and species '{species_tt}': {str(e)}. Retrying without J symbol."
-            )
-            return tt.junction.standardize(
-                str(cdr3).strip(),
-                species=species_tt,
-                on_fail=None,
-            )
+    except ValueError as e:
+        # j_symbol incompatible with locus (e.g. TRGJ2 for TRA)
+        _tt_warnings.add(f"CDR3 '{cdr3}' | J '{j_symbol}' | locus '{resolved_locus}' | {e}")
+        result = tt.junction.standardize(
+            cdr3,
+            locus=resolved_locus,
+            species=species_tt,
+            log_failures=False,
+        )
+        return (result.cdr3, result.junction) if result.is_standardized else (cdr3, result.attempted_fix)
+    if result.is_standardized:
+        return (result.cdr3, result.junction)
+    if j_symbol is not None:
+        _tt_warnings.add(f"CDR3 '{cdr3}' | J '{j_symbol}' | species '{species_tt}' | {result.error}")
+        result = tt.junction.standardize(
+            cdr3,
+            locus=resolved_locus,
+            species=species_tt,
+            log_failures=False,
+        )
+    return (result.cdr3, result.junction) if result.is_standardized else (cdr3, result.attempted_fix)
 
 
 def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
@@ -341,7 +332,7 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
     if REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY not in table.columns:
         valid_epitopes = table[REGISTRY_KEYS.EPITOPE_KEY].dropna().unique().tolist()
         if len(valid_epitopes) > 0:
-            # Sent API request to get IEDB IRIss and antigen infirmation for epitopes
+            # Sent API request to get IEDB IRIs and antigen information for epitopes
             epitope_map = get_iedb_ids_batch(bc, valid_epitopes)
 
         # Add column with IEDB IRIs corresponding to the epitope AA sequence
@@ -393,12 +384,12 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
     antigen_names_clean = map_antigen_names(table[REGISTRY_KEYS.ANTIGEN_KEY].dropna().unique().tolist())
     table[REGISTRY_KEYS.ANTIGEN_KEY] = table[REGISTRY_KEYS.ANTIGEN_KEY].replace(antigen_names_clean)
 
-    # Normalize V and J genes
-    # Clean CDR3 sequences (normalize junction_aas)
+    # Normalize V and J genes, standardize CDR3 sequences and compute junctions
     for i in [1, 2]:
         getLogger("biocypher").info(f"Harmonizing V/J gene names and CDR3 sequences for chain {i} with tidytcells.")
         receptor_type = getattr(REGISTRY_KEYS, f"CHAIN_{i}_TYPE_KEY")
         cdr3_col = getattr(REGISTRY_KEYS, f"CHAIN_{i}_CDR3_KEY")
+        junction_col = getattr(REGISTRY_KEYS, f"CHAIN_{i}_JUNCTION_AA_KEY")
         v_gene_col = getattr(REGISTRY_KEYS, f"CHAIN_{i}_V_GENE_KEY")
         j_gene_col = getattr(REGISTRY_KEYS, f"CHAIN_{i}_J_GENE_KEY")
         species_col = getattr(REGISTRY_KEYS, f"CHAIN_{i}_ORGANISM_KEY")
@@ -420,15 +411,18 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
             axis=1,
         )
 
-        table[cdr3_col] = table.apply(
-            lambda row: _process_cdr3_with_j_gene(
+        results = table.apply(
+            lambda row: _process_cdr3_to_junction(
                 row[cdr3_col],
                 row[species_col] if isinstance(row[species_col], str) else None,
                 row[j_gene_col] if isinstance(row[j_gene_col], str) else None,
+                locus=str(row[receptor_type]).strip().upper() if isinstance(row[receptor_type], str) else None,
                 is_igh=str(row[receptor_type]).strip().upper() == "IGH",
             ),
             axis=1,
         )
+        table[cdr3_col] = results.apply(lambda t: t[0])
+        table[junction_col] = results.apply(lambda t: t[1])
     getLogger("biocypher").info("Processing MHC gene names for human records with tidytcells.")
     table[REGISTRY_KEYS.MHC_GENE_1_KEY] = table.apply(
         lambda row: (
@@ -739,7 +733,41 @@ def save_airr_cells_json(airrcells: List[AirrCell], directory: str, filename: st
     getLogger("biocypher").info(f"Compressed JSON saved to: {filepath}")
 
 
-def get_previous_release_metadata(repo_name: str = "iggytop/iggytop") -> dict | None:
+def get_github_file_last_modified(repo_name: str, file_path: str, branch: str = "main") -> str | None:
+    """
+    Fetches the date of the most recent commit that touched a file in a public GitHub repository.
+
+    Used as a stand-in "version" for source databases that are hosted as a single file on GitHub
+    and don't otherwise expose a version number.
+
+    Args:
+        repo_name: GitHub repository in "owner/repo" format.
+        file_path: Path to the file within the repository.
+        branch: Branch to check. Defaults to "main".
+
+    Returns:
+        The commit date as an ISO date string (YYYY-MM-DD), or None if it could not be determined.
+    """
+    api_url = f"https://api.github.com/repos/{repo_name}/commits"
+    params = {"path": file_path, "sha": branch, "per_page": 1}
+    headers = {"Accept": "application/vnd.github.v3+json", "User-Agent": "iggytop-metadata-fetcher"}
+    github_token = os.getenv("GITHUB_TOKEN")
+    if github_token:
+        headers["Authorization"] = f"token {github_token}"
+
+    try:
+        response = requests.get(api_url, headers=headers, params=params, timeout=10)
+        if response.status_code == 200:
+            commits = response.json()
+            if commits:
+                commit_date = commits[0]["commit"]["committer"]["date"]
+                return commit_date[:10]  # YYYY-MM-DD
+    except Exception:
+        pass
+    return None
+
+
+def get_previous_release_metadata(repo_name: str = "biocypher/iggytop") -> dict | None:
     """
     Fetches metadata from the latest GitHub release of iggytop.
     """

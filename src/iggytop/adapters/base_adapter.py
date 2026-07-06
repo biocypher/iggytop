@@ -105,7 +105,13 @@ class BaseAdapter(ABC):
             latest_mtime = max(mtimes)
             self._metadata["download_date"] = datetime.fromtimestamp(latest_mtime).isoformat()
 
-    def set_metadata(self, version: str = None, source_url: str = None, previous_version: str = None):
+    def set_metadata(
+        self,
+        version: str = None,
+        source_url: str = None,
+        previous_version: str = None,
+        previous_checksum: str | list | None = None,
+    ):
         """
         Sets the metadata for the adapter.
 
@@ -113,13 +119,17 @@ class BaseAdapter(ABC):
             version: The version of the database. Defaults to None.
             source_url: The URL of the source. Defaults to None.
             previous_version: The version of the database in the previous release. Defaults to None.
+            previous_checksum: The checksum(s) of the source file(s) in the previous release. Defaults to None.
         """
         if version:
             self._metadata["version"] = version
         if source_url:
             self._metadata["source_url"] = source_url
-        if previous_version is not None and version is not None:
-            self._metadata["has_changed"] = version != previous_version
+
+        if previous_checksum is not None:
+            self._metadata["has_changed"] = self._metadata.get("checksum") != previous_checksum
+        elif previous_version is not None:
+            self._metadata["has_changed"] = self._metadata["version"] != previous_version
 
     @property
     def metadata(self) -> dict[str, Any]:
@@ -215,7 +225,8 @@ class BaseAdapter(ABC):
                     alpha_chain.update(
                         {
                             "locus": getattr(row, REGISTRY_KEYS.CHAIN_1_TYPE_KEY, None),
-                            "junction_aa": c1_cdr3,
+                            "junction_aa": getattr(row, REGISTRY_KEYS.CHAIN_1_JUNCTION_AA_KEY, None),
+                            "cdr3_aa": c1_cdr3,
                             "v_call": getattr(row, REGISTRY_KEYS.CHAIN_1_V_GENE_KEY, None),
                             "j_call": getattr(row, REGISTRY_KEYS.CHAIN_1_J_GENE_KEY, None),
                             "consensus_count": 0,
@@ -229,7 +240,8 @@ class BaseAdapter(ABC):
                     beta_chain.update(
                         {
                             "locus": getattr(row, REGISTRY_KEYS.CHAIN_2_TYPE_KEY, None),
-                            "junction_aa": c2_cdr3,
+                            "junction_aa": getattr(row, REGISTRY_KEYS.CHAIN_2_JUNCTION_AA_KEY, None),
+                            "cdr3_aa": c2_cdr3,
                             "v_call": getattr(row, REGISTRY_KEYS.CHAIN_2_V_GENE_KEY, None),
                             "j_call": getattr(row, REGISTRY_KEYS.CHAIN_2_J_GENE_KEY, None),
                             "consensus_count": 0,
@@ -255,7 +267,7 @@ class BaseAdapter(ABC):
                     else:
                         resolved_org = f"{c1_org} X {c2_org}"  # Transgenic or ambiguous case, keep both organisms in the string for now
                 if not pd.isnull(resolved_org):
-                    cell["source_organism"] = resolved_org
+                    cell[REGISTRY_KEYS.SOURCE_ORGANISM_KEY] = resolved_org
 
                 for f in REGISTRY_KEYS:
                     # f is a column name (value from REGISTRY_KEYS)

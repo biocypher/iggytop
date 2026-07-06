@@ -6,6 +6,7 @@ with receptor-epitope matching information and saves it in JSON format.
 import argparse
 
 import platformdirs
+
 from iggytop.io.create_knowledge_graph import create_knowledge_graph
 
 
@@ -18,7 +19,7 @@ def main():
         default=platformdirs.user_cache_dir("iggytop_airr"),
         help="Directory for caching results.",
     )
-    default_adapters = ["ITRAP", "VDJDB", "MCPAS", "IEDB", "TCR3D", "NEOTCR", "CEDAR", "TRAIT"]
+    default_adapters = ["ITRAP", "VDJDB", "MCPAS", "IEDB", "TCR3D", "NEOTCR", "CEDAR", "TRAIT", "BATCAVE"]
     parser.add_argument(
         "--adapters",
         nargs="+",

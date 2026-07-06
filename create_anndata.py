@@ -9,6 +9,7 @@ import scirpy as ir
 from biocypher import BioCypher
 from scirpy.pp import index_chains
 
+from iggytop.adapters.batcave_adapter import BATCAVEAdapter
 from iggytop.adapters.cedar_adapter import CEDARAdapter
 from iggytop.adapters.iedb_adapter import IEDBAdapter
 from iggytop.adapters.itrap_adapter import ITRAPAdapter
@@ -17,6 +18,8 @@ from iggytop.adapters.neotcr_adapter import NEOTCRAdapter
 from iggytop.adapters.tcr3d_adapter import TCR3DAdapter
 from iggytop.adapters.trait_adapter import TRAITAdapter
 from iggytop.adapters.utils import (
+    _TT_LOG_PATH,
+    _flush_tt_warnings,
     _set_up_config,
     _set_up_schema,
     deduplicate_and_aggregate,
@@ -45,7 +48,7 @@ def main():
         default=platformdirs.user_cache_dir("iggytop_airr"),
         help="Directory for caching results.",
     )
-    default_adapters = ["ITRAP", "VDJDB", "MCPAS", "IEDB", "TCR3D", "NEOTCR", "CEDAR", "TRAIT"]
+    default_adapters = ["ITRAP", "VDJDB", "MCPAS", "IEDB", "TCR3D", "NEOTCR", "CEDAR", "TRAIT", "BATCAVE"]
     parser.add_argument(
         "--adapters",
         nargs="+",
@@ -97,6 +100,7 @@ def main():
     schema_config_path = _set_up_schema(cache_dir)
 
     bc = BioCypher(biocypher_config_path=config_path, schema_config_path=schema_config_path, cache_directory=cache_dir)
+    print(f"Tidytcells standardization warnings: {_TT_LOG_PATH}")
 
     adapter_classes = {
         "VDJDB": VDJDBAdapter,
@@ -107,6 +111,7 @@ def main():
         "TCR3D": TCR3DAdapter,
         "NEOTCR": NEOTCRAdapter,
         "CEDAR": CEDARAdapter,
+        "BATCAVE": BATCAVEAdapter,
     }
 
     selected_adapters = [adapter_classes[name] for name in adapters_to_include if name in adapter_classes]
@@ -128,8 +133,10 @@ def main():
         adapters.append(adapter)
 
         # Update adapter metadata with change information
-        prev_source_version = prev_sources.get(adapter.db_name, {}).get("version")
-        adapter.set_metadata(previous_version=prev_source_version)
+        prev_source = prev_sources.get(adapter.db_name, {})
+        prev_source_version = prev_source.get("version")
+        prev_source_checksum = prev_source.get("checksum")
+        adapter.set_metadata(previous_version=prev_source_version, previous_checksum=prev_source_checksum)
         global_metadata["sources"][adapter.db_name] = adapter.metadata
 
         adapter.create_anndata()
@@ -188,6 +195,11 @@ def main():
                 merged_adata.obs[col] = merged_adata.obs[col].astype("string")
 
         if deduplicate:
+            # Drop records where junction is missing for both chains — they can't be meaningfully deduplicated
+            with ir.get.airr_context(merged_adata, ["junction_aa"], chain=["VJ_1", "VDJ_1"]) as m:
+                has_junction = m.obs["VJ_1_junction_aa"].notna() | m.obs["VDJ_1_junction_aa"].notna()
+            merged_adata_for_dedup = merged_adata[has_junction].copy()
+
             # Deduplicate and aggregate specific attributes
             subset_cols = [
                 "VJ_1_junction_aa",
@@ -201,7 +213,7 @@ def main():
             agg_cols = ["PMID", "source"]
 
             try:
-                deduplicated_adata = deduplicate_and_aggregate(merged_adata, subset_cols, agg_cols)
+                deduplicated_adata = deduplicate_and_aggregate(merged_adata_for_dedup, subset_cols, agg_cols)
             except (ValueError, KeyError) as e:
                 print(f"Deduplication failed due to unexpected data state: {e}")
                 raise
@@ -225,6 +237,8 @@ def main():
                     filename="deduplicated_airr_cells",
                     metadata=global_metadata,
                 )
+
+    _flush_tt_warnings()
 
 
 if __name__ == "__main__":

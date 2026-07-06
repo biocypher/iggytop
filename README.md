@@ -8,7 +8,7 @@
 
 This repository uses the [BioCypher](https://biocypher.org) framework to harmonize databases with existing immunoreceptor-epitope matching information. The aggregated data is provided in tabular and graph formats.
 
-BioCypher provides a modular architecture where each data source is processed through dedicated transformation scripts called adapters. These adapters are the interface between raw data sources and the BioCypher knowledge graph infrastructure. This project provides adapters for the following databases:
+BioCypher provides a modular architecture where each data source is processed through dedicated transformation scripts called adapters. These adapters are the interface between raw data sources and the IggyTop dataset. We use [tidytcells](https://tidytcells.readthedocs.io/en/stable/index.html) to standardize gene names, cdr3 sequences and junction sequences for both BCR and TCR datasets. We aim to follow [AIRR](https://docs.airr-community.org/en/stable/) and [IMGT](https://www.imgt.org/) standards. This project provides adapters for the following databases:
 
 - [IEDB](https://www.iedb.org/)
 - [VDJdb](https://github.com/antigenomics/vdjdb-db)
@@ -18,6 +18,7 @@ BioCypher provides a modular architecture where each data source is processed th
 - [TRAIT](https://pgx.zju.edu.cn/traitdb/)
 - [TCR3d](https://tcr3d.ibbr.umd.edu/)
 - [NeoTCR](https://github.com/lyotvincent/NeoTCR?tab=readme-ov-file)
+- [BATCAVE](https://github.com/meyer-lab-cshl/BATMAN-paper)
 
 The aggregated data from all adapters is available in the (bimonthly) [releases](https://github.com/biocypher/iggytop/releases). These releases are used by [Scirpy](https://scirpy.scverse.org/en/v0.24.0/index.html), which provides a simple interface to access the data in [anndata](https://anndata.readthedocs.io/en/latest/) format. You can also rebuild the DB using the provided code with custom parameters. On a consumer laptop, building the full DB typically takes 20-30 minutes.
 
@@ -71,6 +72,10 @@ To run DB/graph generation locally:
    ```
 More information can be found in the [documentation](https://iggytop.readthedocs.io/en/latest/).
 
+## Documentation
+We use [Sphinx](https://www.sphinx-doc.org/en/master/) for documentation (see `./docs`).
+The full documentation is available online via [Read the Docs](https://iggytop.readthedocs.io/en/latest/).
+
 ## Pipeline
 
 - `create_anndata.py`: obtain harmonized, merged (and deduplicated) data from all (or selected) databases in [anndata](https://anndata.readthedocs.io/en/stable/index.html) format. It initializes the adapters but does not generate the knowledge graph. The main purpose is integration into [Scirpy](https://scirpy.scverse.org/en/latest/). You can specify which adapters to include:
@@ -87,11 +92,6 @@ uv run create_knowledge_graph.py --adapters VDJDB CEDAR --filter-10x
 - `src/iggytop/config/schema_config.yaml`: defines the schema of the knowledge graph. It is used by BioCypher to map the data source to the knowledge representation based on ontology (see [this part of the BioCypher tutorial](https://biocypher.org/tutorial-ontology.html)).
 
 - `src/iggytop/config/biocypher_config.yaml`: defines BioCypher parameters such as the mode, separators, and other options. More on its use can be found in the [documentation](https://biocypher.org/BioCypher/reference/biocypher-config/).
-
-## Documentation
-We use [Sphinx](https://www.sphinx-doc.org/en/master/) for documentation (see `./docs`).
-The full documentation is available online via [Read the Docs](https://iggytop.readthedocs.io/en/latest/).
-
 
 ## Testing and CI/CD
 
