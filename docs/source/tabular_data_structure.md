@@ -10,6 +10,8 @@ IggyTop leverages **BioCypher adapters** to read data from multiple immunologica
 - **Mapping**: Each database's unique format is mapped to a set of internal registry keys.
 - **Gene Normalization**: V(D)J genes are normalized to IMGT standards.
 - **Sequence Processing**: CDR3 sequences and epitopes are harmonized.
+
+The harmonization is based on [tidytcells](https://tidytcells.readthedocs.io/en/stable/index.html) wherever possible and tries to follow [AIRR](https://docs.airr-community.org/en/stable/) and [IMGT](https://www.imgt.org/) standards.
 for details on the harmonization please refer to the `self.read_table` function of any given adapter.
 
 ### 2. Tabular Stacking

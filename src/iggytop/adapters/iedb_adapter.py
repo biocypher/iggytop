@@ -173,6 +173,8 @@ class IEDBAdapter(BaseAdapter):
             table = table.sample(frac=0.01, random_state=42)
         table = normalize_table_strings(table)
 
+        # We use the calculated values (since IEDB has been [revised](https://www.biorxiv.org/content/10.64898/2026.06.03.728549v1))
+        #  as failure to obtain calculated data from curated fileds indicates some serius issues with the data.
         rename_cols = {
             "Epitope Name": REGISTRY_KEYS.EPITOPE_KEY,
             "Epitope IEDB IRI": REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,

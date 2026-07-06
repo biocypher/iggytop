@@ -102,8 +102,7 @@ class BATCAVEAdapter(BaseAdapter):
         # as done in https://github.com/meyer-lab-cshl/BATMAN-paper/blob/main/results_batman/paper_figures/figure_1/1c/plot_tcr_mutational_scan_heatmaps_for_1c.py
         table["norm_peptide_activity"] = table.groupby("tcr")["peptide_activity"].transform(lambda x: x / x.max())
 
-        # Apply threshold of 0.2 to be sure
-        # Batman paper uses 0.1 (see https://www.biorxiv.org/content/10.1101/2024.01.22.576714v3.supplementary-material)
+        # Apply threshold of 0.2 to be sure (find the reasoning behind it here: https://github.com/biocypher/iggytop/pull/55#discussion_r3519732965)
         table = table[table["norm_peptide_activity"] > 0.2]
 
         if test:
