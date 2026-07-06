@@ -1,6 +1,6 @@
 [project]
 name = "iggytop"
-version = "0.7.0"
+version = "0.8.0"
 description = "Immune repertoire information retrieval and integration"
 authors = [
     { name = "Valeriia Dragan" },
