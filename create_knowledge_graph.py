@@ -20,6 +20,7 @@ def main():
         help="Directory for caching results.",
     )
     default_adapters = ["ITRAP", "VDJDB", "MCPAS", "IEDB", "TCR3D", "NEOTCR", "CEDAR", "TRAIT", "BATCAVE"]
+    default_adapters = ["TCR3D"]
     parser.add_argument(
         "--adapters",
         nargs="+",

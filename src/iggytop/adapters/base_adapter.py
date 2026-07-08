@@ -1,25 +1,37 @@
 from __future__ import annotations
 
+import importlib.resources
 import os
-import re
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, Sequence, cast
 
 import anndata as ad
+import ontoweaver
 import pandas as pd
+import yaml
 from scirpy.io._convert_anndata import from_airr_cells
 from scirpy.io._datastructures import AirrCell
 from scirpy.pp import index_chains
 from tqdm.auto import tqdm
 
+from . import ontoweaver_transformers  # noqa: F401 (registers the `chain_id` transformer)
 from .constants import REGISTRY_KEYS
 from .utils import get_file_checksum
 
 if TYPE_CHECKING:
     from biocypher import BioCypher
 import platformdirs
+
+
+def _load_ontoweaver_mapping(filename: str) -> dict:
+    with importlib.resources.open_text("iggytop.config", filename) as f:
+        return yaml.safe_load(f)
+
+
+_ONTOWEAVER_CHAIN1_MAPPING = _load_ontoweaver_mapping("ontoweaver_mapping_chain1.yaml")
+_ONTOWEAVER_CHAIN2_MAPPING = _load_ontoweaver_mapping("ontoweaver_mapping_chain2.yaml")
 
 
 class BaseAdapter(ABC):
@@ -77,6 +89,7 @@ class BaseAdapter(ABC):
         self._receptors = list(set(receptors_to_include) & set(self.available_receptors))
         self._table: pd.DataFrame | None = None
         self._airr_cells: list[AirrCell] | None = None
+        self._ontoweaver_kg: tuple[list[tuple], list[tuple]] | None = None
         self._metadata = {
             "db_name": self.DB_NAME,
             "version": "latest",
@@ -185,6 +198,32 @@ class BaseAdapter(ABC):
             ]
 
         return self._table
+
+    def _get_ontoweaver_kg(self) -> tuple[list[tuple], list[tuple]]:
+        """
+        Generates BioCypher nodes and edges from the harmonized table via OntoWeaver.
+
+        Runs the shared chain-1-as-subject and chain-2-as-subject mappings (driven purely by
+        REGISTRY_KEYS column names, so they apply unmodified to any adapter's table) and
+        reconciles the two passes, so duplicate nodes/edges they both produce (e.g. the chain 2
+        node, created as a target by the chain-1 mapping and as the subject of the chain-2
+        mapping) are merged into one.
+
+        Returns:
+            A tuple of (nodes, edges), each a list of BioCypher tuples.
+        """
+        if self._ontoweaver_kg is None:
+            nodes, edges = ontoweaver.extract(
+                [(self.table, _ONTOWEAVER_CHAIN1_MAPPING), (self.table, _ONTOWEAVER_CHAIN2_MAPPING)],
+                affix="none",
+            )
+            fnodes, fedges = ontoweaver.fusion.reconciliate(
+                [n.as_tuple() for n in nodes],
+                [e.as_tuple() for e in edges],
+                reconciliate_sep=",",
+            )
+            self._ontoweaver_kg = (fnodes, fedges)
+        return self._ontoweaver_kg
 
     @property
     def cache_dir(self) -> str:
@@ -315,8 +354,7 @@ class BaseAdapter(ABC):
         """
         Abstract method to generate BioCypher nodes from the data.
 
-        This method is intended to use _generate_nodes_from_table with the right parameters for each edge type.
-        This requires parameters depending on the adapter used.
+        Adapters are expected to implement this via `_get_ontoweaver_kg`.
 
         Yields:
             tuple: A BioCypher node (id, type, properties).
@@ -328,8 +366,7 @@ class BaseAdapter(ABC):
         """
         Abstract method to generate BioCypher edges from the data.
 
-        This method is intended to call _generate_edges_from_table with the right parameters for each edge type.
-        This requires parameters depending on the adapter used.
+        Adapters are expected to implement this via `_get_ontoweaver_kg`.
 
         Yields:
             tuple: A BioCypher edge (id, source, target, type, properties).
@@ -355,149 +392,3 @@ class BaseAdapter(ABC):
         ad.settings.allow_write_nullable_strings = True
         adata.write_h5ad(cast(os.PathLike, anndata_path), compression="gzip")
         print(f"Saved Anndata to {anndata_path}")
-
-    def _generate_nodes_from_table(
-        self,
-        subset_cols: list[str],
-        unique_cols: list[str] | None = None,
-        property_cols: list[str] | None = None,
-    ):
-        """
-        Generates BioCypher nodes from the data table.
-
-        The unique_cols are used for selecting the rows which contain relevant information.
-        They do NOT correspond to the unique identifier.
-        To create the unique identifier, we use unique_cols + V gene (if available) for TCR chains.
-
-        Args:
-            subset_cols: List of columns to subset the table.
-            unique_cols: List of columns to check for uniqueness. Defaults to None.
-            property_cols: List of columns to include as properties. Defaults to None.
-
-        Yields:
-            A tuple containing the node ID, node type, and properties.
-        """
-        if not isinstance(subset_cols, list):
-            subset_cols = [subset_cols]
-
-        unique_cols = unique_cols or subset_cols
-        if not isinstance(unique_cols, list):
-            unique_cols = [unique_cols]
-
-        property_cols = property_cols or list(set(subset_cols) - set(unique_cols))
-        if not isinstance(property_cols, list):
-            property_cols = [property_cols]
-
-        subset_table = self.table[subset_cols].dropna(subset=unique_cols)
-
-        # Using itertuples() for better performance
-        for row in subset_table.itertuples(index=False):
-            if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in subset_cols:
-                _type = getattr(row, REGISTRY_KEYS.CHAIN_1_TYPE_KEY)
-            elif REGISTRY_KEYS.CHAIN_2_TYPE_KEY in subset_cols:
-                _type = getattr(row, REGISTRY_KEYS.CHAIN_2_TYPE_KEY)
-            else:
-                _type = "epitope"
-
-            # For TCR chains, use sequence + V gene + J gene as the identifier
-            if _type.lower() != "epitope":
-                # Get V gene and J gene if available
-                v_gene_key = (
-                    REGISTRY_KEYS.CHAIN_1_V_GENE_KEY if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in subset_cols else REGISTRY_KEYS.CHAIN_2_V_GENE_KEY
-                )
-
-                # Check if V gene is available in the row
-                v_gene = getattr(row, v_gene_key, None)
-
-                # Create an ID that includes V and J genes if available
-                id_components = [_type.lower()]
-                id_components.extend([str(getattr(row, col)) for col in unique_cols])
-                if v_gene:
-                    id_components.append(str(v_gene))
-
-                _id = ":".join(id_components)
-            else:
-                # For epitopes and other types, keep the original ID format
-                _id = ":".join([_type.lower(), *[str(getattr(row, col)) for col in unique_cols]])
-
-            _props = {re.sub(r"chain_\d_", "", k): getattr(row, k) for k in property_cols}
-
-            yield _id, _type.lower(), _props
-
-    def _generate_edges_from_table(
-        self,
-        source_subset_cols: list[str],
-        target_subset_cols: list[str],
-        source_unique_cols: list[str] | None = None,
-        target_unique_cols: list[str] | None = None,
-    ):
-        """
-        Generates BioCypher edges from the data table.
-
-        The unique_cols are used for selecting the rows which contain relevant information.
-        They do NOT correspond to the unique identifier.
-        To create the unique identifier, we use unique_cols + V gene (if available) for TCR chains.
-
-        Args:
-            source_subset_cols: List of columns for the source node.
-            target_subset_cols: List of columns for the target node.
-            source_unique_cols: List of unique columns for the source node. Defaults to None.
-            target_unique_cols: List of unique columns for the target node. Defaults to None.
-
-        Yields:
-            A tuple containing the edge ID, source ID, target ID, edge type, and properties.
-        """
-        source_subset_cols = source_subset_cols or []
-        if not isinstance(source_subset_cols, list):
-            source_subset_cols = [source_subset_cols]
-
-        source_unique_cols = source_unique_cols or source_subset_cols
-        if not isinstance(source_unique_cols, list):
-            source_unique_cols = [source_unique_cols]
-
-        target_subset_cols = target_subset_cols or []
-        if not isinstance(target_subset_cols, list):
-            target_subset_cols = [target_subset_cols]
-
-        target_unique_cols = target_unique_cols or target_subset_cols
-        if not isinstance(target_unique_cols, list):
-            target_unique_cols = [target_unique_cols]
-
-        subset_table = self.table[source_subset_cols + target_subset_cols].dropna(subset=source_unique_cols + target_unique_cols)
-
-        # Using itertuples() for better performance
-        for row in subset_table.itertuples(index=False):
-            node_data = {}
-            for i in ["source", "target"]:
-                cols = locals()[f"{i}_subset_cols"]
-                unique_cols_list = locals()[f"{i}_unique_cols"]
-
-                if REGISTRY_KEYS.CHAIN_1_TYPE_KEY in cols:
-                    node_type = getattr(row, REGISTRY_KEYS.CHAIN_1_TYPE_KEY)
-                    v_gene_key = REGISTRY_KEYS.CHAIN_1_V_GENE_KEY
-                elif REGISTRY_KEYS.CHAIN_2_TYPE_KEY in cols:
-                    node_type = getattr(row, REGISTRY_KEYS.CHAIN_2_TYPE_KEY)
-                    v_gene_key = REGISTRY_KEYS.CHAIN_2_V_GENE_KEY
-                else:
-                    node_type = "epitope"
-                    v_gene_key = None
-
-                id_components = [node_type.lower()]
-                id_components.extend([str(getattr(row, col)) for col in unique_cols_list])
-
-                if v_gene_key:
-                    v_gene = getattr(row, v_gene_key, None)
-                    if v_gene:
-                        id_components.append(str(v_gene))
-
-                node_data[i] = {"id": ":".join(id_components), "type": node_type}
-
-            _source_id = node_data["source"]["id"]
-            _target_id = node_data["target"]["id"]
-            _source_type = node_data["source"]["type"]
-            _target_type = node_data["target"]["type"]
-
-            _id = f"{_source_id}-{_target_id}"
-            _type = f"{_source_type.lower()}_to_{_target_type.lower()}"
-
-            yield (_id, _source_id, _target_id, _type, {})

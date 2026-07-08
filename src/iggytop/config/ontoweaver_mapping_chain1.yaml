@@ -1,0 +1,112 @@
+row:
+  chain_id:
+    columns: [chain_1_type, chain_1_cdr3, chain_1_v_call]
+    match_type_from_column: chain_1_type
+    match:
+      - TRA:
+          to_subject: tra
+      - IGH:
+          to_subject: igh
+
+transformers:
+  - map:
+      column: chain_1_type
+      to_property: type
+      for_objects: [tra, igh]
+  - map:
+      column: chain_1_cdr3
+      to_property: cdr3
+      for_objects: [tra, igh]
+  - map:
+      column: chain_1_v_call
+      to_property: v_call
+      for_objects: [tra, igh]
+  - map:
+      column: chain_1_j_call
+      to_property: j_call
+      for_objects: [tra, igh]
+  - map:
+      column: chain_1_organism
+      to_property: organism
+      for_objects: [tra, igh]
+
+  - chain_id:
+      columns: [chain_2_type, chain_2_cdr3, chain_2_v_call]
+      match_type_from_column: chain_2_type
+      match:
+        - TRB:
+            to_object: trb
+            via_relation: tra_to_trb
+        - IGL:
+            to_object: igl
+            via_relation: igh_to_igl
+
+  - map:
+      column: chain_2_type
+      to_property: type
+      for_objects: [trb, igl]
+  - map:
+      column: chain_2_cdr3
+      to_property: cdr3
+      for_objects: [trb, igl]
+  - map:
+      column: chain_2_v_call
+      to_property: v_call
+      for_objects: [trb, igl]
+  - map:
+      column: chain_2_j_call
+      to_property: j_call
+      for_objects: [trb, igl]
+  - map:
+      column: chain_2_organism
+      to_property: organism
+      for_objects: [trb, igl]
+
+  - cat_format:
+      columns: [iedb_iri]
+      format_string: "epitope:{iedb_iri}"
+      match_type_from_column: chain_1_type
+      match:
+        - TRA:
+            to_object: epitope
+            via_relation: tra_to_epitope
+        - IGH:
+            to_object: epitope
+            via_relation: igh_to_epitope
+
+  - map:
+      column: epitope_sequence
+      to_property: epitope_sequence
+      for_object: epitope
+  - map:
+      column: iedb_iri
+      to_property: iedb_iri
+      for_object: epitope
+  - map:
+      column: antigen_name
+      to_property: antigen_name
+      for_object: epitope
+  - map:
+      column: antigen_species
+      to_property: antigen_species
+      for_object: epitope
+  - map:
+      column: MHC_class
+      to_property: MHC_class
+      for_object: epitope
+  - map:
+      column: MHC_gene_1
+      to_property: MHC_gene_1
+      for_object: epitope
+  - map:
+      column: MHC_gene_2
+      to_property: MHC_gene_2
+      for_object: epitope
+  - map:
+      column: PMID
+      to_property: PMID
+      for_object: epitope
+  - map:
+      column: tissue
+      to_property: tissue
+      for_object: epitope
