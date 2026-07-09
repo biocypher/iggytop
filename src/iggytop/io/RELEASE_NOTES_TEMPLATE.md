@@ -22,7 +22,7 @@ Datasets are provided in AnnData (.h5ad) and AIRR JSON (.json.gz) formats.
 
     This corresponds to the merged dataset after some filtering steps:
       - Data originating from the 10X dataset is filtered out (except data in the ITRAP dataset).
-      - Records are deduplicated (see `create_anndata.py`)
+      - Records are deduplicated (see `create_release.py`)
 
     Find out more about the deduplication and filtering in the [IggyTop documentation](https://iggytop.readthedocs.io/en/latest/).
 

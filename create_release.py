@@ -6,27 +6,15 @@ from pathlib import Path
 import anndata as ad
 import platformdirs
 import scirpy as ir
-from biocypher import BioCypher
 from scirpy.pp import index_chains
 
-from iggytop.adapters.batcave_adapter import BATCAVEAdapter
-from iggytop.adapters.cedar_adapter import CEDARAdapter
-from iggytop.adapters.iedb_adapter import IEDBAdapter
-from iggytop.adapters.itrap_adapter import ITRAPAdapter
-from iggytop.adapters.mcpas_adapter import MCPASAdapter
-from iggytop.adapters.neotcr_adapter import NEOTCRAdapter
-from iggytop.adapters.tcr3d_adapter import TCR3DAdapter
-from iggytop.adapters.trait_adapter import TRAITAdapter
 from iggytop.adapters.utils import (
-    _TT_LOG_PATH,
     _flush_tt_warnings,
-    _set_up_config,
-    _set_up_schema,
     deduplicate_and_aggregate,
     get_previous_release_metadata,
     save_airr_cells_json,
 )
-from iggytop.adapters.vdjdb_adapter import VDJDBAdapter
+from iggytop.io.create_knowledge_graph import DEFAULT_ADAPTERS, build_adapters, write_knowledge_graph
 
 
 def _save_adata(adata: ad.AnnData, path: Path, *, name: str, metadata: dict):
@@ -39,8 +27,18 @@ def _save_adata(adata: ad.AnnData, path: Path, *, name: str, metadata: dict):
     print(f"{path.name} saved to {path}")
 
 
+def _filter_10x(adata: ad.AnnData) -> ad.AnnData:
+    """Filter out the 10X Genomics dataset, which has been criticized for poor confidence."""
+    pmid = adata.obs["PMID"].astype("string")
+    is_10x = (pmid == "no_pmid_1036521").fillna(False) | pmid.str.contains("https://www.10xgenomics.com", na=False)
+    return adata[(~is_10x).to_numpy(dtype=bool)].copy()
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Run the AnnData ingestion workflow.")
+    parser = argparse.ArgumentParser(
+        description="Build the full iggytop release: merged AnnData/AIRR, deduplicated AnnData/AIRR, and the neo4j knowledge graph, "
+        "from a single build of each adapter's source table."
+    )
     parser.add_argument("--test-mode", action="store_true", default=False, help="Run in test mode with a small subset of data.")
     parser.add_argument(
         "--cache-dir",
@@ -48,18 +46,36 @@ def main():
         default=platformdirs.user_cache_dir("iggytop_airr"),
         help="Directory for caching results.",
     )
-    default_adapters = ["ITRAP", "VDJDB", "MCPAS", "IEDB", "TCR3D", "NEOTCR", "CEDAR", "TRAIT", "BATCAVE"]
     parser.add_argument(
         "--adapters",
         nargs="+",
-        default=default_adapters,
+        default=DEFAULT_ADAPTERS,
         help="List of adapters to include (e.g., --adapters VDJDB CEDAR). Defaults to all.",
+    )
+    parser.add_argument(
+        "--not_merged",
+        action="store_true",
+        default=False,
+        help="Skip saving the merged (non-deduplicated) AnnData/AIRR output.",
     )
     parser.add_argument(
         "--not_deduplicate",
         action="store_true",
         default=False,
-        help="Whether to skip deduplicating the merged AnnData.",
+        help="Skip generating the deduplicated AnnData/AIRR output.",
+    )
+    parser.add_argument(
+        "--not_graph",
+        action="store_true",
+        default=False,
+        help="Skip generating the neo4j knowledge graph output.",
+    )
+    parser.add_argument(
+        "--graph-output-format",
+        type=str,
+        default="neo4j",
+        choices=["airr", "neo4j", "networkx", "docker"],
+        help="BioCypher output format for the graph output (default: neo4j).",
     )
     parser.add_argument(
         "--adata_only",
@@ -72,7 +88,7 @@ def main():
         action="store_true",
         dest="filter_10x",
         default=False,
-        help="Filter out 10X Genomics datasets (default: False).",
+        help="Filter out 10X Genomics records from the deduplicated dataset only (default: False).",
     )
     parser.add_argument(
         "--tag",
@@ -83,39 +99,22 @@ def main():
 
     args = parser.parse_args()
 
-    filter_10x = args.filter_10x
     adapters_to_include = args.adapters
-    merge = True if len(adapters_to_include) > 1 else False
+    merge = len(adapters_to_include) > 1
+    save_merged = not args.not_merged
     deduplicate = not args.not_deduplicate
+    include_graph = not args.not_graph
     save_single_adapter_data = False
     save_airr_json = not args.adata_only
     receptors_to_include = ["TCR", "BCR"]
     cache_dir = args.cache_dir
-    os.makedirs(cache_dir, exist_ok=True)
 
-    test_mode = args.test_mode
-    output_format = "airr"
-
-    config_path = _set_up_config(output_format, cache_dir)
-    schema_config_path = _set_up_schema(cache_dir)
-
-    bc = BioCypher(biocypher_config_path=config_path, schema_config_path=schema_config_path, cache_directory=cache_dir)
-    print(f"Tidytcells standardization warnings: {_TT_LOG_PATH}")
-
-    adapter_classes = {
-        "VDJDB": VDJDBAdapter,
-        "MCPAS": MCPASAdapter,
-        "TRAIT": TRAITAdapter,
-        "ITRAP": ITRAPAdapter,
-        "IEDB": IEDBAdapter,
-        "TCR3D": TCR3DAdapter,
-        "NEOTCR": NEOTCRAdapter,
-        "CEDAR": CEDARAdapter,
-        "BATCAVE": BATCAVEAdapter,
-    }
-
-    selected_adapters = [adapter_classes[name] for name in adapters_to_include if name in adapter_classes]
-    selected_adapters = [a for a in selected_adapters if any(receptor in receptors_to_include for receptor in a.available_receptors)]
+    _bc, adapters = build_adapters(
+        cache_dir=cache_dir,
+        test_mode=args.test_mode,
+        receptors_to_include=receptors_to_include,
+        adapters_to_include=adapters_to_include,
+    )
 
     # Fetch previous release metadata for change detection
     prev_metadata = get_previous_release_metadata() or {}
@@ -127,11 +126,7 @@ def main():
         "sources": {},
     }
 
-    adapters = []
-    for adapter_class in selected_adapters:
-        adapter = adapter_class(bc, cache_dir, receptors_to_include, test_mode, filter_10x)
-        adapters.append(adapter)
-
+    for adapter in adapters:
         # Update adapter metadata with change information
         prev_source = prev_sources.get(adapter.db_name, {})
         prev_source_version = prev_source.get("version")
@@ -148,9 +143,13 @@ def main():
                 metadata=adapter.metadata,
             )
 
-    cache_dir = Path(cache_dir)
+    if include_graph:
+        # Reuses the already-built adapters (and their memoized tables), so the source data isn't re-read.
+        write_knowledge_graph(adapters, cache_dir, output_format=args.graph_output_format)
 
-    if merge:
+    cache_dir = Path(cache_dir)  # Biocypher likes paths as strings
+
+    if merge and (save_merged or deduplicate):
         adatas = {}
 
         for adapter in adapters:
@@ -195,10 +194,13 @@ def main():
                 merged_adata.obs[col] = merged_adata.obs[col].astype("string")
 
         if deduplicate:
+            # 10X filtering only ever applies to the deduplicated output, not the merged/raw one.
+            dedup_source_adata = _filter_10x(merged_adata) if args.filter_10x else merged_adata
+
             # Drop records where junction is missing for both chains — they can't be meaningfully deduplicated
-            with ir.get.airr_context(merged_adata, ["junction_aa"], chain=["VJ_1", "VDJ_1"]) as m:
+            with ir.get.airr_context(dedup_source_adata, ["junction_aa"], chain=["VJ_1", "VDJ_1"]) as m:
                 has_junction = m.obs["VJ_1_junction_aa"].notna() | m.obs["VDJ_1_junction_aa"].notna()
-            merged_adata_for_dedup = merged_adata[has_junction].copy()
+            merged_adata_for_dedup = dedup_source_adata[has_junction].copy()
 
             # Deduplicate and aggregate specific attributes
             subset_cols = [
@@ -221,14 +223,16 @@ def main():
             print(f"Number of entries after deduplication: {deduplicated_adata.n_obs}")
 
         # Save result to AnnData
-        _save_adata(merged_adata, cache_dir / "merged_anndata.h5ad", name="iggytop_merged", metadata=global_metadata)
+        if save_merged:
+            _save_adata(merged_adata, cache_dir / "merged_anndata.h5ad", name="iggytop_merged", metadata=global_metadata)
         if deduplicate:
             _save_adata(deduplicated_adata, cache_dir / "deduplicated_anndata.h5ad", name="iggytop_deduplicated", metadata=global_metadata)
 
         # Optional: Export to AIRR JSON format
         if save_airr_json:
-            merged_airr_list = ir.io.to_airr_cells(merged_adata)
-            save_airr_cells_json(merged_airr_list, directory=cache_dir, filename="merged_airr_cells", metadata=global_metadata)
+            if save_merged:
+                merged_airr_list = ir.io.to_airr_cells(merged_adata)
+                save_airr_cells_json(merged_airr_list, directory=cache_dir, filename="merged_airr_cells", metadata=global_metadata)
             if deduplicate:
                 deduplicated_airr_list = ir.io.to_airr_cells(deduplicated_adata)
                 save_airr_cells_json(

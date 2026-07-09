@@ -73,7 +73,6 @@ class BaseAdapter(ABC):
         cache_dir: Directory to cache data. Defaults to None.
         receptors_to_include: Receptors to include. Defaults to ("TCR", "BCR").
         test: Whether to run in test mode. Defaults to False.
-        filter_10x: Whether to filter out 10X Genomics datasets. Defaults to False.
     """
 
     # These should be defined in child classes
@@ -86,7 +85,6 @@ class BaseAdapter(ABC):
         cache_dir: str | None = None,
         receptors_to_include: Sequence[Literal["TCR", "BCR"]] | None = ("TCR", "BCR"),
         test: bool = False,
-        filter_10x: bool = False,
     ):
         """
         Initializes the BaseAdapter instance.
@@ -96,7 +94,6 @@ class BaseAdapter(ABC):
             cache_dir: Directory to cache data. Defaults to None.
             receptors_to_include: Receptors to include. Defaults to ("TCR", "BCR").
             test: Whether to run in test mode. Defaults to False.
-            filter_10x: Whether to filter out 10X Genomics datasets. Defaults to False.
         """
 
         if not hasattr(self.__class__, "DB_NAME"):
@@ -105,7 +102,6 @@ class BaseAdapter(ABC):
             raise TypeError(f"Class {self.__class__.__name__} must define an 'available_receptors' class attribute.")
         self._bc = bc
         self._test = test
-        self._filter_10x = filter_10x
         self._cache_dir = cache_dir
         self._receptors = list(set(receptors_to_include) & set(self.available_receptors))
         self._table: pd.DataFrame | None = None
@@ -205,12 +201,6 @@ class BaseAdapter(ABC):
         """
         if self._table is None:
             self._table = self.read_table(self._bc, self._table_path, self._receptors, self._test)
-            if self._filter_10x:
-                # Filter out 10X Genomics dataset as it has been criticized for poor confidence.
-                self._table = self._table[
-                    ~(self._table["PMID"] == "no_pmid_1036521")
-                    & ~self._table["PMID"].astype(str).str.contains("https://www.10xgenomics.com", na=False)
-                ]
 
             # Filter out entries without receptor information (both chains missing) or without epitope information
             self._table = self._table[
@@ -271,6 +261,7 @@ class BaseAdapter(ABC):
                 [n.as_tuple() for n in nodes],
                 [e.as_tuple() for e in edges],
                 reconciliate_sep=",",
+                progress_bar=True,
             )
             self._ontoweaver_kg = (fnodes, fedges)
         return self._ontoweaver_kg

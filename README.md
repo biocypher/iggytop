@@ -68,7 +68,7 @@ To run DB/graph generation locally:
    or
 
    ```bash
-   uv run create_anndata.py
+   uv run create_release.py
    ```
 More information can be found in the [documentation](https://iggytop.readthedocs.io/en/latest/).
 
@@ -78,13 +78,15 @@ The full documentation is available online via [Read the Docs](https://iggytop.r
 
 ## Pipeline
 
-- `create_anndata.py`: obtain harmonized, merged (and deduplicated) data from all (or selected) databases in [anndata](https://anndata.readthedocs.io/en/stable/index.html) format. It initializes the adapters but does not generate the knowledge graph. The main purpose is integration into [Scirpy](https://scirpy.scverse.org/en/latest/). You can specify which adapters to include:
+- `create_release.py`: builds every selected adapter's source table exactly once, then emits the raw merged dataset, the filtered+deduplicated dataset (in [anndata](https://anndata.readthedocs.io/en/stable/index.html)/AIRR JSON format, for integration into [Scirpy](https://scirpy.scverse.org/en/latest/)), and the neo4j knowledge graph files from that same run, avoiding rebuilding the tables multiple times. Each output can be toggled independently:
 ```bash
-uv run create_anndata.py --adapters VDJDB CEDAR --filter-10x
+uv run create_release.py --adapters VDJDB CEDAR --filter-10x
 ```
-- `create_knowledge_graph.py`: the main script that orchestrates the pipeline to build a knowledge graph from tabular data. It brings together the BioCypher package with the data sources, and calls `io.create_knowledge_graph()` to create a knowledge graph (all available databases by default) and save it in AIRR JSON format. Use the `--adapters` flag to select specific source databases:
+`--filter-10x` only affects the deduplicated dataset. Use `--not_merged`, `--not_deduplicate` or `--not_graph` to skip any of the three outputs, and `--graph-output-format` to choose the graph's BioCypher output format (default `neo4j`).
+
+- `create_knowledge_graph.py`: a standalone, graph-only entrypoint into `io.create_knowledge_graph()`, useful when you don't need the AnnData/AIRR outputs. Use the `--adapters` flag to select specific source databases and `--output-format` to choose the output (`neo4j`, `networkx`, `airr` or `docker`; default `neo4j`):
 ```bash
-uv run create_knowledge_graph.py --adapters VDJDB CEDAR --filter-10x
+uv run create_knowledge_graph.py --adapters VDJDB CEDAR --output-format networkx
 ```
 
 - `src/iggytop/adapters` contains modules that define each data source adapter.
@@ -96,7 +98,7 @@ uv run create_knowledge_graph.py --adapters VDJDB CEDAR --filter-10x
 ## Testing and CI/CD
 
 IggyTop uses GitHub Actions to automate **bimonthly data releases** and ensure data integrity through continuous integration.
-Currently this only involves the tabular part of IggyTop (`create_anndata.py`).
+Currently this only involves the tabular part of IggyTop (`create_release.py`).
 Check out the latest release [here](https://github.com/biocypher/iggytop/releases/latest).
 ## Bimonthly Data Releases
 Find the releases [here](https://github.com/biocypher/iggytop/releases)
