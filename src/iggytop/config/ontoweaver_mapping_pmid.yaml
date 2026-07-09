@@ -1,0 +1,11 @@
+row:
+  prefixed_id:
+    columns: [PMID]
+    prefix: PMID
+    to_subject: PMID
+
+transformers:
+  - map:
+      column: PMID
+      to_property: pmid
+      for_object: PMID

@@ -1,0 +1,25 @@
+row:
+  cat_format:
+    columns: [iedb_iri]
+    format_string: "epitope:{iedb_iri}"
+    to_subject: epitope
+
+transformers:
+  - map:
+      column: epitope_sequence
+      to_property: epitope_sequence
+      for_object: epitope
+  - map:
+      column: iedb_iri
+      to_property: iedb_iri
+      for_object: epitope
+  - map:
+      column: antigen_name
+      to_property: antigen_name
+      for_object: epitope
+
+  - prefixed_id:
+      columns: [antigen_name]
+      prefix: antigen
+      to_object: antigen
+      via_relation: epitope_to_antigen

@@ -1,0 +1,20 @@
+row:
+  receptor_complex_id:
+    columns: [chain_1_type, chain_1_cdr3, chain_1_v_call, chain_2_type, chain_2_cdr3, chain_2_v_call]
+    to_subject: receptor_complex
+
+transformers:
+  - map:
+      column: receptor_complex_complete
+      to_property: complete
+      for_object: receptor_complex
+
+  - chain_id:
+      columns: [chain_1_type, chain_1_cdr3, chain_1_v_call]
+      to_object: chain_1
+      via_relation: receptor_complex_to_chain_1
+
+  - chain_id:
+      columns: [chain_2_type, chain_2_cdr3, chain_2_v_call]
+      to_object: chain_2
+      via_relation: receptor_complex_to_chain_2

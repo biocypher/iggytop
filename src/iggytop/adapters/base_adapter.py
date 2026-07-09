@@ -16,7 +16,7 @@ from scirpy.io._datastructures import AirrCell
 from scirpy.pp import index_chains
 from tqdm.auto import tqdm
 
-from . import ontoweaver_transformers  # noqa: F401 (registers the `chain_id` transformer)
+from . import ontoweaver_transformers  # noqa: F401 (registers the custom id transformers)
 from .constants import REGISTRY_KEYS
 from .utils import get_file_checksum
 
@@ -30,8 +30,29 @@ def _load_ontoweaver_mapping(filename: str) -> dict:
         return yaml.safe_load(f)
 
 
-_ONTOWEAVER_CHAIN1_MAPPING = _load_ontoweaver_mapping("ontoweaver_mapping_chain1.yaml")
-_ONTOWEAVER_CHAIN2_MAPPING = _load_ontoweaver_mapping("ontoweaver_mapping_chain2.yaml")
+# One mapping per hub in the graph's hub-and-spoke hierarchy:
+#   binding -> {receptor_complex, pmhc, database, PMID}
+#   receptor_complex -> {chain_1, chain_2}
+#   chain_N -> {v_gene, j_gene}
+#   pmhc -> {epitope, mhc}
+#   epitope -> {antigen}
+# OntoWeaver maps one row-subject with radiating edges per pass, so each hub needs its own pass;
+# the results of all passes are reconciled together in `_get_ontoweaver_kg`.
+_ONTOWEAVER_MAPPINGS = [
+    _load_ontoweaver_mapping(f"ontoweaver_mapping_{name}.yaml")
+    for name in (
+        "chain1",
+        "chain2",
+        "receptor_complex",
+        "epitope",
+        "antigen",
+        "mhc",
+        "pmhc",
+        "binding",
+        "database",
+        "pmid",
+    )
+]
 
 
 class BaseAdapter(ABC):
@@ -203,18 +224,47 @@ class BaseAdapter(ABC):
         """
         Generates BioCypher nodes and edges from the harmonized table via OntoWeaver.
 
-        Runs the shared chain-1-as-subject and chain-2-as-subject mappings (driven purely by
-        REGISTRY_KEYS column names, so they apply unmodified to any adapter's table) and
-        reconciles the two passes, so duplicate nodes/edges they both produce (e.g. the chain 2
-        node, created as a target by the chain-1 mapping and as the subject of the chain-2
+        Runs the shared per-hub mappings in `_ONTOWEAVER_MAPPINGS` (driven purely by REGISTRY_KEYS
+        column names, so they apply unmodified to any adapter's table) against a copy of the table
+        augmented with a few precomputed columns (the `complete` flags, which need boolean
+        combinations no single-column mapping can express, and the source database's identity,
+        which lives in `self.metadata` rather than as a table column). The passes are reconciled
+        together afterwards, so nodes/edges produced by more than one pass (e.g. a chain_2 node,
+        created as a target by the receptor_complex mapping and as the subject of the chain_2
         mapping) are merged into one.
 
         Returns:
             A tuple of (nodes, edges), each a list of BioCypher tuples.
         """
         if self._ontoweaver_kg is None:
+            table = self.table.copy()
+
+            chain_1_complete = (
+                table[REGISTRY_KEYS.CHAIN_1_CDR3_KEY].notna()
+                & table[REGISTRY_KEYS.CHAIN_1_V_GENE_KEY].notna()
+                & table[REGISTRY_KEYS.CHAIN_1_J_GENE_KEY].notna()
+            )
+            chain_2_complete = (
+                table[REGISTRY_KEYS.CHAIN_2_CDR3_KEY].notna()
+                & table[REGISTRY_KEYS.CHAIN_2_V_GENE_KEY].notna()
+                & table[REGISTRY_KEYS.CHAIN_2_J_GENE_KEY].notna()
+            )
+            table["chain_1_complete"] = chain_1_complete
+            table["chain_2_complete"] = chain_2_complete
+            table["receptor_complex_complete"] = chain_1_complete & chain_2_complete
+
+            mhc_cols = [
+                c for c in (REGISTRY_KEYS.MHC_CLASS_KEY, REGISTRY_KEYS.MHC_GENE_1_KEY, REGISTRY_KEYS.MHC_GENE_2_KEY) if c in table.columns
+            ]
+            mhc_present = table[mhc_cols].notna().any(axis=1) if mhc_cols else False
+            table["mhc_present"] = mhc_present
+            table["binding_complete"] = table["receptor_complex_complete"] & mhc_present
+
+            table["_db_name"] = self.DB_NAME
+            table["_db_version"] = self.metadata.get("version") or "latest"
+
             nodes, edges = ontoweaver.extract(
-                [(self.table, _ONTOWEAVER_CHAIN1_MAPPING), (self.table, _ONTOWEAVER_CHAIN2_MAPPING)],
+                [(table, mapping) for mapping in _ONTOWEAVER_MAPPINGS],
                 affix="none",
             )
             fnodes, fedges = ontoweaver.fusion.reconciliate(
