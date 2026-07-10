@@ -229,6 +229,11 @@ class BaseAdapter(ABC):
         if self._ontoweaver_kg is None:
             table = self.table.copy()
 
+            # Add any missing columns that OntoWeaver expects to see, but which may not be present in the table
+            for _col in (REGISTRY_KEYS.MHC_GENE_2_KEY, REGISTRY_KEYS.TISSUE_KEY):
+                if _col not in table.columns:
+                    table[_col] = None
+
             chain_1_complete = (
                 table[REGISTRY_KEYS.CHAIN_1_CDR3_KEY].notna()
                 & table[REGISTRY_KEYS.CHAIN_1_V_GENE_KEY].notna()

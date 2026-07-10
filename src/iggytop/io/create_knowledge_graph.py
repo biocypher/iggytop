@@ -19,6 +19,11 @@ from iggytop.adapters.vdjdb_adapter import VDJDBAdapter
 
 logger = logging.getLogger(__name__)  # inherits the log config from biocypher
 
+# KG generation floods stderr with millions of # lines like `(receptor_complex:...)--[...]->(...)`
+# -- hundreds of MB on the full dataset. This line is to avoid that.
+if logging.getLogger().getEffectiveLevel() < logging.INFO:
+    logging.getLogger().setLevel(logging.INFO)
+
 # Single source of truth for the set of available adapters. Add new adapters here only;
 # DEFAULT_ADAPTERS (and every script/function that lists "all adapters") derives from it.
 ADAPTER_CLASSES = {
@@ -143,6 +148,8 @@ def write_knowledge_graph(adapters, cache_dir: str, output_format: str = "neo4j"
     elif output_format == "neo4j" or output_format == "docker":
         bc.write_import_call()
         bc.summary()
+        if output_directory:
+            print(f"Knowledge graph saved to {output_directory}")
 
 
 def create_knowledge_graph(
