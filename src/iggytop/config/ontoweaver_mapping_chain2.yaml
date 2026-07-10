@@ -1,6 +1,6 @@
 row:
   chain_id:
-    columns: [chain_2_type, chain_2_cdr3, chain_2_v_call]
+    columns: [chain_2_type, chain_2_cdr3, chain_2_v_call, chain_2_j_call]
     to_subject: chain_2
 
 transformers:

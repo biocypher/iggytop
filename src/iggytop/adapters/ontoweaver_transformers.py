@@ -41,13 +41,22 @@ def _is_missing(value) -> bool:
     return value is None or isinstance(value, float) or str(value).strip().lower() in ("", "nan", "none")
 
 
-def chain_component(row, type_col: str, cdr3_col: str, v_col: str) -> str | None:
-    """Build `locus:cdr3[:v_call]` (lowercase locus) for one chain, or None if its CDR3 is missing."""
+def chain_component(row, type_col: str, cdr3_col: str, v_col: str, j_col: str) -> str | None:
+    """Build `locus:cdr3[:v:v_call][:j:j_call]` (lowercase locus) for one chain, or None if its CDR3 is missing.
+
+    v_call and j_call are each tagged with their own `v:`/`j:` marker (rather than appended bare)
+    so that a chain missing one of them can never collide with a chain missing the other -- e.g.
+    "locus:cdr3:v:X" (has v_call, no j_call) can't be confused with "locus:cdr3:j:X" (the reverse).
+    This keeps a chain that's missing a gene call as a distinct node from an otherwise-identical
+    chain that has it, instead of merging their (possibly conflicting) `complete` flags together.
+    """
     if cdr3_col not in row or _is_missing(row[cdr3_col]):
         return None
     parts = [str(row[type_col]).lower(), str(row[cdr3_col])]
     if v_col in row and not _is_missing(row[v_col]):
-        parts.append(str(row[v_col]))
+        parts.append(f"v:{row[v_col]}")
+    if j_col in row and not _is_missing(row[j_col]):
+        parts.append(f"j:{row[j_col]}")
     return ":".join(parts)
 
 
@@ -66,8 +75,8 @@ def _mhc_fields(row) -> tuple[str, str, str, bool]:
 
 def _chains_raw(row) -> str:
     """Build `<chain_1-or-none>|<chain_2-or-none>`, the shared, unprefixed core of receptor_complex's id."""
-    c1 = chain_component(row, "chain_1_type", "chain_1_cdr3", "chain_1_v_call") or "none"
-    c2 = chain_component(row, "chain_2_type", "chain_2_cdr3", "chain_2_v_call") or "none"
+    c1 = chain_component(row, "chain_1_type", "chain_1_cdr3", "chain_1_v_call", "chain_1_j_call") or "none"
+    c2 = chain_component(row, "chain_2_type", "chain_2_cdr3", "chain_2_v_call", "chain_2_j_call") or "none"
     return f"{c1}|{c2}"
 
 
@@ -154,7 +163,7 @@ class _RowValueTransformer(base.Transformer):
 
 
 class chain_id(base.Transformer):  # noqa: N801 (lowercase name required: referenced by name from the mapping YAML, matching OntoWeaver's own `cat`/`cat_format`/`map` convention)
-    """Builds `locus:cdr3[:v_call]` from a `[type_col, cdr3_col, v_call_col]` column triple.
+    """Builds `locus:cdr3[:v:v_call][:j:j_call]` from a `[type_col, cdr3_col, v_call_col, j_call_col]` column quadruple.
 
     Rows missing the CDR3 column yield an empty string, which OntoWeaver's base Transformer
     filters out -- mirroring BaseAdapter's old `.dropna(subset=unique_cols)` behavior.
@@ -164,8 +173,8 @@ class chain_id(base.Transformer):  # noqa: N801 (lowercase name required: refere
         """Computes the id value for a single row; see the enclosing class's docstring."""
 
         def __call__(self, columns, row, i):
-            type_col, cdr3_col, v_col = columns
-            yield chain_component(row, type_col, cdr3_col, v_col) or ""
+            type_col, cdr3_col, v_col, j_col = columns
+            yield chain_component(row, type_col, cdr3_col, v_col, j_col) or ""
 
     def __init__(  # noqa: PLR0913 (signature mirrors ontoweaver.base.Transformer's, e.g. `cat`)
         self,

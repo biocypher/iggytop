@@ -239,16 +239,23 @@ class BaseAdapter(ABC):
                 & table[REGISTRY_KEYS.CHAIN_2_V_GENE_KEY].notna()
                 & table[REGISTRY_KEYS.CHAIN_2_J_GENE_KEY].notna()
             )
-            table["chain_1_complete"] = chain_1_complete
-            table["chain_2_complete"] = chain_2_complete
-            table["receptor_complex_complete"] = chain_1_complete & chain_2_complete
+            receptor_complex_complete = chain_1_complete & chain_2_complete
 
             mhc_cols = [
                 c for c in (REGISTRY_KEYS.MHC_CLASS_KEY, REGISTRY_KEYS.MHC_GENE_1_KEY, REGISTRY_KEYS.MHC_GENE_2_KEY) if c in table.columns
             ]
-            mhc_present = table[mhc_cols].notna().any(axis=1) if mhc_cols else False
-            table["mhc_present"] = mhc_present
-            table["binding_complete"] = table["receptor_complex_complete"] & mhc_present
+            mhc_present = table[mhc_cols].notna().any(axis=1) if mhc_cols else pd.Series(False, index=table.index)
+            binding_complete = receptor_complex_complete & mhc_present
+
+            # BioCypher's neo4j-admin-import writer declares these columns `:boolean` in the CSV
+            # header but serializes values via plain str(), giving Python's capitalized "True"/
+            # "False" — neo4j-admin only recognizes the lowercase literal "true" as true, so every
+            # row was silently importing as false. Stringify to the exact literal it expects.
+            table["chain_1_complete"] = chain_1_complete.map({True: "true", False: "false"})
+            table["chain_2_complete"] = chain_2_complete.map({True: "true", False: "false"})
+            table["receptor_complex_complete"] = receptor_complex_complete.map({True: "true", False: "false"})
+            table["mhc_present"] = mhc_present.map({True: "true", False: "false"})
+            table["binding_complete"] = binding_complete.map({True: "true", False: "false"})
 
             table["_db_name"] = self.DB_NAME
             table["_db_version"] = self.metadata.get("version") or "latest"
