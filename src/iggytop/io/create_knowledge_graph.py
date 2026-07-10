@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 from typing import List, Optional
 
 import networkx as nx
@@ -107,6 +108,10 @@ def write_knowledge_graph(adapters, cache_dir: str, output_format: str = "neo4j"
     schema_config_path = _set_up_schema(cache_dir)
     if output_directory is None and output_format != "docker":
         output_directory = os.path.join(cache_dir, "knowledge_graph")
+    if output_directory and os.path.isdir(output_directory):
+        # Avoid re-running into the same output_directory (e.g. a persistent cache_dir reused across
+        # releases) as this silently mixes this run's rows in with a previous run.
+        shutil.rmtree(output_directory)
     bc = BioCypher(
         biocypher_config_path=config_path,
         schema_config_path=schema_config_path,
