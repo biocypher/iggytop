@@ -37,10 +37,11 @@ jobs:
 
           cp /tmp/iggytop_cache/merged* /tmp/iggytop_release/
           cp /tmp/iggytop_cache/deduplicated* /tmp/iggytop_release/
-        # TBD: Attach the neo4j graph as a release asset. The CSVs + neo4j-admin-import-call.sh are
-        # already produced by this step under biocypher-out/<timestamp>/; still need to decide the
-        # distribution format (raw CSVs vs. a neo4j-admin `.dump`, which additionally requires
-        # importing into a running Neo4j instance before it can be dumped).
+
+          # Package the neo4j-import-ready knowledge graph (CSVs + neo4j-admin-import-call.sh) as a
+          # single release asset. Filename is fixed (not tag-suffixed) so it can be fetched via the
+          # stable GitHub "latest release" asset URL, e.g. by docker/local_kg's build step.
+          tar -czf /tmp/iggytop_release/knowledge_graph.tar.gz -C /tmp/iggytop_cache knowledge_graph
 
       - name: Generate Release Notes Table
         id: release_notes

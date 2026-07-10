@@ -74,7 +74,7 @@ def main():
         "--graph-output-format",
         type=str,
         default="neo4j",
-        choices=["airr", "neo4j", "networkx", "docker"],
+        choices=["airr", "neo4j", "networkx"],
         help="BioCypher output format for the graph output (default: neo4j).",
     )
     parser.add_argument(

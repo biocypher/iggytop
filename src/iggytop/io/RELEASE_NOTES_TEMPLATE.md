@@ -30,6 +30,14 @@ Datasets are provided in AnnData (.h5ad) and AIRR JSON (.json.gz) formats.
 
     `deduplicated_airr_cells.json.gz`
 
+- **Knowledge Graph**: The deduplicated dataset represented as a BioCypher-built graph, ready for
+    bulk import into Neo4j.
+
+    `knowledge_graph.tar.gz` contains the neo4j-admin import CSVs (nodes/edges) plus a
+    `neo4j-admin-import-call.sh` script that loads them into a fresh Neo4j database. See
+    `docker-compose.yml` in the repository for a ready-to-run local Neo4j setup that fetches and
+    imports this asset automatically.
+
 #### Data Source Information
 
 Both datasets (merged and deduplicated) use the same source datasets, reported here. The full source

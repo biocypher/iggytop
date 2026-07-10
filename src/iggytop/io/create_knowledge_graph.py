@@ -95,18 +95,17 @@ def write_knowledge_graph(adapters, cache_dir: str, output_format: str = "neo4j"
     For 'neo4j'/'networkx'/'airr', BioCypher's own CSV+import-call output is written to a predictable
     `<cache_dir>/knowledge_graph` directory (unless overridden), so it sits next to the release's
     other outputs and can be packaged as a release asset without importing into a running Neo4j
-    instance. The 'docker' format keeps the fixed path baked into the Docker build instead.
+    instance.
 
     Args:
         adapters: Adapters previously created via `build_adapters`.
         cache_dir: Directory to store cache and output files.
-        output_format: Output format, currently either 'airr', 'neo4j', 'networkx' or 'docker'.
-        output_directory: Where to write the graph output. Defaults to `<cache_dir>/knowledge_graph`
-            for every format except 'docker', which relies on its own fixed config-driven path.
+        output_format: Output format, currently either 'airr', 'neo4j' or 'networkx'.
+        output_directory: Where to write the graph output. Defaults to `<cache_dir>/knowledge_graph`.
     """
     config_path = _set_up_config(output_format, cache_dir)
     schema_config_path = _set_up_schema(cache_dir)
-    if output_directory is None and output_format != "docker":
+    if output_directory is None:
         output_directory = os.path.join(cache_dir, "knowledge_graph")
     if output_directory and os.path.isdir(output_directory):
         # Avoid re-running into the same output_directory (e.g. a persistent cache_dir reused across
@@ -150,7 +149,7 @@ def write_knowledge_graph(adapters, cache_dir: str, output_format: str = "neo4j"
 
         nx.write_graphml(iggytop_di_graph, output_file)
         print(f"Knowledge graph saved to {output_file}")
-    elif output_format == "neo4j" or output_format == "docker":
+    elif output_format == "neo4j":
         bc.write_import_call()
         bc.summary()
         if output_directory:
@@ -183,7 +182,7 @@ def create_knowledge_graph(
             Defaults to including both TCR and BCR.
         adapters_to_include (List[str], optional): List of adapter names to run. See `ADAPTER_CLASSES`
             for the available adapters. Defaults to `DEFAULT_ADAPTERS` (all of them).
-        output_format (str, optional): Output format, currently either 'airr', 'neo4j', 'networkx' or 'docker'.
+        output_format (str, optional): Output format, currently either 'airr', 'neo4j' or 'networkx'.
             Defaults to 'neo4j'.
     """
     _bc, adapters = build_adapters(cache_dir, test_mode, receptors_to_include, adapters_to_include)

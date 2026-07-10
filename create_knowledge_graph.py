@@ -29,7 +29,7 @@ def main():
         "--output-format",
         type=str,
         default="neo4j",
-        choices=["airr", "neo4j", "networkx", "docker"],
+        choices=["airr", "neo4j", "networkx"],
         help="Format to write the knowledge graph in (default: neo4j).",
     )
     args = parser.parse_args()

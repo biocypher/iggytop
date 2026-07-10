@@ -84,7 +84,7 @@ uv run create_release.py --adapters VDJDB CEDAR --filter-10x
 ```
 `--filter-10x` only affects the deduplicated dataset. Use `--not_merged`, `--not_deduplicate` or `--not_graph` to skip any of the three outputs, and `--graph-output-format` to choose the graph's BioCypher output format (default `neo4j`).
 
-- `create_knowledge_graph.py`: a standalone, graph-only entrypoint into `io.create_knowledge_graph()`, useful when you don't need the AnnData/AIRR outputs. Use the `--adapters` flag to select specific source databases and `--output-format` to choose the output (`neo4j`, `networkx`, `airr` or `docker`; default `neo4j`):
+- `create_knowledge_graph.py`: a standalone, graph-only entrypoint into `io.create_knowledge_graph()`, useful when you don't need the AnnData/AIRR outputs. Use the `--adapters` flag to select specific source databases and `--output-format` to choose the output (`neo4j`, `networkx` or `airr`; default `neo4j`):
 ```bash
 uv run create_knowledge_graph.py --adapters VDJDB CEDAR --output-format networkx
 ```
@@ -131,30 +131,60 @@ act workflow_dispatch -W .github/workflows/ci_ingestion.yml
 
 ## Graph visualization using Neo4j on Docker
 
-This repo also contains a `docker compose` workflow to create the example
-database using BioCypher and load it into a Dockerized Neo4j instance
-automatically. To run it, execute
-```
+This repo contains a `docker compose` workflow that spins up a Neo4j
+instance pre-loaded with the full IggyTop knowledge graph from a
+[data release](https://github.com/biocypher/iggytop/releases), no local
+Python/BioCypher build required. To run it, execute
+```bash
 docker compose up -d --build
 ```
-in the root directory of the project. The example instance consists of the TCR3d database only as it is small enough to visualize, for other database compositions, just edit the `create_knowledge_graph_docker.py` script to your needs. This will start up a single (detached) docker
-container with a Neo4j instance that contains the knowledge graph built by
-BioCypher as the DB `docker`, which you can connect to and browse at
-localhost:7474. Authentication is set to `neo4j/neo4jpassword` by default
-and can be modified in the `docker_variables.env` file.
+in the root directory of the project.
 
-Open http://localhost:7474 to access the Neo4j database. You can now run queries against the database.
-To get a visual representation of the TCR3d knowledge graph constructed by IggyTop, run the following Cypher query:
+At build time, the image downloads `knowledge_graph.tar.gz` (the neo4j-admin
+import CSVs + import script produced by `create_release.py`) from a pinned
+IggyTop release and bakes it into the image. On first container start, it
+runs a `neo4j-admin database import` — the fast bulk-loader Neo4j recommends
+for populating an empty database — directly against those CSVs, rather than
+loading the graph row-by-row via Cypher. The imported data then lives in the
+named volume `biocypher_neo4j_volume`, so subsequent restarts skip the
+import entirely.
+
+By default the build pins to a known-good release
+(`data-2026.07.10.121113`, the first release to ship this asset). To use a
+different release, override the build arg:
+```bash
+IGGYTOP_RELEASE_TAG=data-2026.07.10.121113 docker compose up -d --build
+# or IGGYTOP_RELEASE_TAG=latest for whatever release GitHub currently marks "latest"
 ```
-MATCH (n) return n
+To force a re-import after switching release tags, first tear down the volume:
+```bash
+docker compose down -v
 ```
 
-The `biocypher_docker_config.yaml` file is used instead of the
-`biocypher_config.yaml`. Everything else is the same as in the local setup. The
-first container installs and runs the BioCypher pipeline, and the second
-container installs and runs Neo4j. The files created by BioCypher in the first
-container are copied and automatically imported into the DB in the second
-container.
+This will start up a single (detached) Docker container with a Neo4j
+instance containing the full knowledge graph, which you can connect to and
+browse at localhost:7474 (note that this can take a couple minutes as the graph is large). Authentication is set to `neo4j/neo4jpassword` by
+default and can be modified in the `docker-variables.env` file.
+
+Open http://localhost:7474 to access the Neo4j database. You can now run
+queries against the database — the full graph has over a million nodes, so
+scope exploratory queries with a `LIMIT`, e.g.:
+```
+MATCH (n) RETURN n LIMIT 100
+```
+
+To get a feel for the schema, a good starting point is to expand outward
+from a single `Binding` node — the central node type linking a TCR/BCR
+receptor to the epitope it binds — and follow its relationships a few hops
+out:
+```
+MATCH path = (n:Binding)-[*1..4]->(m) WHERE n.complete = true RETURN path LIMIT 14
+```
+![knowledge graph example](./graph.png)
+
+This workflow uses the same base Neo4j image (`neo4j:4.4-enterprise`,
+published for both `amd64` and `arm64`) as before and runs natively on
+Apple Silicon.
 
 
 ## Related work
