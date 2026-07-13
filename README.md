@@ -24,7 +24,7 @@ The aggregated data from all adapters is available in the (bimonthly) [releases]
 
 ## Quick start (Scirpy)
 
-To use the database in Python, install [Scirpy](https://scirpy.scverse.org/en/v0.24.0/index.html) (>=v0.24.0). Then use [this function](https://scirpy.scverse.org/en/v0.24.0/generated/scirpy.datasets.iggytop.html) to load the dataset in anndata format:
+To use the database in Python, install [Scirpy](https://scirpy.scverse.org/en/v0.24.0/index.html) (>=v0.24.0). Then use [this function](https://scirpy.scverse.org/en/v0.24.0/generated/scirpy.datasets.iggytop.html) to load the dataset in [anndata](https://anndata.readthedocs.io/en/latest/) (tabular) format:
 
 ```python
 import scirpy as ir
@@ -37,7 +37,7 @@ vdjdb = scirpy.datasets.vdjdb(tag='latest')
 
 
 ## Graphs vs. Tables
-Two paths are covered: a tabular path that stacks source databases into a large table (used in Scirpy and Releases), and a knowledge graph path that converts the source data into a graph. Both are documented in the [documentation](https://iggytop.readthedocs.io/en/latest/). For details, see [Graph Data Structure](https://iggytop.readthedocs.io/en/latest/graph_data_structure.html) and [Tabular Data Structure](https://iggytop.readthedocs.io/en/latest/tabular_data_structure.html).
+Two paths are covered: A tabular path that stacks source databases into a large table (used in Scirpy and Releases), and a knowledge graph path that converts the source data into a graph. Both are documented in the [documentation](https://iggytop.readthedocs.io/en/latest/). For details, see [Graph Data Structure](https://iggytop.readthedocs.io/en/latest/graph_data_structure.html) and [Tabular Data Structure](https://iggytop.readthedocs.io/en/latest/tabular_data_structure.html).
 
 ## Prerequisites
 To run DB/graph generation locally:
@@ -78,7 +78,7 @@ The full documentation is available online via [Read the Docs](https://iggytop.r
 
 ## Pipeline
 
-- `create_release.py`: builds every selected adapter's source table exactly once, then emits the raw merged dataset, the filtered+deduplicated dataset (in [anndata](https://anndata.readthedocs.io/en/stable/index.html)/AIRR JSON format, for integration into [Scirpy](https://scirpy.scverse.org/en/latest/)), and the neo4j knowledge graph files from that same run, avoiding rebuilding the tables multiple times. Each output can be toggled independently:
+- `create_release.py`: builds every selected adapter's source table exactly once, then emits the raw merged dataset, the filtered+deduplicated dataset (in [anndata](https://anndata.readthedocs.io/en/stable/index.html)/ AIRR JSON format, for integration into [Scirpy](https://scirpy.scverse.org/en/latest/)), and the neo4j knowledge graph files from that same run, avoiding rebuilding the tables multiple times. Each output can be toggled independently:
 ```bash
 uv run create_release.py --adapters VDJDB CEDAR --filter-10x
 ```
@@ -95,18 +95,18 @@ uv run create_knowledge_graph.py --adapters VDJDB CEDAR --output-format networkx
 
 - `src/iggytop/config/biocypher_config.yaml`: defines BioCypher parameters such as the mode, separators, and other options. More on its use can be found in the [documentation](https://biocypher.org/BioCypher/reference/biocypher-config/).
 
-## Testing and CI/CD
+## Releases, Testing and CI/CD
 
 IggyTop uses GitHub Actions to automate **bimonthly data releases** and ensure data integrity through continuous integration.
 Currently this only involves the tabular part of IggyTop (`create_release.py`).
 Check out the latest release [here](https://github.com/biocypher/iggytop/releases/latest).
-## Bimonthly Data Releases
+### Bimonthly Data Releases
 Find the releases [here](https://github.com/biocypher/iggytop/releases)
 - **Frequency**: Automated releases on the **1st day of every 2nd month** (first scheduled on **May 1, 2026**).
 - **Release Assets**:
    Check out the release notes for more information on the released datasets.
 
-## Automated Testing
+### Automated Testing
 Before any data is released, the CI pipeline (based on GitHub Actions) runs a validation suite to catch breaking changes in upstream databases.
 
 **How to run tests locally:**
@@ -180,12 +180,11 @@ out:
 ```
 MATCH path = (n:Binding)-[*1..4]->(m) WHERE n.complete = true RETURN path LIMIT 14
 ```
-![knowledge graph example](./graph.png)
+For more information on the Graph schema, check out [Graph Data Structure](https://iggytop.readthedocs.io/en/latest/graph_data_structure.html).
+The result should look similar to this:
 
-This workflow uses the same base Neo4j image (`neo4j:4.4-enterprise`,
-published for both `amd64` and `arm64`) as before and runs natively on
-Apple Silicon.
 
+![knowledge graph example](./docs/source/graph.png)
 
 ## Related work
 If you find a dataset (e.g. training data for a model) and would like to find the source of the records using the IggyTop dataset, check out [this tool](https://github.com/RaphaelDeGottardi/TCR_source_detection).
