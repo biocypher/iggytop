@@ -183,6 +183,8 @@ class IEDBAdapter(BaseAdapter):
             "Assay MHC Allele Names": REGISTRY_KEYS.MHC_GENE_1_KEY,
             "Chain 1 CDR3 Calculated": REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
             "Chain 2 CDR3 Calculated": REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+            "Chain 1 Junction Calculated": REGISTRY_KEYS.CHAIN_1_JUNCTION_AA_KEY,
+            "Chain 2 Junction Calculated": REGISTRY_KEYS.CHAIN_2_JUNCTION_AA_KEY,
             "Chain 1 Calculated V Gene": REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
             "Chain 1 Calculated J Gene": REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
             "Chain 2 Calculated V Gene": REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,

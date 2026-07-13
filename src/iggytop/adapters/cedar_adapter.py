@@ -67,7 +67,6 @@ class CEDARAdapter(BaseAdapter):
         table_path: tuple[str, str],
         receptors: list[str],
         test: bool = False,
-        prefer_calculated: bool = True,
     ) -> pd.DataFrame:
         """
         Reads and processes the CEDAR table from the downloaded database file.
@@ -77,7 +76,6 @@ class CEDARAdapter(BaseAdapter):
             table_path: Paths to the TCR and BCR table files.
             receptors: List of receptor types to include in the table.
             test: If `True`, loads only a subset of the data for testing (default is False).
-            prefer_calculated: If `True`, calculated values are preferred over curated values. Defaults to True.
 
         Returns:
             A DataFrame containing the processed table data.
@@ -113,59 +111,21 @@ class CEDARAdapter(BaseAdapter):
             table = table.sample(frac=0.01, random_state=42)
         table = normalize_table_strings(table)
 
-        # Fill columns based on preference: calculated vs curated
-        if prefer_calculated:
-            # Fill calculated columns with curated values if calculated is empty
-            for chain_num in [1, 2]:
-                table[f"Chain {chain_num} CDR3 Calculated"] = table[f"Chain {chain_num} CDR3 Calculated"].fillna(
-                    table[f"Chain {chain_num} CDR3 Curated"]
-                )
-                table[f"Chain {chain_num} Calculated V Gene"] = table[f"Chain {chain_num} Calculated V Gene"].fillna(
-                    table[f"Chain {chain_num} Curated V Gene"]
-                )
-                table[f"Chain {chain_num} Calculated J Gene"] = table[f"Chain {chain_num} Calculated J Gene"].fillna(
-                    table[f"Chain {chain_num} Curated J Gene"]
-                )
-        else:
-            # Fill curated columns with calculated values if curated is empty
-            for chain_num in [1, 2]:
-                table[f"Chain {chain_num} CDR3 Curated"] = table[f"Chain {chain_num} CDR3 Curated"].fillna(
-                    table[f"Chain {chain_num} CDR3 Calculated"]
-                )
-                table[f"Chain {chain_num} Curated V Gene"] = table[f"Chain {chain_num} Curated V Gene"].fillna(
-                    table[f"Chain {chain_num} Calculated V Gene"]
-                )
-                table[f"Chain {chain_num} Curated J Gene"] = table[f"Chain {chain_num} Curated J Gene"].fillna(
-                    table[f"Chain {chain_num} Calculated J Gene"]
-                )
-        # Choose column names based on preference
-        if prefer_calculated:
-            cdr3_col_1 = "Chain 1 CDR3 Calculated"
-            cdr3_col_2 = "Chain 2 CDR3 Calculated"
-            v_gene_col_1 = "Chain 1 Calculated V Gene"
-            v_gene_col_2 = "Chain 2 Calculated V Gene"
-            j_gene_col_1 = "Chain 1 Calculated J Gene"
-            j_gene_col_2 = "Chain 2 Calculated J Gene"
-        else:
-            cdr3_col_1 = "Chain 1 CDR3 Curated"
-            cdr3_col_2 = "Chain 2 CDR3 Curated"
-            v_gene_col_1 = "Chain 1 Curated V Gene"
-            v_gene_col_2 = "Chain 2 Curated V Gene"
-            j_gene_col_1 = "Chain 1 Curated J Gene"
-            j_gene_col_2 = "Chain 2 Curated J Gene"
-
+        # Same logic as in IEDB
         rename_cols = {
             "Epitope Name": REGISTRY_KEYS.EPITOPE_KEY,
             "Epitope CEDAR IRI": REGISTRY_KEYS.EPITOPE_IEDB_ID_KEY,
             "Epitope Source Molecule": REGISTRY_KEYS.ANTIGEN_KEY,
             "Epitope Source Organism": REGISTRY_KEYS.ANTIGEN_ORGANISM_KEY,
             "Assay MHC Allele Names": REGISTRY_KEYS.MHC_GENE_1_KEY,
-            cdr3_col_1: REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
-            cdr3_col_2: REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
-            v_gene_col_1: REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
-            j_gene_col_1: REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
-            v_gene_col_2: REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
-            j_gene_col_2: REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
+            "Chain 1 CDR3 Calculated": REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
+            "Chain 2 CDR3 Calculated": REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
+            "Chain 1 Junction Calculated": REGISTRY_KEYS.CHAIN_1_JUNCTION_AA_KEY,
+            "Chain 2 Junction Calculated": REGISTRY_KEYS.CHAIN_2_JUNCTION_AA_KEY,
+            "Chain 1 Calculated V Gene": REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
+            "Chain 1 Calculated J Gene": REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
+            "Chain 2 Calculated V Gene": REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
+            "Chain 2 Calculated J Gene": REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             "Chain 1 Organism IRI": REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
             "Chain 2 Organism IRI": REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY,
             REGISTRY_KEYS.CHAIN_1_TYPE_KEY: REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
@@ -190,6 +150,7 @@ class CEDARAdapter(BaseAdapter):
         ref_urls = table_preprocessed[REGISTRY_KEYS.PUBLICATION_KEY].dropna().unique().tolist()
         ref_map = get_pmids_batch(bc, ref_urls)
         table_preprocessed[REGISTRY_KEYS.PUBLICATION_KEY] = table_preprocessed[REGISTRY_KEYS.PUBLICATION_KEY].replace(ref_map)
+
         return table_preprocessed
 
     def get_nodes(self):
