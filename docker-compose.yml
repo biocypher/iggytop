@@ -6,7 +6,7 @@ services:
         # Pinned to a known-good release while the release pipeline's knowledge-graph asset is
         # newly added; override (or switch this default to "latest") once a few more releases
         # have shipped the asset. Override per-build with `IGGYTOP_RELEASE_TAG=... docker compose ...`.
-        IGGYTOP_RELEASE_TAG: ${IGGYTOP_RELEASE_TAG:-data-2026.07.10.121113}
+        IGGYTOP_RELEASE_TAG: ${IGGYTOP_RELEASE_TAG:-data-2026.07.13.082648}
     image: iggytop-neo4j
     container_name: iggytop-container
     env_file:
