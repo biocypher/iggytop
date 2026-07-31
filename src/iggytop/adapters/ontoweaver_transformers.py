@@ -62,6 +62,8 @@ def chain_component(row, type_col: str, cdr3_col: str, v_col: str, j_col: str) -
 
 def epitope_component(row) -> str:
     """Build `epitope:<iedb_iri>`. Always present: BaseAdapter.table requires a non-null epitope."""
+    if _is_missing(row["iedb_iri"]):
+        raise ValueError("epitope_component: 'iedb_iri' is missing, but BaseAdapter.table requires it")
     return f"epitope:{row['iedb_iri']}"
 
 

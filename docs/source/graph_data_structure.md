@@ -161,6 +161,6 @@ Knowledge graph exports as knowledge_graph.tar.gz are provided in bimonthly rele
 You can run the graph generation locally to create custom subsets or use specific versions of the data:
 
 ```bash
-python create_knowledge_graph.py --adapters VDJDB MCPAS --filter-10x
+python create_knowledge_graph.py --adapters VDJDB MCPAS --output-format networkx
 ```
 Note that some parameters are defined in the `config/biocypher_config.yaml`. Check out this file and change it for more control (eg defining output type).

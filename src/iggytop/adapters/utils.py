@@ -274,8 +274,8 @@ def _process_cdr3_to_junction(
     Returns (cdr3, junction) where cdr3 excludes and junction includes the conserved
     flanking Cys/Phe-Trp residues. On failure, returns (original_input, attempted_fix).
     """
-    if junction is not None:
-        return (cdr3, junction)
+    if junction is not None and pd.notna(junction):
+        return (cdr3, str(junction))
     if cdr3 is None:
         return (None, None)
     species_tt = "musmusculus" if isinstance(species, str) and "musculus" in species.lower() else None

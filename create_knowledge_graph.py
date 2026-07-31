@@ -1,6 +1,6 @@
 """
 This script acts as a wrapper to create a knowledge graph from various immunological databases
-with receptor-epitope matching information using Iggytop .
+with receptor-epitope matching information using IggyTop .
 """
 
 import argparse
