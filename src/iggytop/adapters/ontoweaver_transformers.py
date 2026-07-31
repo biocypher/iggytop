@@ -10,31 +10,8 @@ pass's target, so the component builders below are shared by both roles to guara
 on the same id string.
 """
 
-from ontoweaver import base, congregate, transformer
+from ontoweaver import base, transformer
 from ontoweaver.make_value import ValueMaker
-
-
-def _patch_congregate_performance() -> None:
-    """Replace `ontoweaver.congregate.Congregate.call` with an O(k) equivalent.
-
-    The upstream implementation does `self._duplicates[elem] = self._duplicates.get(elem, []) + [elem]`,
-    which rebuilds the whole list from scratch on every duplicate occurrence of the same node/edge id --
-    O(k^2) for k duplicates of one id. Our `database`/`PMID` nodes have a near-constant id across an
-    entire adapter's table (e.g. the same database name on every row), so on large adapters (VDJDB) this
-    makes reconciliation impractically slow (multiple minutes and climbing). `setdefault(...).append(...)`
-    produces the exact same final dict/order in O(k). Safe to remove once fixed upstream.
-    """
-
-    def _call(self, biocypher_tuples):
-        for t in biocypher_tuples:
-            elem = self._elem_cls.from_tuple(t, serializer=self.serializer)
-            self._duplicates.setdefault(elem, []).append(elem)
-            yield elem
-
-    congregate.Congregate.call = _call
-
-
-_patch_congregate_performance()
 
 
 def _is_missing(value) -> bool:

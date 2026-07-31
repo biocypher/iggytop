@@ -1113,7 +1113,7 @@ requires-dist = [
     { name = "matplotlib-venn", specifier = ">=1.1.1" },
     { name = "muon", specifier = ">=0.1.7" },
     { name = "numpy", specifier = ">=2" },
-    { name = "ontoweaver", specifier = ">=1.7.0" },
+    { name = "ontoweaver", specifier = ">=1.8.12" },
     { name = "openpyxl", specifier = ">=3.1.5,<4.0.0" },
     { name = "pandas", specifier = ">=2.0.1" },
     { name = "parasail", specifier = ">=1.3.4" },
@@ -2154,7 +2154,7 @@ wheels = [
 
 [[package]]
 name = "ontoweaver"
-version = "1.7.0"
+version = "1.8.13"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "alive-progress" },
@@ -2174,9 +2174,9 @@ dependencies = [
     { name = "pyaml" },
     { name = "xdg-base-dirs" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/bd/d3/cc88e42db2a0fe6adb388ce55ee08b5dccf222d37bd91cbbcfc63f4916f2/ontoweaver-1.7.0.tar.gz", hash = "sha256:bee97aff21d2c3cd21b73de0c197fb37857b8b54737bd8eec450c7b70758dde3", size = 104548, upload-time = "2026-05-29T13:13:00.183Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d0/c7/174525fe5c073ac28851a63e3a4d5dc4839a3be1cac67c9beec974620c71/ontoweaver-1.8.13.tar.gz", hash = "sha256:8178742df83b765ec6b8577a033cc856a2106f03c4c650a84e3381978f3530d5", size = 108948, upload-time = "2026-07-31T14:39:08.796Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a0/1f/50c3043c3daa676fa0f60a0a640fe12584dfa841eed74cc84135e47ad32b/ontoweaver-1.7.0-py3-none-any.whl", hash = "sha256:adb8d13c17ca3d5fa08948800bb3f27bc28120b0f3f1cef92698874d2aa20b17", size = 84448, upload-time = "2026-05-29T13:12:59.065Z" },
+    { url = "https://files.pythonhosted.org/packages/83/41/488741534d5b86a9fb4f3639d3f230d708c02443260ab0d904d1e67d9515/ontoweaver-1.8.13-py3-none-any.whl", hash = "sha256:9223115ce90f23d89ddd6815c5c57da52ce2c1aa359830b8259c5df17cf10e60", size = 86808, upload-time = "2026-07-31T14:39:07.466Z" },
 ]
 
 [[package]]

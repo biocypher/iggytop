@@ -27,7 +27,7 @@ dependencies = [
     "openpyxl>=3.1.5,<4.0.0",
     "ijson>=3.4.0.post0",
     "tidytcells>=2.2.0",
-    "ontoweaver>=1.7.0",
+    "ontoweaver>=1.8.12",
 ]
 
 [dependency-groups]
