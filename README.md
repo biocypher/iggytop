@@ -149,12 +149,10 @@ loading the graph row-by-row via Cypher. The imported data then lives in the
 named volume `biocypher_neo4j_volume`, so subsequent restarts skip the
 import entirely.
 
-By default the build pins to a known-good release
-(`data-2026.07.10.121113`, the first release to ship this asset). To use a
-different release, override the build arg:
+By default the build uses whatever release GitHub currently marks
+"latest". To pin a specific release instead, override the build arg:
 ```bash
-IGGYTOP_RELEASE_TAG=data-2026.07.10.121113 docker compose up -d --build
-# or IGGYTOP_RELEASE_TAG=latest for whatever release GitHub currently marks "latest"
+IGGYTOP_RELEASE_TAG=data-2026.08.03.063907 docker compose up -d --build
 ```
 To force a re-import after switching release tags, first tear down the volume:
 ```bash
