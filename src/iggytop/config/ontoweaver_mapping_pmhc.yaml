@@ -1,0 +1,37 @@
+row:
+  pmhc_id:
+    columns: [iedb_iri, MHC_class, MHC_gene_1, MHC_gene_2]
+    to_subject: pmhc
+
+transformers:
+  - map:
+      column: iedb_iri
+      to_property: iedb_iri
+      for_object: pmhc
+  - map:
+      column: MHC_class
+      to_property: MHC_class
+      for_object: pmhc
+  - map:
+      column: MHC_gene_1
+      to_property: MHC_gene_1
+      for_object: pmhc
+  - map:
+      column: MHC_gene_2
+      to_property: MHC_gene_2
+      for_object: pmhc
+  - map:
+      column: mhc_present
+      to_property: mhc_present
+      for_object: pmhc
+
+  - cat_format:
+      columns: [iedb_iri]
+      format_string: "epitope:{iedb_iri}"
+      to_object: epitope
+      via_relation: pmhc_to_epitope
+
+  - mhc_id:
+      columns: [MHC_class, MHC_gene_1, MHC_gene_2]
+      to_object: mhc
+      via_relation: pmhc_to_mhc

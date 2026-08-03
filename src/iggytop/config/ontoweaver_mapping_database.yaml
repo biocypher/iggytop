@@ -1,0 +1,10 @@
+row:
+  map:
+    column: _db_name
+    to_subject: database
+
+transformers:
+  - map:
+      column: _db_version
+      to_property: version
+      for_object: database

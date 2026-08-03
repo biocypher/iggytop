@@ -1,0 +1,11 @@
+row:
+  prefixed_id:
+    columns: [antigen_name]
+    prefix: antigen
+    to_subject: antigen
+
+transformers:
+  - map:
+      column: antigen_species
+      to_property: antigen_species
+      for_object: antigen

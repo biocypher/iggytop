@@ -1,45 +1,51 @@
-immune receptor sequence:
+immune receptor gene:
+  is_a: gene
+
+immune receptor chain:
   is_a: polypeptide
 
-t cell receptor sequence:
-  is_a: immune receptor sequence
+chain_1: #alpha/heavy
+  is_a: immune receptor chain
+  represented_as: node
+  input_label: chain_1
   properties:
-      junction_aa: str
-      v_call : str
-      j_call : str
-      cdr1_aa : str
-      cdr2_aa : str
-      species : str
-
-b cell receptor sequence:
-  is_a: immune receptor sequence
-  properties:
+    cdr3_aa: str
     junction_aa: str
-    v_call : str
-    j_call : str
-    cdr1_aa : str
-    cdr2_aa : str
-    species : str
+    v_call: str
+    j_call: str
+    locus: str # TRA or IGH
+    organism: str
+    complete: bool # cdr3 and both genes are present
 
-tra sequence:
-  is_a: t cell receptor sequence
+chain_2: #beta/light
+  is_a: immune receptor chain
   represented_as: node
-  input_label: tra
+  input_label: chain_2
+  properties:
+    cdr3_aa: str
+    junction_aa: str
+    v_call: str
+    j_call: str
+    locus: str # TRB or IGL
+    organism: str
+    complete: bool # cdr3 and both genes are present
 
-trb sequence:
-  is_a: t cell receptor sequence
+v_gene: # locus is implicit in the gene name (TRAV/TRBV/IGHV/IGKV/IGLV never collide)
+  is_a: immune receptor gene
   represented_as: node
-  input_label: trb
+  input_label: v_gene
 
-igh sequence:
-  is_a: b cell receptor sequence
+j_gene:
+  is_a: immune receptor gene
   represented_as: node
-  input_label: igh
+  input_label: j_gene
 
-igl sequence:
-  is_a: b cell receptor sequence
+receptor complex:
+  is_a: biological entity
   represented_as: node
-  input_label: igl
+  input_label: receptor_complex
+  properties:
+    complete: bool # both chain_1 and chain_2 are present, each individually complete
 
 epitope:
   is_a: polypeptide
@@ -49,29 +55,97 @@ epitope:
     epitope_sequence: str
     iedb_iri: str
     antigen_name: str
+
+antigen:
+  is_a: biological entity
+  represented_as: node
+  input_label: antigen
+  properties:
     antigen_species: str
+
+mhc:
+  is_a: polypeptide
+  represented_as: node
+  input_label: mhc
+  properties:
     MHC_class: str
     MHC_gene_1: str
     MHC_gene_2: str
-    PMID: str
 
+pmhc: # join node between a specific epitope and a specific mhc allele-combo
+  is_a: biological entity
+  represented_as: node
+  input_label: pmhc
+  properties:
+    iedb_iri: str
+    MHC_class: str
+    MHC_gene_1: str
+    MHC_gene_2: str
+    mhc_present: bool # whether any MHC field was reported at all, vs. simply unknown/unrestricted
 
-t cell receptor sequence to epitope association:
+database:
+  is_a: named thing
+  represented_as: node
+  input_label: database
+  properties:
+    version: str
+
+PMID:
+  is_a: named thing
+  represented_as: node
+  input_label: PMID
+  properties:
+    pmid: str # the raw publication id, so it can be queried without parsing the node id's prefix
+
+binding: # central per-record entity: a receptor complex recognizing a pmhc, deduplicated across sources
+  is_a: named thing
+  represented_as: node
+  input_label: binding
+  properties:
+    complete: bool # receptor complex is complete and mhc information is present
+    tissue: str
+
+chain to gene association:
   is_a: association
   represented_as: edge
-  input_label: [tra_to_epitope, trb_to_epitope]
+  input_label: [chain_1_to_v_gene, chain_1_to_j_gene, chain_2_to_v_gene, chain_2_to_j_gene]
 
-b cell receptor sequence to epitope association:
+receptor complex to chain association:
   is_a: association
   represented_as: edge
-  input_label: [igh_to_epitope, igl_to_epitope]
+  input_label: [receptor_complex_to_chain_1, receptor_complex_to_chain_2]
 
-alpha sequence to beta sequence association:
+pmhc to epitope association:
   is_a: association
   represented_as: edge
-  input_label: tra_to_trb
+  input_label: [pmhc_to_epitope]
 
-heavy sequence to light sequence association:
+epitope to antigen association:
   is_a: association
   represented_as: edge
-  input_label: igh_to_igl
+  input_label: [epitope_to_antigen]
+
+pmhc to mhc association:
+  is_a: association
+  represented_as: edge
+  input_label: [pmhc_to_mhc]
+
+binding to receptor complex association:
+  is_a: association
+  represented_as: edge
+  input_label: [binding_to_receptor_complex]
+
+binding to pmhc association:
+  is_a: association
+  represented_as: edge
+  input_label: [binding_to_pmhc]
+
+binding to database association:
+  is_a: association
+  represented_as: edge
+  input_label: [binding_to_database]
+
+binding to pmid association:
+  is_a: association
+  represented_as: edge
+  input_label: [binding_to_pmid]

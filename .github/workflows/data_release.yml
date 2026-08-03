@@ -23,7 +23,7 @@ jobs:
         id: tag
         run: echo "tag=data-$(date -u +'%Y.%m.%d.%H%M%S')" >> "$GITHUB_OUTPUT"
 
-      - name: Run ingestion (AnnData & AIRR JSON)
+      - name: Run release pipeline (AnnData, AIRR JSON & knowledge graph)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -31,20 +31,17 @@ jobs:
           mkdir -p /tmp/iggytop_cache
           mkdir -p /tmp/iggytop_release
 
-          # Create raw versions for direct use (mirror source db's)
-          uv run create_anndata.py --cache-dir /tmp/iggytop_cache --not_deduplicate --tag ${{ steps.tag.outputs.tag }}
+          # Single pass over every adapter: builds each source table once and emits the raw
+          # merged dataset, the filtered+deduplicated dataset, and the neo4j graph files from it.
+          uv run create_release.py --cache-dir /tmp/iggytop_cache --filter-10x --tag ${{ steps.tag.outputs.tag }}
 
           cp /tmp/iggytop_cache/merged* /tmp/iggytop_release/
-
-      - name: Create iggytop dataset
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Create filtered and deduplicated Iggytop dataset
-          uv run create_anndata.py --cache-dir /tmp/iggytop_cache --filter-10x --tag ${{ steps.tag.outputs.tag }}
-
           cp /tmp/iggytop_cache/deduplicated* /tmp/iggytop_release/
-        # TBD: Add graph-based dataset
+
+          # Package the neo4j-import-ready knowledge graph (CSVs + neo4j-admin-import-call.sh) as a
+          # single release asset. Filename is fixed (not tag-suffixed) so it can be fetched via the
+          # stable GitHub "latest release" asset URL, e.g. by docker/local_kg's build step.
+          tar -czf /tmp/iggytop_release/knowledge_graph.tar.gz -C /tmp/iggytop_cache knowledge_graph
 
       - name: Generate Release Notes Table
         id: release_notes

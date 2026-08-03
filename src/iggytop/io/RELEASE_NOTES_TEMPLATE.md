@@ -22,13 +22,21 @@ Datasets are provided in AnnData (.h5ad) and AIRR JSON (.json.gz) formats.
 
     This corresponds to the merged dataset after some filtering steps:
       - Data originating from the 10X dataset is filtered out (except data in the ITRAP dataset).
-      - Records are deduplicated (see `create_anndata.py`)
+      - Records are deduplicated (see `create_release.py`)
 
     Find out more about the deduplication and filtering in the [IggyTop documentation](https://iggytop.readthedocs.io/en/latest/).
 
     `deduplicated_anndata.h5ad`
 
     `deduplicated_airr_cells.json.gz`
+
+- **Knowledge Graph**: The deduplicated dataset represented as a BioCypher-built graph, ready for
+    bulk import into Neo4j.
+
+    `knowledge_graph.tar.gz` contains the neo4j-admin import CSVs (nodes/edges) plus a
+    `neo4j-admin-import-call.sh` script that loads them into a fresh Neo4j database. See
+    `docker-compose.yml` in the repository for a ready-to-run local Neo4j setup that fetches and
+    imports this asset automatically.
 
 #### Data Source Information
 

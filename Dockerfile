@@ -1,40 +1,24 @@
-FROM python:3.13-slim AS setup-stage
-
-# Install uv
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    autoconf \
-    automake \
-    libtool \
-    m4 \
-    zlib1g-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Sets default for BIOCYPHER_CONFIG
-ARG BIOCYPHER_CONFIG=src/iggytop/config/biocypher_docker_config.yaml
-ENV USED_BIOCYPHER_CONFIG=$BIOCYPHER_CONFIG
-
-WORKDIR /usr/app/
-COPY pyproject.toml uv.lock ./
-
-# Install dependencies
-RUN uv sync --frozen --no-dev --no-install-project
-
-COPY . ./
-
-# Install the project and set the environment path
-RUN uv sync --frozen --no-dev
-ENV PATH="/usr/app/.venv/bin:$PATH"
-
-RUN cp ${USED_BIOCYPHER_CONFIG} src/iggytop/config/biocypher_config.yaml
-RUN uv run create_knowledge_graph_docker.py
-
 FROM docker.io/neo4j:4.4-enterprise AS deploy-stage
-COPY --from=setup-stage /usr/app/biocypher-out/ /var/lib/neo4j/import/
+
+# Bake the knowledge graph from an IggyTop data release into the image, so `docker compose up`
+# needs neither a local run of the release pipeline nor a host-mounted ./knowledge_graph directory.
+ARG IGGYTOP_REPO=biocypher/iggytop
+ARG IGGYTOP_RELEASE_TAG=latest
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl ca-certificates && \
+    rm -rf /var/lib/apt/lists/* && \
+    mkdir -p /kg && \
+    if [ "$IGGYTOP_RELEASE_TAG" = "latest" ]; then \
+      asset_url="https://github.com/${IGGYTOP_REPO}/releases/latest/download/knowledge_graph.tar.gz"; \
+    else \
+      asset_url="https://github.com/${IGGYTOP_REPO}/releases/download/${IGGYTOP_RELEASE_TAG}/knowledge_graph.tar.gz"; \
+    fi && \
+    curl -fsSL "$asset_url" -o /tmp/knowledge_graph.tar.gz && \
+    tar -xzf /tmp/knowledge_graph.tar.gz -C /kg --strip-components=1 && \
+    rm /tmp/knowledge_graph.tar.gz
+
 COPY docker/* ./
-RUN cat biocypher_entrypoint_patch.sh | cat - /startup/docker-entrypoint.sh > docker-entrypoint.sh && \
+RUN cat entrypoint_patch.sh | cat - /startup/docker-entrypoint.sh > docker-entrypoint.sh && \
     mv docker-entrypoint.sh /startup/ && \
     chmod +x /startup/docker-entrypoint.sh

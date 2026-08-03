@@ -65,7 +65,7 @@ def _set_up_config(output_format, cache_dir):
         config = yaml.safe_load(file)
     if output_format:
         # Check if the output format is allowed
-        allowed_formats = ["airr", "networkx", "neo4j", "docker"]
+        allowed_formats = ["airr", "networkx", "neo4j"]
         if output_format not in allowed_formats:
             raise ValueError(f"Invalid output_format: {output_format}. Allowed formats are: {allowed_formats}")
         # Modify the configuration
@@ -73,9 +73,6 @@ def _set_up_config(output_format, cache_dir):
             config["biocypher"]["offline"] = True
 
         config["biocypher"]["dbms"] = output_format
-        if output_format == "docker":
-            with importlib.resources.open_text("iggytop.config", "biocypher_docker_config.yaml") as d_file:
-                config = yaml.safe_load(d_file)
 
     # Save the modified configuration to the cache directory
     modified_config_path = os.path.join(cache_dir, "biocypher_config.yaml")
@@ -265,6 +262,7 @@ def _process_gene(gene: str, species: str | None, is_ig: bool = False) -> str | 
 
 
 def _process_cdr3_to_junction(
+    junction: str | None,
     cdr3: str | None,
     species: str | None,
     j_symbol: str | None,
@@ -276,6 +274,8 @@ def _process_cdr3_to_junction(
     Returns (cdr3, junction) where cdr3 excludes and junction includes the conserved
     flanking Cys/Phe-Trp residues. On failure, returns (original_input, attempted_fix).
     """
+    if junction is not None and pd.notna(junction):
+        return (cdr3, str(junction))
     if cdr3 is None:
         return (None, None)
     species_tt = "musmusculus" if isinstance(species, str) and "musculus" in species.lower() else None
@@ -410,9 +410,10 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
             ),
             axis=1,
         )
-
+        has_junction = junction_col in table.columns  # IEDB and CEDAR already have junctions.
         results = table.apply(
             lambda row: _process_cdr3_to_junction(
+                row[junction_col] if has_junction else None,
                 row[cdr3_col],
                 row[species_col] if isinstance(row[species_col], str) else None,
                 row[j_gene_col] if isinstance(row[j_gene_col], str) else None,
@@ -921,6 +922,6 @@ def deduplicate_and_aggregate(adata, subset_cols, agg_cols, separator="|"):
     # Ensure index alignment
     final_info.set_index("cell_id", inplace=True)
     for col in agg_cols:
-        deduplicated_adata.obs[col] = final_info.loc[deduplicated_adata.obs.index, col]
+        deduplicated_adata.obs[col] = final_info.loc[deduplicated_adata.obs.index, col].astype("string")
 
     return deduplicated_adata

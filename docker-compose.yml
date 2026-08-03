@@ -3,7 +3,10 @@ services:
     build:
       context: .
       args:
-        - "BIOCYPHER_CONFIG=src/iggytop/config/biocypher_docker_config.yaml"
+        # Override per-build with `IGGYTOP_RELEASE_TAG=... docker compose ...` to pin a
+        # specific release instead of GitHub's "latest".
+        IGGYTOP_RELEASE_TAG: ${IGGYTOP_RELEASE_TAG:-latest}
+    image: iggytop-neo4j
     container_name: iggytop-container
     env_file:
       - docker-variables.env

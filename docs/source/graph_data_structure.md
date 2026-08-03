@@ -2,10 +2,6 @@
 
 Iggytop is built on top of BioCypher by providing a set of adapters as well as an ontology to generate knowledge graphs for TCR-epitope datasets.
 
-The outputs aim to be compatible with the [AIRR standards](https://docs.airr-community.org/en/latest/datarep/rearrangements.html).
-
-We aim to be integrated into scirpy, which offers a standardized way of analyzing T cell receptor (TCR) or B cell receptor (BCR) repertoires.
-
 ## Data Generation Process
 The generation process relies on the `create_knowledge_graph.py` script. The pipeline follows these key steps:
 
@@ -18,11 +14,13 @@ Similar to the [tabular data structure](./tabular_data_structure.md), IggyTop le
 The harmonization is based on [tidytcells](https://tidytcells.readthedocs.io/en/stable/index.html) wherever possible and tries to follow [AIRR](https://docs.airr-community.org/en/stable/) and [IMGT](https://www.imgt.org/) standards.
 ### 2. Graph Construction
 Instead of just stacking tables, the pipeline uses the BioCypher framework to:
-- Instantiate **Nodes** for sequences (TRA, TRB, IGH, IGL) and epitopes based on the [Ontology](#ontology).
-- Create **Edges** representing the associations between receptors and epitopes.
+- Instantiate **Nodes** based on the [Ontology](#ontology).
+- Create **Edges** representing the associations between Nodes.
 - The resulting graph can be exported to various formats (Neo4j, NetworkX, GraphML).
 
 ### 3. Processing Options
+
+#### Graph construction
 Users can customize the graph generation using several flags in `create_knowledge_graph.py`:
 
 - **Receptor Types**: Specify which receptors to include (e.g., `--receptors TCR BCR`).
@@ -30,6 +28,13 @@ Users can customize the graph generation using several flags in `create_knowledg
 - **10X Data Filtering**: To address concerns regarding the confidence of some large-scale datasets, users can use the `--filter-10x` flag to exclude data originating from the [10X Genomics dataset](https://www.10xgenomics.com/library/a14cde). This will remove records stored in the source databases which stem from this dataset. This flag is also set for the released dataset (deduplicated_anndata.h5ad)
 
     **Note** The ITRAP dataset contains data from this dataset. The ITRAP data are the (5k out of 60k) pairs that have passed the ITRAP qc filtering and are therefore considered high quality. These records are not filtered out. If you want to completely exclude 10X data, consider excluding ITRAP from the pipeline.
+
+#### Graph queries
+
+Follow the instructions in the [readme](https://github.com/biocypher/iggytop#graph-visualization-using-neo4j-on-docker) to start the docker container running a neo4j instance with the full knowledge graph. The knowledge graph can then be explored using Neo4j and Cypher see [here](https://neo4j.com/docs/getting-started/) for more information on how to use Neo4j.
+# Knowledge Graph
+
+![knowledge graph example](./graph.png)
 
 ## Design Choices
 (ontology)=
@@ -41,52 +46,105 @@ The ontology used for iggytop is defined in `config/schema_config.yaml`. This in
 ```text
 entity
 ├── association
-│   ├── alpha sequence to beta sequence association
-│   ├── b cell receptor sequence to epitope association
-│   ├── heavy sequence to light sequence association
-│   └── t cell receptor sequence to epitope association
+│   ├── binding to database association
+│   ├── binding to pmhc association
+│   ├── binding to pmid association
+│   ├── binding to receptor complex association
+│   ├── chain to gene association
+│   ├── epitope to antigen association
+│   ├── pmhc to epitope association
+│   ├── pmhc to mhc association
+│   └── receptor complex to chain association
 └── named thing
-    └── biological entity
-        └── polypeptide
-            ├── epitope
-            └── immune receptor sequence
-                ├── b cell receptor sequence
-                │   ├── igh sequence
-                │   └── igl sequence
-                └── t cell receptor sequence
-                    ├── tra sequence
-                    └── trb sequence
+    ├── PMID
+    ├── binding
+    ├── biological entity
+    │   ├── antigen
+    │   ├── gene
+    │   │   └── immune receptor gene
+    │   │       ├── j_gene
+    │   │       └── v_gene
+    │   ├── pmhc
+    │   ├── polypeptide
+    │   │   ├── epitope
+    │   │   ├── immune receptor chain
+    │   │   │   ├── chain_1
+    │   │   │   └── chain_2
+    │   │   └── mhc
+    │   └── receptor complex
+    └── database
+
+INFO:biocypher:
+entity
+├── association
+│   ├── binding to database association
+│   ├── binding to pmhc association
+│   ├── binding to pmid association
+│   ├── binding to receptor complex association
+│   ├── chain to gene association
+│   ├── epitope to antigen association
+│   ├── pmhc to epitope association
+│   ├── pmhc to mhc association
+│   └── receptor complex to chain association
+└── named thing
+    ├── PMID
+    ├── binding
+    ├── biological entity
+    │   ├── antigen
+    │   ├── gene
+    │   │   └── immune receptor gene
+    │   │       ├── j_gene
+    │   │       └── v_gene
+    │   ├── pmhc
+    │   ├── polypeptide
+    │   │   ├── epitope
+    │   │   ├── immune receptor chain
+    │   │   │   ├── chain_1
+    │   │   │   └── chain_2
+    │   │   └── mhc
+    │   └── receptor complex
+    └── database
 ```
 
 
 ### Node and Edge Types
+
+The graph is organized as a hub-and-spoke hierarchy around a central **binding** node, which represents one reported TCR/BCR-epitope pairing:
+
+- Each `binding` node has exactly one edge to a `receptor complex` node and exactly one edge to a `pmhc` node — together these identify *which receptor* was reported to recognize *which peptide-MHC*.
+- The same pairing reported by several sources (e.g. the same complex-pmhc pairing appearing in both VDJDB and IEDB, or the same source citing multiple publications) collapses onto the **same** `binding` node: its ID is built from the receptor complex and pmhc content, deliberately excluding source/database/PMID. That shared node can then carry edges out to *every* `database` and `PMID` node that reported it, rather than one row per source.
+- `receptor complex` and `pmhc` are themselves join nodes: a `receptor complex` links to its `chain_1`/`chain_2` nodes, and a `pmhc` links to its `epitope` and `mhc` nodes. Because these nodes are shared (deduplicated) rather than duplicated per record, records with, e.g., the same V/J gene or the same epitope naturally converge on the same downstream nodes — this is how the graph surfaces similarities between receptors and epitopes across the whole dataset, rather than just stacking independent rows.
+
 #### Nodes
-- tra sequence
-- trb sequence
-- igh sequence
-- igl sequence
-- epitope
+
+| Node | Parent type | Key properties |
+| --- | --- | --- |
+| `binding` | named thing | `complete`, `tissue` |
+| `receptor complex` | biological entity | `complete` |
+| `chain_1` (alpha/heavy), `chain_2` (beta/light) | immune receptor chain → polypeptide | `cdr3_aa`, `junction_aa`, `v_call`, `j_call`, `locus`, `organism`, `complete` |
+| `v_gene`, `j_gene` | immune receptor gene → gene | — (id-only reference nodes) |
+| `pmhc` | biological entity | `iedb_iri`, `MHC_class`, `MHC_gene_1`, `MHC_gene_2`, `mhc_present` |
+| `epitope` | polypeptide | `epitope_sequence`, `iedb_iri`, `antigen_name` |
+| `antigen` | biological entity | `antigen_species` |
+| `mhc` | polypeptide | `MHC_class`, `MHC_gene_1`, `MHC_gene_2` |
+| `database` | named thing | `version` |
+| `PMID` | named thing | `pmid` |
 
 #### Edges
-- alpha sequence to beta sequence association
-- heavy sequence to light sequence association
-- t cell receptor sequence to epitope association
-- b cell receptor sequence to epitope association
 
-(uniquenes)=
-### Uniqueness
+| Edge | Subject → Object |
+| --- | --- |
+| binding to receptor complex association | `binding` → `receptor complex` |
+| binding to pmhc association | `binding` → `pmhc` |
+| binding to database association | `binding` → `database` |
+| binding to pmid association | `binding` → `PMID` |
+| receptor complex to chain association | `receptor complex` → `chain_1` / `chain_2` |
+| chain to gene association | `chain_1`/`chain_2` → `v_gene` / `j_gene` |
+| pmhc to epitope association | `pmhc` → `epitope` |
+| pmhc to mhc association | `pmhc` → `mhc` |
+| epitope to antigen association | `epitope` → `antigen` |
 
-Immune receptor sequences are represented as nodes labeled according to their type (`tra`, `trb`, `igh`, `igl`): CDR3 sequence: and if available their V gene (see [base-adapter](./generated/iggytop.adapters.base_adapter.BaseAdapter.rst)).
-
-Example node ID: `trb:CASSFTDTQYF:TRBV6-2`
-
-Epitopes are represented as nodes labeled according to their type (`epitope`): (`iedb:` IRI if available or `seq:` amino acid sequence else) see [harmonize_sequences()](./generated/iggytop.adapters.utils.rst). The IRIs are retrieved using the [IEDB Database Query API](https://help.iedb.org/hc/en-us/articles/4402872882189-Immune-Epitope-Database-Query-API-IQ-API#h_01F8C6C8SN9CDMBWQ41MWES31A), see [get_iedb_ids_batch()](./generated/iggytop.adapters.utils.rst).
-
-Example node IDs: `epitope:iedb:37257`, `epitope:seq:SLSNRLYYL`
-
-Edges link between two nodes; their ID is: source node - target node ID.
-
-Example edges: `tra:CAVTTDSWGKLQF:TRAV12-2-trb:CASRPGLAGGRPEQYF:TRBV6-5`, `tra:CAVTTDSWGKLQF:TRAV12-2-epitope:iedb:37257`
+See `config/schema_config.yaml` for the full property/type definitions and the `ontoweaver_mapping_*.yaml` files (and [ontoweaver_transformers.py](./generated/iggytop.adapters.ontoweaver_transformers.rst)) for exactly how each node's ID and properties are built from the source table columns.
 
 ## Output Formats and Availability
 
@@ -96,18 +154,13 @@ The knowledge graph can be exported in several ways:
 3. **AIRR JSON**: While natively a graph, output can be converted back to the AIRR format (tabular).
 
 ### Bimonthly Releases
-Knowledge graph exports (e.g., in GraphML) are not yet provided in bimonthly releases.
+Knowledge graph exports as knowledge_graph.tar.gz are provided in bimonthly releases.
 
 ## Creating Your Own Graph
 
 You can run the graph generation locally to create custom subsets or use specific versions of the data:
 
 ```bash
-python create_knowledge_graph.py --adapters VDJDB MCPAS --filter-10x
+python create_knowledge_graph.py --adapters VDJDB MCPAS --output-format networkx
 ```
 Note that some parameters are defined in the `config/biocypher_config.yaml`. Check out this file and change it for more control (eg defining output type).
-
-### Assumptions
-
-During construction of the graph, redundant data can be neglected (e.g., pairs reported in multiple databases); however, some information is also lost.
-See [this issue](https://github.com/biocypher/iggytop/issues/31).

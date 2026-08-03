@@ -3,7 +3,7 @@
 IggyTop provides a pipeline to generate harmonized, tabular datasets of immunoreceptor-epitope pairings. Instead of building a knowledge graph, this approach stacks harmonized tables from the adapters into a single large dataset, following the [AIRR standards](https://docs.airr-community.org/en/stable/datarep/rearrangements.html).
 
 ## Data Generation Process
-The generation process relies on the `create_anndata.py` script. The pipeline follows these key steps:
+The generation process relies on the `create_release.py` script, which builds each adapter's source table exactly once and emits the merged dataset, the deduplicated dataset, and the neo4j knowledge graph files from that same run. The pipeline follows these key steps:
 
 ### 1. Source Data Harmonization
 IggyTop leverages **BioCypher adapters** to read data from multiple immunological databases.
@@ -22,13 +22,14 @@ Once each source is processed into a harmonized format:
 
 ### 3. Processing Options
 
-Users can customize the dataset generation using several flags in `create_anndata.py`:
+Users can customize the dataset generation using several flags in `create_release.py`:
 
 - **Receptor Types**: Specify which receptors to include (e.g., `--receptors TCR BCR`).
 - **Adapter Selection**: Choose specific databases to include in the graph.
-- **Deduplication**: By default, the script can deduplicate entries across different source databases based on matching CDR3 sequences and epitopes. This can be toggled using `--not_deduplicate`.
+- **Output Selection**: Each of the three outputs can be skipped independently with `--not_merged`, `--not_deduplicate` and `--not_graph`.
+- **Deduplication**: By default, the script deduplicates entries across different source databases based on matching CDR3 sequences and epitopes. This can be toggled using `--not_deduplicate`.
 
-- **10X Data Filtering**: To address concerns regarding the confidence of some large-scale datasets, users can use the `--filter-10x` flag to exclude data originating from the [10X Genomics dataset](https://www.10xgenomics.com/library/a14cde). This will remove records stored in the source databases which stem from this dataset. This flag is also set for the released dataset (deduplicated_anndata.h5ad)
+- **10X Data Filtering**: To address concerns regarding the confidence of some large-scale datasets, users can use the `--filter-10x` flag to exclude data originating from the [10X Genomics dataset](https://www.10xgenomics.com/library/a14cde). This only affects the deduplicated dataset (`deduplicated_anndata.h5ad`) — the merged/raw dataset and the knowledge graph always include the full data. This flag is also set for the released dataset.
 
     **Note** The ITRAP dataset contains data from this dataset. The ITRAP data are the (5k out of 60k) pairs that have passed the ITRAP qc filtering and are therefore considered high quality. These records are not filtered out. If you want to completely exclude 10X data, consider excluding ITRAP from the pipeline.
 
@@ -51,5 +52,5 @@ One major application of this tabular pipeline is its potential integration into
 You can run the pipeline locally to create custom subsets or use specific versions of the data:
 
 ```bash
-python create_anndata.py --adapters VDJDB MCPAS --filter-10x
+python create_release.py --adapters VDJDB MCPAS --filter-10x
 ```

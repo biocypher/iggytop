@@ -1,0 +1,18 @@
+row:
+  mhc_id:
+    columns: [MHC_class, MHC_gene_1, MHC_gene_2]
+    to_subject: mhc
+
+transformers:
+  - map:
+      column: MHC_class
+      to_property: MHC_class
+      for_object: mhc
+  - map:
+      column: MHC_gene_1
+      to_property: MHC_gene_1
+      for_object: mhc
+  - map:
+      column: MHC_gene_2
+      to_property: MHC_gene_2
+      for_object: mhc

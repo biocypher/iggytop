@@ -1,0 +1,47 @@
+row:
+  binding_id:
+    columns:
+      [
+        chain_1_type,
+        chain_1_cdr3,
+        chain_1_v_call,
+        chain_2_type,
+        chain_2_cdr3,
+        chain_2_v_call,
+        iedb_iri,
+        MHC_class,
+        MHC_gene_1,
+        MHC_gene_2,
+      ]
+    to_subject: binding
+
+transformers:
+  - map:
+      column: binding_complete
+      to_property: complete
+      for_object: binding
+  - map:
+      column: tissue
+      to_property: tissue
+      for_object: binding
+
+  - receptor_complex_id:
+      columns: [chain_1_type, chain_1_cdr3, chain_1_v_call, chain_2_type, chain_2_cdr3, chain_2_v_call]
+      to_object: receptor_complex
+      via_relation: binding_to_receptor_complex
+
+  - pmhc_id:
+      columns: [iedb_iri, MHC_class, MHC_gene_1, MHC_gene_2]
+      to_object: pmhc
+      via_relation: binding_to_pmhc
+
+  - map:
+      column: _db_name
+      to_object: database
+      via_relation: binding_to_database
+
+  - prefixed_id:
+      columns: [PMID]
+      prefix: PMID
+      to_object: PMID
+      via_relation: binding_to_pmid
