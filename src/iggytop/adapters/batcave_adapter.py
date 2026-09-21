@@ -3,7 +3,29 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
+from .mapping_utils import ASSAY_FUNCTIONAL, ASSAY_SCREEN, ASSAY_UNKNOWN, combine_assays, note_unmapped_assay
 from .utils import get_github_file_last_modified, harmonize_sequences, normalize_table_strings
+
+# The functional readout recorded per mutational-scan measurement in BATCAVE's
+# `assay` column. Reporter / cytokine / proliferation readouts are functional
+# activation; pooled genetic screens (T-Scan family, barcode/minigene) are screens.
+_BATCAVE_ASSAY_CATEGORY: dict[str, str] = {
+    "nfat luminescence": ASSAY_FUNCTIONAL,
+    "nfat-luc2 luminescence": ASSAY_FUNCTIONAL,
+    "nfat-gfp": ASSAY_FUNCTIONAL,
+    "cd69-gfp": ASSAY_FUNCTIONAL,
+    "cd137 expression": ASSAY_FUNCTIONAL,
+    "elisa": ASSAY_FUNCTIONAL,
+    "elispot": ASSAY_FUNCTIONAL,
+    "tnf secretion": ASSAY_FUNCTIONAL,
+    "ifng": ASSAY_FUNCTIONAL,
+    "t cell proliferation": ASSAY_FUNCTIONAL,
+    "t-scan": ASSAY_SCREEN,
+    "tscan ii": ASSAY_SCREEN,
+    "tcr-map": ASSAY_SCREEN,
+    "dna barcode enrichment": ASSAY_SCREEN,
+    "minigene depletion": ASSAY_SCREEN,
+}
 
 
 class BATCAVEAdapter(BaseAdapter):
@@ -131,6 +153,21 @@ class BATCAVEAdapter(BaseAdapter):
             "tcr_source_organism": REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
             "_mhc_class": REGISTRY_KEYS.MHC_CLASS_KEY,
         }
+
+        # Assay method: look up the per-measurement readout in the `assay` column.
+        def _batcave_assay(value):
+            if value is None or pd.isna(value):
+                return (None, ASSAY_UNKNOWN)
+            raw = str(value).strip().lower()
+            category = _BATCAVE_ASSAY_CATEGORY.get(raw)
+            if category is None:
+                note_unmapped_assay(self.DB_NAME, raw)
+                category = ASSAY_UNKNOWN
+            return combine_assays([(raw, category)])
+
+        _assays = table["assay"].apply(_batcave_assay)
+        table[REGISTRY_KEYS.ASSAY_METHOD_RAW_KEY] = _assays.apply(lambda t: t[0])
+        table[REGISTRY_KEYS.ASSAY_CATEGORY_KEY] = _assays.apply(lambda t: t[1])
 
         table = table.rename(columns=rename_cols)
         table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY] = table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY].str.lower()

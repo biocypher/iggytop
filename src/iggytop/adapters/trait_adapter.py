@@ -5,6 +5,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
+from .mapping_utils import harmonize_assay_verbs
 from .utils import harmonize_sequences, normalize_table_strings
 
 
@@ -101,6 +102,21 @@ class TRAITAdapter(BaseAdapter):
             "PubMed.ID": REGISTRY_KEYS.PUBLICATION_KEY,
             "Tissue": REGISTRY_KEYS.TISSUE_KEY,
         }
+
+        # Assay method: TRAIT splits it across three columns (identification verbs,
+        # plus separate affinity- and structure-method columns). Same verb
+        # vocabulary as VDJDB.
+        _assays = table.apply(
+            lambda r: harmonize_assay_verbs(
+                [r.get("Identification_methods"), r.get("Affinity_method"), r.get("Structure_method")],
+                source=self.DB_NAME,
+            ),
+            axis=1,
+        )
+        table[REGISTRY_KEYS.ASSAY_METHOD_RAW_KEY] = _assays.apply(lambda t: t[0])
+        table[REGISTRY_KEYS.ASSAY_CATEGORY_KEY] = _assays.apply(lambda t: t[1])
+        rename_cols[REGISTRY_KEYS.ASSAY_METHOD_RAW_KEY] = REGISTRY_KEYS.ASSAY_METHOD_RAW_KEY
+        rename_cols[REGISTRY_KEYS.ASSAY_CATEGORY_KEY] = REGISTRY_KEYS.ASSAY_CATEGORY_KEY
 
         table = table.rename(columns=rename_cols)
         table = table[list(rename_cols.values())]

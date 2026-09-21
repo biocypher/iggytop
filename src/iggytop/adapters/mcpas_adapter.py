@@ -3,7 +3,31 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
+from .mapping_utils import (
+    ASSAY_FUNCTIONAL,
+    ASSAY_MULTIMER,
+    ASSAY_TISSUE,
+    ASSAY_UNKNOWN,
+    combine_assays,
+    note_unmapped_assay,
+)
 from .utils import harmonize_sequences, normalize_table_strings
+
+# McPAS encodes the assay in the numeric "Antigen.identification.method" column:
+# 1 = pMHC multimer, 2.x = in-vitro stimulation (by antigen form), 3 = isolated
+# from disease tissue with no antigen-specific selection, 4 = unspecified.
+# See https://friedmanlab.weizmann.ac.il/McPAS-TCR/.
+_MCPAS_METHOD: dict[str, tuple[str, str]] = {
+    "1": ("pmhc-multimer", ASSAY_MULTIMER),
+    "2": ("in-vitro-stimulation", ASSAY_FUNCTIONAL),
+    "2.1": ("in-vitro-stimulation-peptide", ASSAY_FUNCTIONAL),
+    "2.2": ("in-vitro-stimulation-protein", ASSAY_FUNCTIONAL),
+    "2.3": ("in-vitro-stimulation-pathogen", ASSAY_FUNCTIONAL),
+    "2.4": ("in-vitro-stimulation-tumor-cells", ASSAY_FUNCTIONAL),
+    "2.5": ("in-vitro-stimulation-other", ASSAY_FUNCTIONAL),
+    "3": ("tissue-isolation", ASSAY_TISSUE),
+    "4": ("unspecified", ASSAY_UNKNOWN),
+}
 
 
 class MCPASAdapter(BaseAdapter):
@@ -90,6 +114,23 @@ class MCPASAdapter(BaseAdapter):
             "Tissue": REGISTRY_KEYS.TISSUE_KEY,
             "PubMed.ID": REGISTRY_KEYS.PUBLICATION_KEY,
         }
+
+        # Assay method: map the numeric identification code (arrives as "1.0" / "2.2").
+        def _mcpas_method(code):
+            if code is None or pd.isna(code):
+                return (None, ASSAY_UNKNOWN)
+            key = str(code).strip()
+            key = key[:-2] if key.endswith(".0") else key
+            if key not in _MCPAS_METHOD:
+                note_unmapped_assay(self.DB_NAME, f"identification-method-code {key}")
+                return (None, ASSAY_UNKNOWN)
+            return combine_assays([_MCPAS_METHOD[key]])
+
+        _assays = table["Antigen.identification.method"].apply(_mcpas_method)
+        table[REGISTRY_KEYS.ASSAY_METHOD_RAW_KEY] = _assays.apply(lambda t: t[0])
+        table[REGISTRY_KEYS.ASSAY_CATEGORY_KEY] = _assays.apply(lambda t: t[1])
+        rename_cols[REGISTRY_KEYS.ASSAY_METHOD_RAW_KEY] = REGISTRY_KEYS.ASSAY_METHOD_RAW_KEY
+        rename_cols[REGISTRY_KEYS.ASSAY_CATEGORY_KEY] = REGISTRY_KEYS.ASSAY_CATEGORY_KEY
 
         table = table.rename(columns=rename_cols)
         table = table[list(rename_cols.values())]

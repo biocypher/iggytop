@@ -160,6 +160,11 @@ class ITRAPAdapter(BaseAdapter):
         table[REGISTRY_KEYS.TISSUE_KEY] = "PBMC"
         table[REGISTRY_KEYS.PUBLICATION_KEY] = "PMID: 37133356; 10XGenomics"
 
+        # ITRAP is the curated output of the 10x Genomics dextramer benchmark: every
+        # pairing comes from a single-cell pMHC-dextramer multiplexed binding assay.
+        table[REGISTRY_KEYS.ASSAY_METHOD_RAW_KEY] = "dextramer-sort"
+        table[REGISTRY_KEYS.ASSAY_CATEGORY_KEY] = "multimer_binding"
+
         # Apply antigen mapping
         def apply_mapping(peptide):
             if peptide in antigen_mapping:

@@ -81,6 +81,11 @@ class TCR3DAdapter(BaseAdapter):
         table = table.rename(columns=rename_cols)
         table = table[list(rename_cols.values())]
 
+        # Every TCR3D entry is a solved TCR-pMHC co-structure (the source carries a
+        # PDB ID and resolution but no per-entry method column).
+        table[REGISTRY_KEYS.ASSAY_METHOD_RAW_KEY] = "structural"
+        table[REGISTRY_KEYS.ASSAY_CATEGORY_KEY] = "structural"
+
         # Pubmed IDs are sometimes parsed as floats (e.g. 8906788.0); convert to clean strings
         table[REGISTRY_KEYS.PUBLICATION_KEY] = table[REGISTRY_KEYS.PUBLICATION_KEY].apply(
             lambda x: str(int(float(x))) if pd.notna(x) and x != "" else x
