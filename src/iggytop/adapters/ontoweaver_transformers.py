@@ -10,6 +10,8 @@ pass's target, so the component builders below are shared by both roles to guara
 on the same id string.
 """
 
+import logging
+
 from ontoweaver import base, transformer
 from ontoweaver.make_value import ValueMaker
 
@@ -253,6 +255,18 @@ class binding_id(_RowValueTransformer):  # noqa: N801
 
     component_fn = staticmethod(binding_component)
 
+
+# `transformer.register()` logs through the bare `logging.debug(...)` module function rather than a
+# named logger. As a side effect, that implicitly calls `logging.basicConfig()` if the root logger
+# has no handlers yet, attaching an unfiltered (NOTSET) StreamHandler directly to the root logger.
+# BioCypher's own "biocypher" logger is always at DEBUG level and propagates, so every message it
+# logs afterwards also hits that stray handler unfiltered -- doubling every INFO/WARNING line
+# (once via BioCypher's own formatting, once via logging's bare default formatting) and leaking
+# DEBUG-level output that floods stderr with millions of lines on the full dataset. `import
+# ontoweaver` (above) already imports biocypher, which sets up its own logger first, so adding a
+# no-op handler here pre-empts the implicit basicConfig() from ever doing anything.
+if not logging.getLogger().handlers:
+    logging.getLogger().addHandler(logging.NullHandler())
 
 for _cls in (chain_id, prefixed_id, mhc_id, pmhc_id, receptor_complex_id, binding_id):
     transformer.register(_cls)
