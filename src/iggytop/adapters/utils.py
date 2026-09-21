@@ -446,6 +446,10 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
     )
 
     table[REGISTRY_KEYS.MHC_CLASS_KEY] = table[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(get_mhc_class)
+    if REGISTRY_KEYS.MHC_GENE_2_KEY not in table.columns:
+        table[REGISTRY_KEYS.MHC_GENE_2_KEY] = None
+    class_i_missing_gene_2 = (table[REGISTRY_KEYS.MHC_CLASS_KEY] == "I") & table[REGISTRY_KEYS.MHC_GENE_2_KEY].isnull()
+    table.loc[class_i_missing_gene_2, REGISTRY_KEYS.MHC_GENE_2_KEY] = "B2M"
     if REGISTRY_KEYS.TISSUE_KEY in table.columns:
         table[REGISTRY_KEYS.TISSUE_KEY] = table[REGISTRY_KEYS.TISSUE_KEY].apply(get_tissue_source)
 
