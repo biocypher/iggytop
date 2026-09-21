@@ -70,8 +70,10 @@ class TCR3DAdapter(BaseAdapter):
             "TCR_complex": REGISTRY_KEYS.MHC_CLASS_KEY,
             "CDR3_alpha": REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
             "TRAV_gene": REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
+            "TRAJ_gene": REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
             "CDR3_beta": REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
             "TRBV_gene": REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
+            "TRBJ_gene": REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             "Epitope": REGISTRY_KEYS.EPITOPE_KEY,
             "MHC_allele": REGISTRY_KEYS.MHC_GENE_1_KEY,
             "TCR_organism": REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
@@ -94,9 +96,6 @@ class TCR3DAdapter(BaseAdapter):
         table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.TRA_KEY
         table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
         table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY] = table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY]
-
-        table[REGISTRY_KEYS.CHAIN_1_J_GENE_KEY] = None
-        table[REGISTRY_KEYS.CHAIN_2_J_GENE_KEY] = None
 
         # For the rows with multiple epitopes, separate them into multiple rows
         table[REGISTRY_KEYS.EPITOPE_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].apply(
