@@ -253,9 +253,9 @@ def _process_gene(gene: str, species: str | None, is_ig: bool = False) -> str | 
             "musmusculus" if "musculus" in species_tt else None  # defaults to homosapiens and other species are not supported by tidytcells
         )
         if is_ig:
-            result = tt.ig.standardize(symbol=gene, log_failures=False)  # Only available for human
+            result = tt.ig.standardize(symbol=gene, log_failures=False, enforce_functional=True)  # Only available for human
         else:
-            result = tt.tr.standardize(symbol=gene, species=species_tt, log_failures=False)
+            result = tt.tr.standardize(symbol=gene, species=species_tt, log_failures=False, enforce_functional=True)
         if not result.is_standardized:
             _tt_warnings.add(f"{'IG' if is_ig else 'TR'} gene '{gene}' | species '{species}' | {result.error}")
         return result.symbol if result.is_standardized else gene
