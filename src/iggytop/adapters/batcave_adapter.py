@@ -1,3 +1,5 @@
+import re
+
 import pandas as pd
 from biocypher import BioCypher, FileDownload
 
@@ -26,6 +28,11 @@ _BATCAVE_ASSAY_CATEGORY: dict[str, str] = {
     "dna barcode enrichment": ASSAY_SCREEN,
     "minigene depletion": ASSAY_SCREEN,
 }
+
+# Some BATCAVE gene calls, e.g. "14-1*00(1200.3)" or "27 (34)", carry IMGT/V-QUEST's own fallback
+# format for a call it couldn't resolve to a specific allele: "*00". Stripping it lets tidytcells
+# resolve the gene, which V-QUEST already identified even without a specific allele.
+_GENE_CONFIDENCE_SUFFIX = re.compile(r"\s*(\*00)?\(\d+(\.\d+)?\)\Z")
 
 
 class BATCAVEAdapter(BaseAdapter):
@@ -131,6 +138,9 @@ class BATCAVEAdapter(BaseAdapter):
             table = table.sample(frac=0.2, random_state=42)
 
         table = normalize_table_strings(table)
+
+        for col in ["trav", "traj", "trbv", "trbj"]:
+            table[col] = table[col].str.replace(_GENE_CONFIDENCE_SUFFIX, "", regex=True)
 
         # Gene names in BATCAVE lack the locus prefix (e.g. "12-4" → "TRBV12-4")
         # Use masked assignment instead of apply so None values are not silently converted to np.nan
