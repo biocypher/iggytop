@@ -39,6 +39,8 @@ class _REGISTRY_KEYS_NT(NamedTuple):
     TISSUE_KEY: str = "tissue"
     PUBLICATION_KEY: str = "PMID"
     SOURCE_ORGANISM_KEY: str = "source_organism"
+    ASSAY_CATEGORY_KEY: str = "assay_category"
+    ASSAY_METHOD_RAW_KEY: str = "assay_method_raw"
 
 
 REGISTRY_KEYS = _REGISTRY_KEYS_NT()

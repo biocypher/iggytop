@@ -97,6 +97,20 @@ PMID:
   properties:
     pmid: str # the raw publication id, so it can be queried without parsing the node id's prefix
 
+assay method: # how a source established the binding, harmonized across sources (e.g. "tetramer-sort")
+  is_a: named thing
+  represented_as: node
+  input_label: assay_method
+  properties:
+    method: str # the raw method string, so it can be queried without parsing the node id's prefix
+
+assay category: # evidence class a method belongs to (see ASSAY_CATEGORIES in mapping_utils.py)
+  is_a: named thing
+  represented_as: node
+  input_label: assay_category
+  properties:
+    category: str
+
 binding: # central per-record entity: a receptor complex recognizing a pmhc, deduplicated across sources
   is_a: named thing
   represented_as: node
@@ -149,3 +163,13 @@ binding to pmid association:
   is_a: association
   represented_as: edge
   input_label: [binding_to_pmid]
+
+binding to assay method association:
+  is_a: association
+  represented_as: edge
+  input_label: [binding_to_assay_method]
+
+assay method to assay category association:
+  is_a: association
+  represented_as: edge
+  input_label: [assay_method_to_assay_category]

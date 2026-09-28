@@ -94,3 +94,10 @@ def test_adapter_table_format(bc):
     assert REGISTRY_KEYS.CHAIN_2_CDR3_KEY in table.columns
     assert REGISTRY_KEYS.CHAIN_1_CDR3_KEY in table.columns
     assert REGISTRY_KEYS.EPITOPE_KEY in table.columns
+
+    # Harmonized assay-method columns
+    assert REGISTRY_KEYS.ASSAY_CATEGORY_KEY in table.columns
+    assert REGISTRY_KEYS.ASSAY_METHOD_RAW_KEY in table.columns
+    from iggytop.adapters.mapping_utils import ASSAY_CATEGORIES
+
+    assert set(table[REGISTRY_KEYS.ASSAY_CATEGORY_KEY].dropna().str.split("|").explode()) <= set(ASSAY_CATEGORIES)

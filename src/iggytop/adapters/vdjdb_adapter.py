@@ -8,6 +8,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
+from .mapping_utils import harmonize_assay_verbs
 from .utils import harmonize_sequences, normalize_table_strings
 
 
@@ -136,10 +137,27 @@ class VDJDBAdapter(BaseAdapter):
             "mhc.a": REGISTRY_KEYS.MHC_GENE_1_KEY,
             "mhc.b": REGISTRY_KEYS.MHC_GENE_2_KEY,
             "meta.tissue": REGISTRY_KEYS.TISSUE_KEY,
+            REGISTRY_KEYS.ASSAY_METHOD_RAW_KEY: REGISTRY_KEYS.ASSAY_METHOD_RAW_KEY,
+            REGISTRY_KEYS.ASSAY_CATEGORY_KEY: REGISTRY_KEYS.ASSAY_CATEGORY_KEY,
         }
         table["meta.tissue"] = table["meta"].apply(
             lambda x: json.loads(x).get("tissue") if isinstance(x, str) else (x.get("tissue") if isinstance(x, dict) else None)
         )
+
+        # Assay method: VDJDB stores it as a JSON blob in `method`; we use the
+        # `identification` verb(s) (comma-separated, shared vocabulary with TRAIT).
+        def _identification(blob):
+            if not isinstance(blob, str) or not blob.strip():
+                return None
+            try:
+                return json.loads(blob).get("identification")
+            except (json.JSONDecodeError, AttributeError):
+                return None
+
+        _assays = table["method"].apply(lambda b: harmonize_assay_verbs(_identification(b), source=self.DB_NAME))
+        table[REGISTRY_KEYS.ASSAY_METHOD_RAW_KEY] = _assays.apply(lambda t: t[0])
+        table[REGISTRY_KEYS.ASSAY_CATEGORY_KEY] = _assays.apply(lambda t: t[1])
+
         table = table.rename(columns=rename_cols)
         table = table[list(rename_cols.values())]
 

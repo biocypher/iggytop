@@ -3,6 +3,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
+from .mapping_utils import ASSAY_STRUCTURAL, combine_assays
 from .utils import harmonize_sequences, normalize_table_strings
 
 
@@ -70,8 +71,10 @@ class TCR3DAdapter(BaseAdapter):
             "TCR_complex": REGISTRY_KEYS.MHC_CLASS_KEY,
             "CDR3_alpha": REGISTRY_KEYS.CHAIN_1_CDR3_KEY,
             "TRAV_gene": REGISTRY_KEYS.CHAIN_1_V_GENE_KEY,
+            "TRAJ_gene": REGISTRY_KEYS.CHAIN_1_J_GENE_KEY,
             "CDR3_beta": REGISTRY_KEYS.CHAIN_2_CDR3_KEY,
             "TRBV_gene": REGISTRY_KEYS.CHAIN_2_V_GENE_KEY,
+            "TRBJ_gene": REGISTRY_KEYS.CHAIN_2_J_GENE_KEY,
             "Epitope": REGISTRY_KEYS.EPITOPE_KEY,
             "MHC_allele": REGISTRY_KEYS.MHC_GENE_1_KEY,
             "TCR_organism": REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY,
@@ -81,6 +84,14 @@ class TCR3DAdapter(BaseAdapter):
         table = table.rename(columns=rename_cols)
         table = table[list(rename_cols.values())]
 
+        # Every TCR3D entry is a solved TCR-pMHC co-structure (the source carries a
+        # PDB ID and resolution but no per-entry method column). Routed through
+        # `combine_assays` like every other source, so the method also registers its
+        # category for the knowledge graph's method -> category edge.
+        raw, category = combine_assays([("structural", ASSAY_STRUCTURAL)])
+        table[REGISTRY_KEYS.ASSAY_METHOD_RAW_KEY] = raw
+        table[REGISTRY_KEYS.ASSAY_CATEGORY_KEY] = category
+
         # Pubmed IDs are sometimes parsed as floats (e.g. 8906788.0); convert to clean strings
         table[REGISTRY_KEYS.PUBLICATION_KEY] = table[REGISTRY_KEYS.PUBLICATION_KEY].apply(
             lambda x: str(int(float(x))) if pd.notna(x) and x != "" else x
@@ -89,9 +100,6 @@ class TCR3DAdapter(BaseAdapter):
         table[REGISTRY_KEYS.CHAIN_1_TYPE_KEY] = REGISTRY_KEYS.TRA_KEY
         table[REGISTRY_KEYS.CHAIN_2_TYPE_KEY] = REGISTRY_KEYS.TRB_KEY
         table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY] = table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY]
-
-        table[REGISTRY_KEYS.CHAIN_1_J_GENE_KEY] = None
-        table[REGISTRY_KEYS.CHAIN_2_J_GENE_KEY] = None
 
         # For the rows with multiple epitopes, separate them into multiple rows
         table[REGISTRY_KEYS.EPITOPE_KEY] = table[REGISTRY_KEYS.EPITOPE_KEY].apply(

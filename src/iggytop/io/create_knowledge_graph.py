@@ -11,6 +11,7 @@ from iggytop.adapters.batcave_adapter import BATCAVEAdapter
 from iggytop.adapters.cedar_adapter import CEDARAdapter
 from iggytop.adapters.iedb_adapter import IEDBAdapter
 from iggytop.adapters.itrap_adapter import ITRAPAdapter
+from iggytop.adapters.mapping_utils import _ASSAY_LOG_PATH, flush_assay_warnings
 from iggytop.adapters.mcpas_adapter import MCPASAdapter
 from iggytop.adapters.neotcr_adapter import NEOTCRAdapter
 from iggytop.adapters.tcr3d_adapter import TCR3DAdapter
@@ -78,6 +79,7 @@ def build_adapters(
         schema_config_path = _set_up_schema(cache_dir)
         bc = BioCypher(biocypher_config_path=config_path, schema_config_path=schema_config_path, cache_directory=cache_dir)
     print(f"Tidytcells standardization warnings: {_TT_LOG_PATH}")
+    print(f"Unmapped assay-method warnings: {_ASSAY_LOG_PATH}")
 
     selected_adapters = [ADAPTER_CLASSES[name] for name in adapters_to_include if name in ADAPTER_CLASSES]
     selected_adapters = [a for a in selected_adapters if any(receptor in receptors_to_include for receptor in a.available_receptors)]
@@ -188,3 +190,4 @@ def create_knowledge_graph(
     _bc, adapters = build_adapters(cache_dir, test_mode, receptors_to_include, adapters_to_include)
     write_knowledge_graph(adapters, cache_dir, output_format)
     _flush_tt_warnings()
+    flush_assay_warnings()

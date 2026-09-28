@@ -89,6 +89,10 @@ class NEOTCRAdapter(BaseAdapter):
         table = table.rename(columns=rename_cols)
         table = table.replace("n.a.", None)
 
+        # NeoTCR does not report how each neoantigen-specific TCR was identified.
+        table[REGISTRY_KEYS.ASSAY_METHOD_RAW_KEY] = None
+        table[REGISTRY_KEYS.ASSAY_CATEGORY_KEY] = "unknown"
+
         # Add organism (human) and TCR types
         table[REGISTRY_KEYS.CHAIN_1_ORGANISM_KEY] = "Homo sapiens"
         table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY] = "Homo sapiens"

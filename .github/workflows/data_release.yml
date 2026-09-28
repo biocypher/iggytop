@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      packages: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -62,7 +63,40 @@ jobs:
           draft: false
           prerelease: true
 
+      - name: Log in to GHCR
+        if: ${{ !contains(github.actor, 'act') }}
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push Neo4j knowledge-graph image
+        if: ${{ !contains(github.actor, 'act') }}
+        run: |
+          # Bakes this release's knowledge_graph.tar.gz (just published above) into a
+          # neo4j:4.4-enterprise image, so users can `docker pull`/`docker compose up`
+          # the graph directly instead of building the Dockerfile themselves.
+          # NOTE: package currently private by default (GITHUB_TOKEN-pushed packages
+          # aren't auto-linked to the public repo's visibility) - keep it that way
+          # until we're ready to advertise this to end users.
+          docker build \
+            --target deploy-stage \
+            --build-arg IGGYTOP_RELEASE_TAG=${{ steps.tag.outputs.tag }} \
+            -t ghcr.io/biocypher/iggytop-neo4j:${{ steps.tag.outputs.tag }} \
+            .
+          docker push ghcr.io/biocypher/iggytop-neo4j:${{ steps.tag.outputs.tag }}
+
+      # Only scheduled runs promote the image tag to latest, mirroring the GH Release promotion below.
+      - name: Tag & push latest image
+        if: ${{ github.event_name == 'schedule' && !contains(github.actor, 'act') }}
+        run: |
+          docker tag ghcr.io/biocypher/iggytop-neo4j:${{ steps.tag.outputs.tag }} ghcr.io/biocypher/iggytop-neo4j:latest
+          docker push ghcr.io/biocypher/iggytop-neo4j:latest
+
       - name: Generate docs
+        env:
+          IGGYTOP_RELEASE_TAG: ${{ steps.tag.outputs.tag }}
         run: uv run --group docs --frozen python -m sphinx -E -b html docs/source docs/build/html
 
       # Only scheduled runs promote the prerelease to the latest release.
