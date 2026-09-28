@@ -3,6 +3,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
+from .mapping_utils import ASSAY_STRUCTURAL, combine_assays
 from .utils import harmonize_sequences, normalize_table_strings
 
 
@@ -84,9 +85,12 @@ class TCR3DAdapter(BaseAdapter):
         table = table[list(rename_cols.values())]
 
         # Every TCR3D entry is a solved TCR-pMHC co-structure (the source carries a
-        # PDB ID and resolution but no per-entry method column).
-        table[REGISTRY_KEYS.ASSAY_METHOD_RAW_KEY] = "structural"
-        table[REGISTRY_KEYS.ASSAY_CATEGORY_KEY] = "structural"
+        # PDB ID and resolution but no per-entry method column). Routed through
+        # `combine_assays` like every other source, so the method also registers its
+        # category for the knowledge graph's method -> category edge.
+        raw, category = combine_assays([("structural", ASSAY_STRUCTURAL)])
+        table[REGISTRY_KEYS.ASSAY_METHOD_RAW_KEY] = raw
+        table[REGISTRY_KEYS.ASSAY_CATEGORY_KEY] = category
 
         # Pubmed IDs are sometimes parsed as floats (e.g. 8906788.0); convert to clean strings
         table[REGISTRY_KEYS.PUBLICATION_KEY] = table[REGISTRY_KEYS.PUBLICATION_KEY].apply(

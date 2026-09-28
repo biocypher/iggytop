@@ -304,6 +304,7 @@ _ASSAY_TOKEN_CATEGORY = {
     "ctl clone": ASSAY_CLONAL,
     # biophysical affinity
     "spr": ASSAY_AFFINITY,
+    "focal molography": ASSAY_AFFINITY,
     "bli": ASSAY_AFFINITY,
     # structural
     "structural": ASSAY_STRUCTURAL,
@@ -348,6 +349,25 @@ _IEDB_READOUT_CATEGORY = {
 }
 
 _ASSAY_SEP = "|"
+
+# Method string -> evidence class, filled by `combine_assays` as each source's table is
+# harmonized. The two harmonized columns are independently "|"-joined *sets*, so a record
+# backed by several assays no longer says which of its methods yielded which of its
+# categories -- and the knowledge graph needs exactly that pairing, to link each assay
+# method node to its own category.
+_METHOD_CATEGORY: dict[str, str] = {}
+
+
+def assay_method_categories(value) -> dict[str, str]:
+    """Split one ``assay_method_raw`` cell into ``{method: its own evidence class}``.
+
+    A method that was never categorized (or that no rule matched) maps to ``unknown``.
+    """
+    if value is None or str(value).strip().lower() in ("", "nan"):
+        return {}
+    methods = [m.strip() for m in str(value).split(_ASSAY_SEP) if m.strip()]
+    return {m: _METHOD_CATEGORY.get(m.lower(), ASSAY_UNKNOWN) for m in methods}
+
 
 # A concrete method string that no category rule matched falls through to
 # ``unknown``; every such string is recorded here and dumped to a log file at the
@@ -422,12 +442,20 @@ def combine_assays(pairs) -> tuple[str | None, str]:
     Shared primitive for adapters whose method vocabulary lives in the adapter
     itself (MCPAS codes, BATCAVE assays). Raw tokens are lower-cased, sorted,
     de-duplicated and ``"|"``-joined; categories likewise, with ``"unknown"``
-    dropped whenever a concrete category is present.
+    dropped whenever a concrete category is present. Each pair is also registered in
+    ``_METHOD_CATEGORY``, so :func:`assay_method_categories` can recover which method
+    yielded which category after both have been collapsed into joined sets.
 
     Returns:
         ``(assay_method_raw, assay_category)`` — the category is never None.
     """
     pairs = list(pairs)
+    for raw_token, category in pairs:
+        # A concrete category always wins over `unknown`, so the order in which sources
+        # are read cannot change what `assay_method_categories` reports.
+        key = str(raw_token).strip().lower() if raw_token else ""
+        if key and _METHOD_CATEGORY.get(key, ASSAY_UNKNOWN) == ASSAY_UNKNOWN:
+            _METHOD_CATEGORY[key] = category
     raw = _join_unique(str(r).strip().lower() for r, _ in pairs if r and str(r).strip())
     return raw, _finalize_categories(c for _, c in pairs)
 
@@ -452,7 +480,15 @@ def harmonize_assay_verbs(values, source: str = "?") -> tuple[str | None, str]:
 
 
 def harmonize_assay_iedb(assay_names, source: str = "IEDB") -> tuple[str | None, str]:
-    """Harmonize IEDB/CEDAR ``assay_names`` strings ("readout|technique|unit")."""
+    """Harmonize IEDB/CEDAR ``assay_names`` strings ("readout|technique|unit").
+
+    The method string is normally the technique alone. A *generic* technique (one that
+    doesn't decide the category by itself, notably ``"binding assay"``) is qualified with
+    its readout -- ``"binding assay (dissociation constant kd)"`` -- so the affinity-bearing
+    and uninformative senses stay distinct. They otherwise collapse onto one method string,
+    and since a method carries exactly one category through the knowledge graph, the whole
+    node would inherit whichever sense happened to be concrete.
+    """
     pairs: list[tuple[str, str]] = []
     for name in _iter_nonempty(assay_names):
         parts = [p.strip() for p in str(name).split("|") if p.strip()]
@@ -463,7 +499,13 @@ def harmonize_assay_iedb(assay_names, source: str = "IEDB") -> tuple[str | None,
         raw = technique or readout
         category = _IEDB_TECHNIQUE_CATEGORY.get(technique)
         if category is None or technique == "binding assay":
-            category = _IEDB_READOUT_CATEGORY.get(readout, category)
+            readout_category = _IEDB_READOUT_CATEGORY.get(readout)
+            if readout_category is not None:
+                category = readout_category
+                # The technique alone didn't decide it, so keep the deciding readout in the
+                # method string. Without a technique, `raw` is already the readout.
+                if technique:
+                    raw = f"{technique} ({readout})"
         if not category:
             note_unmapped_assay(source, raw)
             category = ASSAY_UNKNOWN
