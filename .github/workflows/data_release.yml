@@ -95,6 +95,8 @@ jobs:
           docker push ghcr.io/biocypher/iggytop-neo4j:latest
 
       - name: Generate docs
+        env:
+          IGGYTOP_RELEASE_TAG: ${{ steps.tag.outputs.tag }}
         run: uv run --group docs --frozen python -m sphinx -E -b html docs/source docs/build/html
 
       # Only scheduled runs promote the prerelease to the latest release.
