@@ -81,7 +81,7 @@ jobs:
           # aren't auto-linked to the public repo's visibility) - keep it that way
           # until we're ready to advertise this to end users.
           docker build \
-            --target deploy-stage-release \
+            --target deploy-stage \
             --build-arg IGGYTOP_RELEASE_TAG=${{ steps.tag.outputs.tag }} \
             -t ghcr.io/biocypher/iggytop-neo4j:${{ steps.tag.outputs.tag }} \
             .
