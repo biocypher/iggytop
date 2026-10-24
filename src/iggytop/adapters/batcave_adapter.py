@@ -166,7 +166,7 @@ class BATCAVEAdapter(BaseAdapter):
 
         # Assay method: look up the per-measurement readout in the `assay` column.
         def _batcave_assay(value):
-            if value is None or pd.isna(value):
+            if pd.isna(value):
                 return (None, ASSAY_UNKNOWN)
             raw = str(value).strip().lower()
             category = _BATCAVE_ASSAY_CATEGORY.get(raw)
