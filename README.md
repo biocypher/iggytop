@@ -22,7 +22,13 @@ BioCypher provides a modular architecture where each data source is processed th
 
 The aggregated data from all adapters is available in the (bimonthly) [releases](https://github.com/biocypher/iggytop/releases). These releases are used by [Scirpy](https://scirpy.scverse.org/en/v0.24.0/index.html), which provides a simple interface to access the data in [anndata](https://anndata.readthedocs.io/en/latest/) format. You can also rebuild the DB using the provided code with custom parameters. On a consumer laptop, building the full DB typically takes 20-30 minutes.
 
-## Quick start (Scirpy)
+
+The full documentation is available online via [Read the Docs](https://iggytop.readthedocs.io/en/latest/).
+
+## Graphs vs. Tables
+Two paths are covered: A tabular path that stacks source databases into a large table (used in Scirpy and Releases), and a knowledge graph path that converts the source data into a graph. Both are documented in the [documentation](https://iggytop.readthedocs.io/en/latest/). For details, see [Graph Data Structure](https://iggytop.readthedocs.io/en/latest/graph_data_structure.html) and [Tabular Data Structure](https://iggytop.readthedocs.io/en/latest/tabular_data_structure.html).
+
+## Quick start: Tabular data (Scirpy)
 
 To use the database in Python, install [Scirpy](https://scirpy.scverse.org/en/v0.24.0/index.html) (>=v0.24.0). Then use [this function](https://scirpy.scverse.org/en/v0.24.0/generated/scirpy.datasets.iggytop.html) to load the dataset in [anndata](https://anndata.readthedocs.io/en/latest/) (tabular) format:
 
@@ -35,16 +41,57 @@ iggytop = ir.datasets.iggytop(deduplicated=True, tag='latest')
 vdjdb = scirpy.datasets.vdjdb(tag='latest')
 ```
 
-
-## Graphs vs. Tables
-Two paths are covered: A tabular path that stacks source databases into a large table (used in Scirpy and Releases), and a knowledge graph path that converts the source data into a graph. Both are documented in the [documentation](https://iggytop.readthedocs.io/en/latest/). For details, see [Graph Data Structure](https://iggytop.readthedocs.io/en/latest/graph_data_structure.html) and [Tabular Data Structure](https://iggytop.readthedocs.io/en/latest/tabular_data_structure.html).
-
 ## Prerequisites
-To run DB/graph generation locally:
-- [uv](https://docs.astral.sh/uv/): for dependency management
-- [docker](https://www.docker.com/get-started/): optional for Neo4j (see below)
+- [uv](https://docs.astral.sh/uv/): dependency management, required to run DB/graph generation locally.
+- [docker](https://www.docker.com/get-started/): run containers, required to run Neo4j container for inteactive graph queries.
 
-## Installation
+## Knowledge graph in Neo4j (Docker image)
+
+Every [data release](https://github.com/biocypher/iggytop/releases) ships a
+ready-to-run Docker image, `ghcr.io/biocypher/iggytop-neo4j`: a Neo4j
+instance with the full IggyTop knowledge graph built in. You only need
+Docker. There's no need to clone the repo, install Python, or build anything.
+
+```bash
+docker run -d --name iggytop \
+  -p 7474:7474 -p 7687:7687 \
+  -e NEO4J_AUTH=neo4j/neo4jpassword \
+  -v iggytop_data:/data \
+  ghcr.io/biocypher/iggytop-neo4j:latest
+```
+
+**Image tags**: `latest` points to the latest data release. Every release is
+also available under its own tag (e.g. `data-2026.08.03.063907`, see the
+[package page](https://github.com/biocypher/iggytop/pkgs/container/iggytop-neo4j)),
+so you can pin the exact data version you used.
+
+### Querying the graph
+
+- **Browser**: open http://localhost:7474 and log in with `neo4j` / `neo4jpassword`
+  (change it via `NEO4J_AUTH` or in `docker-variables.env`).
+
+In the browser, you can now run
+queries against the database — the full graph has over a million nodes, so
+scope exploratory queries with a `LIMIT`, e.g.:
+```
+MATCH (n) RETURN n LIMIT 100
+```
+
+To get a feel for the schema, a good starting point is to expand outward
+from a single `Binding` node — the central node type linking a TCR/BCR
+receptor to the epitope it binds — and follow its relationships a few hops
+out:
+```
+MATCH path = (n:Binding)-[*1..4]->(m) WHERE n.complete = true RETURN path LIMIT 16
+```
+For more information on the Graph schema, check out [Graph Data Structure](https://iggytop.readthedocs.io/en/latest/graph_data_structure.html).
+The result should look similar to this:
+
+![knowledge graph example](./docs/source/graph.png)
+
+You can adapt color, size and labels of the nodes in the control panel on the right.
+
+## Local Installation
 
 1. Clone the repository:
    ```bash
@@ -72,9 +119,6 @@ To run DB/graph generation locally:
    ```
 More information can be found in the [documentation](https://iggytop.readthedocs.io/en/latest/).
 
-## Documentation
-We use [Sphinx](https://www.sphinx-doc.org/en/master/) for documentation (see `./docs`).
-The full documentation is available online via [Read the Docs](https://iggytop.readthedocs.io/en/latest/).
 
 ## Pipeline
 
@@ -129,67 +173,6 @@ Ensure you have Docker and `act` installed, then run:
 # Run the workflow
 act workflow_dispatch -W .github/workflows/ci_ingestion.yml
 ```
-
-## Knowledge graph in Neo4j (Docker image)
-
-Every [data release](https://github.com/biocypher/iggytop/releases) ships a
-ready-to-run Docker image, `ghcr.io/biocypher/iggytop-neo4j`: a Neo4j
-instance with the full IggyTop knowledge graph built in. You only need
-Docker. There's no need to clone the repo, install Python, or build anything.
-
-```bash
-docker run -d --name iggytop \
-  -p 7474:7474 -p 7687:7687 \
-  -e NEO4J_ACCEPT_LICENSE_AGREEMENT=yes \
-  -e NEO4J_AUTH=neo4j/neo4jpassword \
-  -v iggytop_data:/data \
-  ghcr.io/biocypher/iggytop-neo4j:latest
-```
-
-If you have the repo cloned, `docker compose up -d` in its root directory
-does the same: it pulls the released image and applies the settings in
-`docker-variables.env` (credentials, APOC/GDS plugins, memory).
-
-**Image tags**: `latest` points to the latest data release. Every release is
-also available under its own tag (e.g. `data-2026.08.03.063907`, see the
-[package page](https://github.com/biocypher/iggytop/pkgs/container/iggytop-neo4j)),
-so you can pin the exact data version you used:
-```bash
-docker run ... ghcr.io/biocypher/iggytop-neo4j:data-2026.08.03.063907
-# or, with compose:
-IGGYTOP_RELEASE_TAG=data-2026.08.03.063907 docker compose up -d
-```
-
-On first start, the container runs a `neo4j-admin` bulk import of the
-built-in graph into the `/data` volume. This takes a few minutes because the
-graph is large. Later restarts reuse the volume and skip the import. To
-switch to a different release, remove the volume first (`docker rm -f iggytop && docker volume rm iggytop_data`,
-or `docker compose down -v`); otherwise the old graph is kept.
-
-### Querying the graph
-
-- **Browser**: open http://localhost:7474 and log in with `neo4j` / `neo4jpassword`
-  (change it via `NEO4J_AUTH` or in `docker-variables.env`).
-
-In the browser, you can now run
-queries against the database — the full graph has over a million nodes, so
-scope exploratory queries with a `LIMIT`, e.g.:
-```
-MATCH (n) RETURN n LIMIT 100
-```
-
-To get a feel for the schema, a good starting point is to expand outward
-from a single `Binding` node — the central node type linking a TCR/BCR
-receptor to the epitope it binds — and follow its relationships a few hops
-out:
-```
-MATCH path = (n:Binding)-[*1..4]->(m) WHERE n.complete = true RETURN path LIMIT 16
-```
-For more information on the Graph schema, check out [Graph Data Structure](https://iggytop.readthedocs.io/en/latest/graph_data_structure.html).
-The result should look similar to this:
-
-
-![knowledge graph example](./docs/source/graph.png)
 
 ## Related work
 If you find a dataset (e.g. training data for a model) and would like to find the source of the records using the IggyTop dataset, check out [this tool](https://github.com/RaphaelDeGottardi/TCR_source_detection).

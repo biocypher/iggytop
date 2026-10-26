@@ -75,7 +75,7 @@ jobs:
         if: ${{ !contains(github.actor, 'act') }}
         run: |
           # Bakes this release's knowledge_graph.tar.gz (just published above) into a
-          # neo4j:4.4-enterprise image, so users can `docker pull`/`docker compose up`
+          # neo4j:5.26-community image, so users can `docker pull`/`docker compose up`
           # the graph directly instead of building the Dockerfile themselves.
           # The package is public; its visibility is set once in the GHCR package settings.
           docker build \
