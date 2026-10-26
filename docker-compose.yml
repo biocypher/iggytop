@@ -1,8 +1,8 @@
 services:
   neo4j:
-    # Pre-built image pushed by the release pipeline (currently private; requires
-    # `docker login ghcr.io` to pull). Falls back to a local build with `--build`,
-    # e.g. to pin a release tag not yet pushed as an image.
+    # Pre-built public image pushed by the release pipeline; `docker compose up` pulls it.
+    # Rebuild locally with `--build` only to bake in a locally built graph
+    # (IGGYTOP_KG_SOURCE=local) or a release tag that has no image.
     image: ghcr.io/biocypher/iggytop-neo4j:${IGGYTOP_RELEASE_TAG:-latest}
     build:
       context: .

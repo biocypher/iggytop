@@ -31,7 +31,7 @@ Users can customize the graph generation using several flags in `create_knowledg
 
 #### Graph queries
 
-Follow the instructions in the [readme](https://github.com/biocypher/iggytop#graph-visualization-using-neo4j-on-docker) to start the docker container running a neo4j instance with the full knowledge graph. The knowledge graph can then be explored using Neo4j and Cypher see [here](https://neo4j.com/docs/getting-started/) for more information on how to use Neo4j.
+Follow the instructions in the [readme](https://github.com/biocypher/iggytop#knowledge-graph-in-neo4j-docker-image) to start the released docker image running a neo4j instance with the full knowledge graph. The knowledge graph can then be explored using Neo4j and Cypher see [here](https://neo4j.com/docs/getting-started/) for more information on how to use Neo4j.
 # Knowledge Graph
 
 ![knowledge graph example](./graph.png)

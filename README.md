@@ -98,13 +98,14 @@ uv run create_knowledge_graph.py --adapters VDJDB CEDAR --output-format networkx
 ## Releases, Testing and CI/CD
 
 IggyTop uses GitHub Actions to automate **bimonthly data releases** and ensure data integrity through continuous integration.
-Currently this only involves the tabular part of IggyTop (`create_release.py`).
+Each release is built by `create_release.py` and covers both the tabular datasets and the knowledge graph.
 Check out the latest release [here](https://github.com/biocypher/iggytop/releases/latest).
 ### Bimonthly Data Releases
 Find the releases [here](https://github.com/biocypher/iggytop/releases)
 - **Frequency**: Automated releases on the **1st day of every 2nd month** (first scheduled on **May 1, 2026**).
-- **Release Assets**:
+- **Release Assets**: the merged and deduplicated datasets (AnnData / AIRR JSON) and `knowledge_graph.tar.gz` (neo4j-admin import files).
    Check out the release notes for more information on the released datasets.
+- **Docker image**: every release also publishes [`ghcr.io/biocypher/iggytop-neo4j`](https://github.com/biocypher/iggytop/pkgs/container/iggytop-neo4j), a Neo4j image with that release's knowledge graph built in, tagged with the release tag (`latest` follows the latest release). See [Knowledge graph in Neo4j (Docker image)](#knowledge-graph-in-neo4j-docker-image).
 
 ### Automated Testing
 Before any data is released, the CI pipeline (based on GitHub Actions) runs a validation suite to catch breaking changes in upstream databases.
@@ -129,42 +130,48 @@ Ensure you have Docker and `act` installed, then run:
 act workflow_dispatch -W .github/workflows/ci_ingestion.yml
 ```
 
-## Graph visualization using Neo4j on Docker
+## Knowledge graph in Neo4j (Docker image)
 
-This repo contains a `docker compose` workflow that spins up a Neo4j
-instance pre-loaded with the full IggyTop knowledge graph from a
-[data release](https://github.com/biocypher/iggytop/releases), no local
-Python/BioCypher build required. To run it, execute
-```bash
-docker compose up -d --build
-```
-in the root directory of the project.
+Every [data release](https://github.com/biocypher/iggytop/releases) ships a
+ready-to-run Docker image, `ghcr.io/biocypher/iggytop-neo4j`: a Neo4j
+instance with the full IggyTop knowledge graph built in. You only need
+Docker. There's no need to clone the repo, install Python, or build anything.
 
-At build time, the image downloads `knowledge_graph.tar.gz` (the neo4j-admin
-import CSVs + import script produced by `create_release.py`) from a pinned
-IggyTop release and bakes it into the image. On first container start, it
-runs a `neo4j-admin database import` — the fast bulk-loader Neo4j recommends
-for populating an empty database — directly against those CSVs, rather than
-loading the graph row-by-row via Cypher. The imported data then lives in the
-named volume `biocypher_neo4j_volume`, so subsequent restarts skip the
-import entirely.
-
-By default the build uses whatever release GitHub currently marks
-"latest". To pin a specific release instead, override the build arg:
 ```bash
-IGGYTOP_RELEASE_TAG=data-2026.08.03.063907 docker compose up -d --build
-```
-To force a re-import after switching release tags, first tear down the volume:
-```bash
-docker compose down -v
+docker run -d --name iggytop \
+  -p 7474:7474 -p 7687:7687 \
+  -e NEO4J_ACCEPT_LICENSE_AGREEMENT=yes \
+  -e NEO4J_AUTH=neo4j/neo4jpassword \
+  -v iggytop_data:/data \
+  ghcr.io/biocypher/iggytop-neo4j:latest
 ```
 
-This will start up a single (detached) Docker container with a Neo4j
-instance containing the full knowledge graph, which you can connect to and
-browse at localhost:7474 (note that this can take a couple minutes as the graph is large). Authentication is set to `neo4j/neo4jpassword` by
-default and can be modified in the `docker-variables.env` file.
+If you have the repo cloned, `docker compose up -d` in its root directory
+does the same: it pulls the released image and applies the settings in
+`docker-variables.env` (credentials, APOC/GDS plugins, memory).
 
-Open http://localhost:7474 to access the Neo4j database. You can now run
+**Image tags**: `latest` points to the latest data release. Every release is
+also available under its own tag (e.g. `data-2026.08.03.063907`, see the
+[package page](https://github.com/biocypher/iggytop/pkgs/container/iggytop-neo4j)),
+so you can pin the exact data version you used:
+```bash
+docker run ... ghcr.io/biocypher/iggytop-neo4j:data-2026.08.03.063907
+# or, with compose:
+IGGYTOP_RELEASE_TAG=data-2026.08.03.063907 docker compose up -d
+```
+
+On first start, the container runs a `neo4j-admin` bulk import of the
+built-in graph into the `/data` volume. This takes a few minutes because the
+graph is large. Later restarts reuse the volume and skip the import. To
+switch to a different release, remove the volume first (`docker rm -f iggytop && docker volume rm iggytop_data`,
+or `docker compose down -v`); otherwise the old graph is kept.
+
+### Querying the graph
+
+- **Browser**: open http://localhost:7474 and log in with `neo4j` / `neo4jpassword`
+  (change it via `NEO4J_AUTH` or in `docker-variables.env`).
+
+In the browser, you can now run
 queries against the database — the full graph has over a million nodes, so
 scope exploratory queries with a `LIMIT`, e.g.:
 ```
