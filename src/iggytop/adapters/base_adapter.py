@@ -18,6 +18,7 @@ from tqdm.auto import tqdm
 
 from . import ontoweaver_transformers  # noqa: F401 (registers the custom id transformers)
 from .constants import REGISTRY_KEYS
+from .mapping_utils import assay_method_categories
 from .utils import get_file_checksum
 
 if TYPE_CHECKING:
@@ -31,7 +32,7 @@ def _load_ontoweaver_mapping(filename: str) -> dict:
 
 
 # One mapping per hub in the graph's hub-and-spoke hierarchy:
-#   binding -> {receptor_complex, pmhc, database, PMID}
+#   binding -> {receptor_complex, pmhc, database, PMID, assay_method}
 #   receptor_complex -> {chain_1, chain_2}
 #   chain_N -> {v_gene, j_gene}
 #   pmhc -> {epitope, mhc}
@@ -230,7 +231,7 @@ class BaseAdapter(ABC):
             table = self.table.copy()
 
             # Add any missing columns that OntoWeaver expects to see, but which may not be present in the table
-            for _col in (REGISTRY_KEYS.MHC_GENE_2_KEY, REGISTRY_KEYS.TISSUE_KEY):
+            for _col in (REGISTRY_KEYS.MHC_GENE_2_KEY, REGISTRY_KEYS.TISSUE_KEY, REGISTRY_KEYS.ASSAY_METHOD_RAW_KEY):
                 if _col not in table.columns:
                     table[_col] = None
 
@@ -269,9 +270,27 @@ class BaseAdapter(ABC):
                 [(table, mapping) for mapping in _ONTOWEAVER_MAPPINGS],
                 affix="none",
             )
+            node_tuples = [n.as_tuple() for n in nodes]
+            edge_tuples = [e.as_tuple() for e in edges]
+
+            # A method belongs to exactly one assay_category, so `assay_method -> assay_category`
+            # is a handful of vocabulary edges rather than per-record data (the binding ->
+            # assay_method edges, which *are* per-record, come from the binding mapping; the
+            # reconciliation below merges its property-less method nodes with the ones added here).
+            # It also can't be mapped row-wise: a row's two assay columns are independently
+            # "|"-joined sets, so pairing them off would link every method of a multi-assay record
+            # to every one of its categories -- `assay_method_categories` restores the pairing.
+            for cell in table[REGISTRY_KEYS.ASSAY_METHOD_RAW_KEY].unique():
+                for method, category in assay_method_categories(cell).items():
+                    method_id, category_id = f"assay_method:{method}", f"assay_category:{category}"
+                    node_tuples.append((method_id, "assay_method", {"method": method}))
+                    node_tuples.append((category_id, "assay_category", {"category": category}))
+                    edge_id = f"({method_id})--[assay_method_to_assay_category]->({category_id})"
+                    edge_tuples.append((edge_id, method_id, category_id, "assay_method_to_assay_category", {}))
+
             fnodes, fedges = ontoweaver.fusion.reconciliate(
-                [n.as_tuple() for n in nodes],
-                [e.as_tuple() for e in edges],
+                node_tuples,
+                edge_tuples,
                 reconciliate_sep=",",
                 progress_bar=True,
             )

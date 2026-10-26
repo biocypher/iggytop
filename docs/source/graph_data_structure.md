@@ -46,6 +46,8 @@ The ontology used for iggytop is defined in `config/schema_config.yaml`. This in
 ```text
 entity
 ├── association
+│   ├── assay method to assay category association
+│   ├── binding to assay method association
 │   ├── binding to database association
 │   ├── binding to pmhc association
 │   ├── binding to pmid association
@@ -57,6 +59,8 @@ entity
 │   └── receptor complex to chain association
 └── named thing
     ├── PMID
+    ├── assay category
+    ├── assay method
     ├── binding
     ├── biological entity
     │   ├── antigen
@@ -77,6 +81,8 @@ entity
 INFO:biocypher:
 entity
 ├── association
+│   ├── assay method to assay category association
+│   ├── binding to assay method association
 │   ├── binding to database association
 │   ├── binding to pmhc association
 │   ├── binding to pmid association
@@ -88,6 +94,8 @@ entity
 │   └── receptor complex to chain association
 └── named thing
     ├── PMID
+    ├── assay category
+    ├── assay method
     ├── binding
     ├── biological entity
     │   ├── antigen
@@ -113,6 +121,7 @@ The graph is organized as a hub-and-spoke hierarchy around a central **binding**
 
 - Each `binding` node has exactly one edge to a `receptor complex` node and exactly one edge to a `pmhc` node — together these identify *which receptor* was reported to recognize *which peptide-MHC*.
 - The same pairing reported by several sources (e.g. the same complex-pmhc pairing appearing in both VDJDB and IEDB, or the same source citing multiple publications) collapses onto the **same** `binding` node: its ID is built from the receptor complex and pmhc content, deliberately excluding source/database/PMID. That shared node can then carry edges out to *every* `database` and `PMID` node that reported it, rather than one row per source.
+- Each `binding` node also carries one edge per assay that was reported to establish it, to an `assay method` node (the harmonized method string, e.g. `tetramer-sort`), which in turn links to the `assay category` node holding its evidence class (`multimer_binding`, `functional_activation`, `structural`, …). A record whose source doesn't say how the pairing was established simply has no `binding to assay method` edge.
 - `receptor complex` and `pmhc` are themselves join nodes: a `receptor complex` links to its `chain_1`/`chain_2` nodes, and a `pmhc` links to its `epitope` and `mhc` nodes. Because these nodes are shared (deduplicated) rather than duplicated per record, records with, e.g., the same V/J gene or the same epitope naturally converge on the same downstream nodes — this is how the graph surfaces similarities between receptors and epitopes across the whole dataset, rather than just stacking independent rows.
 
 #### Nodes
@@ -129,6 +138,8 @@ The graph is organized as a hub-and-spoke hierarchy around a central **binding**
 | `mhc` | polypeptide | `MHC_class`, `MHC_gene_1`, `MHC_gene_2` |
 | `database` | named thing | `version` |
 | `PMID` | named thing | `pmid` |
+| `assay method` | named thing | `method` |
+| `assay category` | named thing | `category` |
 
 #### Edges
 
@@ -138,6 +149,8 @@ The graph is organized as a hub-and-spoke hierarchy around a central **binding**
 | binding to pmhc association | `binding` → `pmhc` |
 | binding to database association | `binding` → `database` |
 | binding to pmid association | `binding` → `PMID` |
+| binding to assay method association | `binding` → `assay method` |
+| assay method to assay category association | `assay method` → `assay category` |
 | receptor complex to chain association | `receptor complex` → `chain_1` / `chain_2` |
 | chain to gene association | `chain_1`/`chain_2` → `v_gene` / `j_gene` |
 | pmhc to epitope association | `pmhc` → `epitope` |

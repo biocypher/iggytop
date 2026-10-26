@@ -45,3 +45,13 @@ transformers:
       prefix: PMID
       to_object: PMID
       via_relation: binding_to_pmid
+
+  # A record supported by several assays has them "|"-joined in one cell, so `separator`
+  # makes this radiate one edge per method. Each method's own assay_category edge is a
+  # static vocabulary fact, added in `BaseAdapter._get_ontoweaver_kg` rather than mapped.
+  - prefixed_id:
+      columns: [assay_method_raw]
+      prefix: assay_method
+      separator: "|"
+      to_object: assay_method
+      via_relation: binding_to_assay_method

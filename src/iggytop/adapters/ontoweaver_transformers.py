@@ -1,7 +1,8 @@
 """Custom OntoWeaver transformers used by BaseAdapter's OntoWeaver-based node/edge generation.
 
-The graph has a layered hub-and-spoke shape (binding -> {receptor_complex, pmhc, database, PMID},
-receptor_complex -> {chain_1, chain_2}, chain_N -> {v_gene, j_gene}, pmhc -> {epitope, mhc}). OntoWeaver
+The graph has a layered hub-and-spoke shape (binding -> {receptor_complex, pmhc, database, PMID,
+assay_method}, receptor_complex -> {chain_1, chain_2}, chain_N -> {v_gene, j_gene},
+pmhc -> {epitope, mhc}). OntoWeaver
 maps one row-subject with radiating edges per mapping pass, so each hub in that hierarchy needs its own
 mapping pass (see the `ontoweaver_mapping_*.yaml` files), reconciled together afterwards. Composite
 entities (receptor_complex, pmhc, binding) don't have a column holding their id directly -- their id is
@@ -9,6 +10,8 @@ built from the same row data whether they're being used as a pass's row subject 
 pass's target, so the component builders below are shared by both roles to guarantee the two passes agree
 on the same id string.
 """
+
+import logging
 
 from ontoweaver import base, transformer
 from ontoweaver.make_value import ValueMaker
@@ -186,14 +189,17 @@ class prefixed_id(base.Transformer):  # noqa: N801
 
     `prefix` is a mapping-level parameter (e.g. `prefixed_id: {columns: [chain_1_v_call], prefix: v_gene, ...}`),
     used for reference/leaf entities whose id is the whole of their informational content (v_gene, j_gene, PMID).
+    The optional `separator` parameter splits the column value first, yielding one id per part -- for columns
+    holding a joined *set* of values (a record's `assay_method_raw` is "|"-joined when several assays support it).
     """
 
     class ValueMaker(ValueMaker):
-        """Computes the id value for a single row; see the enclosing class's docstring."""
+        """Computes the id value(s) for a single row; see the enclosing class's docstring."""
 
-        def __init__(self, prefix: str, raise_errors: bool = True):
-            """Store the prefix to prepend to the column value."""
+        def __init__(self, prefix: str, separator: str | None = None, raise_errors: bool = True):
+            """Store the prefix to prepend to each value, and the separator to split the cell on."""
             self.prefix = prefix
+            self.separator = separator
             super().__init__(raise_errors)
 
         def __call__(self, columns, row, i):
@@ -201,7 +207,9 @@ class prefixed_id(base.Transformer):  # noqa: N801
             if col not in row or _is_missing(row[col]):
                 yield ""
                 return
-            yield f"{self.prefix}:{row[col]}"
+            value = str(row[col])
+            for part in value.split(self.separator) if self.separator else [value]:
+                yield f"{self.prefix}:{part.strip()}" if part.strip() else ""
 
     def __init__(  # noqa: PLR0913 (signature mirrors ontoweaver.base.Transformer's, e.g. `cat`)
         self,
@@ -213,10 +221,11 @@ class prefixed_id(base.Transformer):  # noqa: N801
         multi_type_dict=None,
         raise_errors=True,
         prefix=None,
+        separator=None,
         **kwargs,
     ):
         """Initialize the transformer (see the class docstring)."""
-        self.value_maker = self.ValueMaker(prefix, raise_errors=raise_errors)
+        self.value_maker = self.ValueMaker(prefix, separator, raise_errors=raise_errors)
         super().__init__(
             properties_of,
             self.value_maker,
@@ -253,6 +262,18 @@ class binding_id(_RowValueTransformer):  # noqa: N801
 
     component_fn = staticmethod(binding_component)
 
+
+# `transformer.register()` logs through the bare `logging.debug(...)` module function rather than a
+# named logger. As a side effect, that implicitly calls `logging.basicConfig()` if the root logger
+# has no handlers yet, attaching an unfiltered (NOTSET) StreamHandler directly to the root logger.
+# BioCypher's own "biocypher" logger is always at DEBUG level and propagates, so every message it
+# logs afterwards also hits that stray handler unfiltered -- doubling every INFO/WARNING line
+# (once via BioCypher's own formatting, once via logging's bare default formatting) and leaking
+# DEBUG-level output that floods stderr with millions of lines on the full dataset. `import
+# ontoweaver` (above) already imports biocypher, which sets up its own logger first, so adding a
+# no-op handler here pre-empts the implicit basicConfig() from ever doing anything.
+if not logging.getLogger().handlers:
+    logging.getLogger().addHandler(logging.NullHandler())
 
 for _cls in (chain_id, prefixed_id, mhc_id, pmhc_id, receptor_complex_id, binding_id):
     transformer.register(_cls)

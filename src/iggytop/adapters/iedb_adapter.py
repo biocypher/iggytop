@@ -8,7 +8,7 @@ from biocypher import BioCypher
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
-from .utils import get_pmids_batch, harmonize_sequences, normalize_table_strings
+from .utils import get_pmids_batch, harmonize_sequences, map_assay_ids_to_methods, normalize_table_strings
 
 logger = logging.getLogger(__name__)
 
@@ -194,10 +194,18 @@ class IEDBAdapter(BaseAdapter):
             REGISTRY_KEYS.CHAIN_1_TYPE_KEY: REGISTRY_KEYS.CHAIN_1_TYPE_KEY,
             REGISTRY_KEYS.CHAIN_2_TYPE_KEY: REGISTRY_KEYS.CHAIN_2_TYPE_KEY,
             "Reference IEDB IRI": REGISTRY_KEYS.PUBLICATION_KEY,
+            "Assay IEDB IDs": "_assay_ids",
         }
 
         table = table.rename(columns=rename_cols)
         table = table[list(rename_cols.values())]
+
+        # Assay method: the receptor export only tags each record with assay IDs;
+        # the method lives in the assay record, fetched via the IEDB query-api.
+        raw, category = map_assay_ids_to_methods(bc, table["_assay_ids"], source=self.DB_NAME)
+        table[REGISTRY_KEYS.ASSAY_METHOD_RAW_KEY] = raw
+        table[REGISTRY_KEYS.ASSAY_CATEGORY_KEY] = category
+        table = table.drop(columns=["_assay_ids"])
 
         # IEDB's own export occasionally leaves a stray literal `"` in this field (e.g.
         # `Chlorobium chlorochromatii"`), which would otherwise corrupt BioCypher's

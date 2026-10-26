@@ -8,6 +8,7 @@ import platformdirs
 import scirpy as ir
 from scirpy.pp import index_chains
 
+from iggytop.adapters.mapping_utils import flush_assay_warnings
 from iggytop.adapters.utils import (
     _flush_tt_warnings,
     deduplicate_and_aggregate,
@@ -212,7 +213,7 @@ def main():
                 "VDJ_1_junction_aa",
                 "epitope_sequence",
             ]  # epitope IRI can be ambiguous
-            agg_cols = ["PMID", "source"]
+            agg_cols = ["PMID", "source", "assay_category", "assay_method_raw"]
 
             try:
                 deduplicated_adata = deduplicate_and_aggregate(merged_adata_for_dedup, subset_cols, agg_cols)
@@ -243,6 +244,7 @@ def main():
                 )
 
     _flush_tt_warnings()
+    flush_assay_warnings()
 
 
 if __name__ == "__main__":

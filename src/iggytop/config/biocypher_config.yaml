@@ -2,7 +2,7 @@
 
 biocypher:
   offline: False
-  debug: true
+  debug: false
   schema_config_path: config/schema_config.yaml
   dbms: airr
 

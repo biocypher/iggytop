@@ -1,12 +1,29 @@
 services:
   neo4j:
+    # Pre-built image pushed by the release pipeline (currently private; requires
+    # `docker login ghcr.io` to pull). Falls back to a local build with `--build`,
+    # e.g. to pin a release tag not yet pushed as an image.
+    image: ghcr.io/biocypher/iggytop-neo4j:${IGGYTOP_RELEASE_TAG:-latest}
     build:
       context: .
+      target: deploy-stage
       args:
         # Override per-build with `IGGYTOP_RELEASE_TAG=... docker compose ...` to pin a
         # specific release instead of GitHub's "latest".
         IGGYTOP_RELEASE_TAG: ${IGGYTOP_RELEASE_TAG:-latest}
-    image: iggytop-neo4j
+        # Set IGGYTOP_KG_SOURCE=local to bake in a graph built on this machine instead of
+        # downloading a release, pointing IGGYTOP_LOCAL_KG_DIR at its `knowledge_graph`
+        # directory (see create_knowledge_graph.py):
+        #
+        #   uv run create_knowledge_graph.py --cache-dir ./biocypher-out/dev
+        #   IGGYTOP_KG_SOURCE=local docker compose up -d --build
+        #
+        # The graph is imported once, on the volume's first start, so switching to a newer
+        # local build means `docker compose down -v` before bringing it up again.
+        IGGYTOP_KG_SOURCE: ${IGGYTOP_KG_SOURCE:-release}
+      additional_contexts:
+        # Only read when IGGYTOP_KG_SOURCE=local; the default just has to be a path that exists.
+        local-kg: ${IGGYTOP_LOCAL_KG_DIR:-./biocypher-out/dev/knowledge_graph}
     container_name: iggytop-container
     env_file:
       - docker-variables.env

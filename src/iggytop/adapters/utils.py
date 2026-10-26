@@ -19,7 +19,7 @@ from biocypher import APIRequest, BioCypher
 from scirpy.io._datastructures import AirrCell
 
 from .constants import REGISTRY_KEYS
-from .mapping_utils import map_antigen_names, map_species_terms
+from .mapping_utils import harmonize_assay_iedb, map_antigen_names, map_species_terms
 
 _IG_LOCI = {"IGH", "IGL", "IGK"}
 _MISSING_TOKENS = {"", "nan", "none", "null", "n.a.", "na", "n/a"}
@@ -152,6 +152,10 @@ def get_mhc_class(allele: str | None) -> str | None:
         "H2-E",
         "I-A",
         "I-E",
+        "H2-IA",
+        "H2-IE",
+        "H-2IA",
+        "H-2IE",
         "CLASS II",
         "MH2",
         "MHC2",
@@ -175,6 +179,9 @@ def get_mhc_class(allele: str | None) -> str | None:
         "HLA-E",
         "HLA-F",
         "HLA-G",
+        "DS-A",  # disulfide-stabilized single-chain HLA class I constructs (e.g. BATCAVE's "DS-A*02:01")
+        "DS-B",
+        "DS-C",
         "CD1",
         "MR1",
         "H-2K",
@@ -253,9 +260,9 @@ def _process_gene(gene: str, species: str | None, is_ig: bool = False) -> str | 
             "musmusculus" if "musculus" in species_tt else None  # defaults to homosapiens and other species are not supported by tidytcells
         )
         if is_ig:
-            result = tt.ig.standardize(symbol=gene, log_failures=False)  # Only available for human
+            result = tt.ig.standardize(symbol=gene, log_failures=False, enforce_functional=True)  # Only available for human
         else:
-            result = tt.tr.standardize(symbol=gene, species=species_tt, log_failures=False)
+            result = tt.tr.standardize(symbol=gene, species=species_tt, log_failures=False, enforce_functional=True)
         if not result.is_standardized:
             _tt_warnings.add(f"{'IG' if is_ig else 'TR'} gene '{gene}' | species '{species}' | {result.error}")
         return result.symbol if result.is_standardized else gene
@@ -446,6 +453,10 @@ def harmonize_sequences(bc, table: pd.DataFrame) -> pd.DataFrame:
     )
 
     table[REGISTRY_KEYS.MHC_CLASS_KEY] = table[REGISTRY_KEYS.MHC_GENE_1_KEY].apply(get_mhc_class)
+    if REGISTRY_KEYS.MHC_GENE_2_KEY not in table.columns:
+        table[REGISTRY_KEYS.MHC_GENE_2_KEY] = None
+    class_i_missing_gene_2 = (table[REGISTRY_KEYS.MHC_CLASS_KEY] == "I") & table[REGISTRY_KEYS.MHC_GENE_2_KEY].isnull()
+    table.loc[class_i_missing_gene_2, REGISTRY_KEYS.MHC_GENE_2_KEY] = "B2M"
     if REGISTRY_KEYS.TISSUE_KEY in table.columns:
         table[REGISTRY_KEYS.TISSUE_KEY] = table[REGISTRY_KEYS.TISSUE_KEY].apply(get_tissue_source)
 
@@ -691,6 +702,93 @@ def _get_reference_data(bc: BioCypher, reference_ids: list[int], base_url: str) 
         return []
 
 
+# IEDB/CEDAR receptor exports tag each record only with assay IDs; the method lives
+# in the assay record on query-api.iedb.org. Rather than query the ~10k referenced
+# IDs in batches (the API 502s on `in.()` lists longer than ~350), we page the whole
+# "T-cell assays that have a TCR receptor" slice in one keyset-paginated sweep
+# (~10.5k rows, 2 requests) and reuse it for both databases. Memoized per process so
+# the second adapter (CEDAR) is free.
+_ASSAY_METHODS_PAGE_SIZE = 10000
+_tcr_assay_methods_memo: dict[str, str] | None = None
+
+
+def fetch_tcr_assay_methods(bc: BioCypher) -> dict[str, str]:
+    """Return ``{assay_id: assay_names}`` for every IEDB/CEDAR TCR-linked T-cell assay.
+
+    ``assay_names`` has the shape ``"<readout>|<technique>[|<unit>]"`` and is fed to
+    :func:`iggytop.adapters.mapping_utils.harmonize_assay_iedb`.
+    """
+    global _tcr_assay_methods_memo
+    if _tcr_assay_methods_memo is not None:
+        return _tcr_assay_methods_memo
+
+    base_url = (
+        "https://query-api.iedb.org/tcell_search"
+        "?tcr_receptor_group_id=not.is.null"
+        "&select=tcell_id,assay_names"
+        f"&order=tcell_id&limit={_ASSAY_METHODS_PAGE_SIZE}"
+    )
+    assay_to_names: dict[str, str] = {}
+    cursor: int | None = None
+
+    getLogger("biocypher").info("Fetching IEDB/CEDAR TCR assay methods...")
+
+    for _page in range(50):  # safety bound; ~2 pages in practice
+        url = base_url if cursor is None else f"{base_url}&tcell_id=gt.{cursor}"
+        rows = _get_assay_page(bc, url)
+        if not rows:
+            break
+        for row in rows:
+            assay_id = row.get("tcell_id")
+            names = row.get("assay_names")
+            if assay_id is not None and names:
+                assay_to_names[str(assay_id)] = names
+        if len(rows) < _ASSAY_METHODS_PAGE_SIZE:
+            break
+        cursor = rows[-1]["tcell_id"]
+
+    getLogger("biocypher").info(f"Fetched {len(assay_to_names)} TCR-linked assay method records.")
+    _tcr_assay_methods_memo = assay_to_names
+    return assay_to_names
+
+
+def map_assay_ids_to_methods(bc: BioCypher, assay_id_series: "pd.Series", source: str = "IEDB") -> tuple["pd.Series", "pd.Series"]:
+    """Resolve IEDB/CEDAR per-record assay-id strings to harmonized assay columns.
+
+    Args:
+        bc: BioCypher instance for the (cached) API downloads.
+        assay_id_series: Series of comma-joined assay-id strings, one per record
+            (e.g. ``"1548960, 1583178"``).
+        source: DB name used when logging unmapped assay techniques.
+
+    Returns:
+        ``(assay_method_raw, assay_category)`` Series aligned to ``assay_id_series``.
+    """
+    names_by_id = fetch_tcr_assay_methods(bc)
+
+    def _row(value):
+        if value is None or pd.isna(value):
+            return (None, "unknown")
+        names = [names_by_id.get(p.strip()) for p in str(value).split(",") if p.strip().isdigit()]
+        return harmonize_assay_iedb([n for n in names if n], source=source)
+
+    resolved = assay_id_series.apply(_row)
+    return resolved.apply(lambda t: t[0]), resolved.apply(lambda t: t[1])
+
+
+def _get_assay_page(bc: BioCypher, url: str) -> list[dict]:
+    """Fetch one keyset-paginated page of ``tcell_id, assay_names`` rows (cached)."""
+    request_hash = hashlib.md5(url.encode()).hexdigest()
+    try:
+        paths = bc.download(APIRequest(name=f"iedb_tcr_assay_methods_{request_hash}", url_s=[url], lifetime=30))
+        if paths and len(paths) > 0:
+            with open(paths[0]) as f:
+                return json.load(f)
+    except Exception as e:
+        getLogger("biocypher").info(f"Assay method request failed: {e}")
+    return []
+
+
 def save_airr_cells_json(airrcells: List[AirrCell], directory: str, filename: str = None, metadata: dict = None) -> None:
     """
     Save a list of AirrCell objects to a compressed JSON file with auto-generated filename.
@@ -871,6 +969,10 @@ def save_airr_cells_csv(airr_cells: List, directory: str) -> None:
 def aggregate_unique_joined(series, separator="|"):
     """
     Helper function to aggregate unique values into a joined string.
+
+    Values already containing ``separator`` (e.g. a record supported by several
+    assays) are split first, so aggregating across rows composes cleanly instead
+    of nesting joined strings.
     Warns if string 'nan' are found.
     """
     values = set()
@@ -878,9 +980,10 @@ def aggregate_unique_joined(series, separator="|"):
         if pd.isna(v) or str(v).lower() == "nan":
             continue
 
-        s_v = str(v).strip()
-        if s_v:
-            values.update([s_v])
+        for part in str(v).split(separator):
+            s_v = part.strip()
+            if s_v and s_v.lower() != "nan":
+                values.add(s_v)
     if len(values) == 0:
         return None
     return separator.join(sorted(values))

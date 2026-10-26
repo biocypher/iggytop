@@ -176,7 +176,7 @@ from a single `Binding` node — the central node type linking a TCR/BCR
 receptor to the epitope it binds — and follow its relationships a few hops
 out:
 ```
-MATCH path = (n:Binding)-[*1..4]->(m) WHERE n.complete = true RETURN path LIMIT 14
+MATCH path = (n:Binding)-[*1..4]->(m) WHERE n.complete = true RETURN path LIMIT 16
 ```
 For more information on the Graph schema, check out [Graph Data Structure](https://iggytop.readthedocs.io/en/latest/graph_data_structure.html).
 The result should look similar to this:

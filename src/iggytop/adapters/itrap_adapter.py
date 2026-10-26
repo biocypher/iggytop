@@ -3,6 +3,7 @@ from biocypher import BioCypher, FileDownload
 
 from .base_adapter import BaseAdapter
 from .constants import REGISTRY_KEYS
+from .mapping_utils import ASSAY_MULTIMER, combine_assays
 from .utils import get_github_file_last_modified, harmonize_sequences, normalize_table_strings
 
 
@@ -159,6 +160,14 @@ class ITRAPAdapter(BaseAdapter):
         table[REGISTRY_KEYS.CHAIN_2_ORGANISM_KEY] = "Homo sapiens"
         table[REGISTRY_KEYS.TISSUE_KEY] = "PBMC"
         table[REGISTRY_KEYS.PUBLICATION_KEY] = "PMID: 37133356; 10XGenomics"
+
+        # ITRAP is the curated output of the 10x Genomics dextramer benchmark: every
+        # pairing comes from a single-cell pMHC-dextramer multiplexed binding assay.
+        # (Routed through `combine_assays` like every other source, so the method also
+        # registers its category for the knowledge graph's method -> category edge.)
+        raw, category = combine_assays([("dextramer-sort", ASSAY_MULTIMER)])
+        table[REGISTRY_KEYS.ASSAY_METHOD_RAW_KEY] = raw
+        table[REGISTRY_KEYS.ASSAY_CATEGORY_KEY] = category
 
         # Apply antigen mapping
         def apply_mapping(peptide):
