@@ -75,11 +75,9 @@ jobs:
         if: ${{ !contains(github.actor, 'act') }}
         run: |
           # Bakes this release's knowledge_graph.tar.gz (just published above) into a
-          # neo4j:4.4-enterprise image, so users can `docker pull`/`docker compose up`
+          # neo4j:5.26-community image, so users can `docker pull`/`docker compose up`
           # the graph directly instead of building the Dockerfile themselves.
-          # NOTE: package currently private by default (GITHUB_TOKEN-pushed packages
-          # aren't auto-linked to the public repo's visibility) - keep it that way
-          # until we're ready to advertise this to end users.
+          # The package is public; its visibility is set once in the GHCR package settings.
           docker build \
             --target deploy-stage \
             --build-arg IGGYTOP_RELEASE_TAG=${{ steps.tag.outputs.tag }} \
