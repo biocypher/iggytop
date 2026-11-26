@@ -1,0 +1,1327 @@
+{
+  "@context": {
+    "@language": "en",
+    "@vocab": "https://schema.org/",
+    "sc": "https://schema.org/",
+    "cr": "http://mlcommons.org/croissant/",
+    "rai": "http://mlcommons.org/croissant/RAI/",
+    "dct": "http://purl.org/dc/terms/",
+    "bsc": "https://bioschemas.org/profiles/Dataset/1.0-RELEASE/",
+    "citeAs": "cr:citeAs",
+    "column": "cr:column",
+    "conformsTo": "dct:conformsTo",
+    "data": {
+      "@id": "cr:data",
+      "@type": "@json"
+    },
+    "dataType": {
+      "@id": "cr:dataType",
+      "@type": "@vocab"
+    },
+    "examples": {
+      "@id": "cr:examples",
+      "@type": "@json"
+    },
+    "extract": "cr:extract",
+    "field": "cr:field",
+    "fileProperty": "cr:fileProperty",
+    "fileObject": "cr:fileObject",
+    "fileSet": "cr:fileSet",
+    "format": "cr:format",
+    "includes": "cr:includes",
+    "isLiveDataset": "cr:isLiveDataset",
+    "jsonPath": "cr:jsonPath",
+    "key": "cr:key",
+    "md5": "cr:md5",
+    "parentField": "cr:parentField",
+    "path": "cr:path",
+    "recordSet": "cr:recordSet",
+    "references": "cr:references",
+    "regex": "cr:regex",
+    "repeated": "cr:repeated",
+    "replace": "cr:replace",
+    "samplingRate": "cr:samplingRate",
+    "separator": "cr:separator",
+    "source": "cr:source",
+    "subField": "cr:subField",
+    "transform": "cr:transform",
+    "@base": "cr_base_iri/"
+  },
+  "@type": "SoftwareSourceCode",
+  "dct:conformsTo": "https://bioschemas.org/profiles/ComputationalTool/1.0-RELEASE/",
+  "@id": "iggytop-biocypher-adapter",
+  "name": "IggyTop BioCypher Adapter",
+  "description": "BioCypher adapter that harmonizes and integrates immunoreceptor–epitope interaction data from multiple databases into merged, deduplicated, and knowledge-graph representations.",
+  "version": "data-2026.11.01.025333",
+  "license": "https://opensource.org/licenses/MIT",
+  "codeRepository": "https://github.com/biocypher/iggytop",
+  "creator": [
+    {
+      "@type": "Person",
+      "name": "Raphael De Gottardi, Valeriia Dragan, Sebastian Lobentanzer, Lisa M. Dratva, Martin Kim, Gregor Stur"
+    }
+  ],
+  "keywords": [
+    "immunology",
+    "T-cell receptor",
+    "B-cell receptor",
+    "epitope",
+    "BioCypher",
+    "knowledge graph"
+  ],
+  "hasPart": [
+    {
+      "@type": "sc:Dataset",
+      "name": "VDJdb T-cell Receptor Specificity Dataset",
+      "description": "A curated database of T-cell receptor sequences with known antigen specificity, including recognized epitopes, MHC context, experimental evidence, and confidence information.",
+      "conformsTo": "http://mlcommons.org/croissant/1.0",
+      "citeAs": "Luppov DV, Koneva AE, Bagaev DV, et al. VDJdb in 2026: boosting T-cell receptor recognition evidence using paratope embeddings and AI-based structure prediction. Nucleic Acids Research. 2026. https://",
+      "creator": [
+        {
+          "@type": "sc:Person",
+          "name": "Immunosequencing Algorithms Laboratory"
+        }
+      ],
+      "datePublished": "2026-06-03T00:00:00Z",
+      "license": "UNKNOWN",
+      "url": "https://doi.org/10.5281/zenodo.22104776",
+      "version": "2026-06-03-ZENODO",
+      "distribution": [
+        {
+          "@type": "cr:FileObject",
+          "@id": "vdjdb-t-cell-receptor-specificity-dataset-1/file_0",
+          "name": "vdjdb-2026-06-03.zip",
+          "contentSize": "41017409",
+          "contentUrl": "vdjdb-2026-06-03.zip",
+          "encodingFormat": "application/zip",
+          "sha256": "9ae7724ab2ce9fdb09b1fb82a90c7462f75269f14f669238f8c154a80239cfc1"
+        }
+      ]
+    },
+    {
+      "@type": "sc:Dataset",
+      "name": "mcpas-tcr-2/McPAS-TCR",
+      "description": "A manually curated catalogue of T-cell receptor sequences associated with pathological conditions in humans and mice, linking TCR sequences to antigens, diseases, tissues, and experimental evidence.",
+      "conformsTo": "http://mlcommons.org/croissant/1.0",
+      "citeAs": "Tickotsky N, Sagiv T, Prilusky J, Shifrut E, Friedman N. McPAS-TCR: a manually curated catalogue of pathology-associated T cell receptor sequences. Bioinformatics. 2017;33:2924–2929. https://doi.org/1",
+      "creator": [
+        {
+          "@type": "sc:Person",
+          "name": "Nili Tickotsky, Tal Sagiv, Jaime Prilusky, Eric Shifrut, Nir Friedman"
+        }
+      ],
+      "datePublished": "2022-09-10T00:00:00Z",
+      "license": "No license",
+      "url": "https://friedmanlab.weizmann.ac.il/McPAS-TCR/",
+      "version": "2022-09-10",
+      "distribution": [
+        {
+          "@type": "cr:FileObject",
+          "@id": "mcpas-tcr-2/file_0",
+          "name": "McPAS-TCR.csv",
+          "contentSize": "7392187",
+          "contentUrl": "McPAS-TCR.csv",
+          "encodingFormat": "text/csv",
+          "sha256": "ccf7ae8068c787c0bc365f89e52e016a9944cf1775d1980fbf06243e598164d3"
+        }
+      ],
+      "recordSet": [
+        {
+          "@type": "cr:RecordSet",
+          "@id": "mcpas-tcr-2/McPAS-TCR",
+          "name": "mcpas-tcr-2/McPAS-TCR",
+          "description": "Records from McPAS-TCR.csv",
+          "field": [
+            {
+              "@type": "cr:Field",
+              "name": "CDR3.alpha.aa",
+              "@id": "mcpas-tcr-2/McPAS-TCR/CDR3.alpha.aa",
+              "dataType": "sc:Text",
+              "description": "Column 'CDR3.alpha.aa' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/CDR3.alpha.aa/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "CDR3.alpha.aa"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "CDR3.beta.aa",
+              "@id": "mcpas-tcr-2/McPAS-TCR/CDR3.beta.aa",
+              "dataType": "sc:Text",
+              "description": "Column 'CDR3.beta.aa' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/CDR3.beta.aa/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "CDR3.beta.aa"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "Species",
+              "@id": "mcpas-tcr-2/McPAS-TCR/Species",
+              "dataType": "sc:Text",
+              "description": "Column 'Species' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/Species/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "Species"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "Category",
+              "@id": "mcpas-tcr-2/McPAS-TCR/Category",
+              "dataType": "sc:Text",
+              "description": "Column 'Category' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/Category/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "Category"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "Pathology",
+              "@id": "mcpas-tcr-2/McPAS-TCR/Pathology",
+              "dataType": "sc:Text",
+              "description": "Column 'Pathology' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/Pathology/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "Pathology"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "Pathology.Mesh.ID",
+              "@id": "mcpas-tcr-2/McPAS-TCR/Pathology.Mesh.ID",
+              "dataType": "sc:Text",
+              "description": "Column 'Pathology.Mesh.ID' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/Pathology.Mesh.ID/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "Pathology.Mesh.ID"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "Additional.study.details",
+              "@id": "mcpas-tcr-2/McPAS-TCR/Additional.study.details",
+              "dataType": "sc:Text",
+              "description": "Column 'Additional.study.details' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/Additional.study.details/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "Additional.study.details"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "Antigen.identification.method",
+              "@id": "mcpas-tcr-2/McPAS-TCR/Antigen.identification.method",
+              "dataType": "cr:Float64",
+              "description": "Column 'Antigen.identification.method' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/Antigen.identification.method/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "Antigen.identification.method"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "Single.cell",
+              "@id": "mcpas-tcr-2/McPAS-TCR/Single.cell",
+              "dataType": "sc:Text",
+              "description": "Column 'Single.cell' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/Single.cell/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "Single.cell"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "NGS",
+              "@id": "mcpas-tcr-2/McPAS-TCR/NGS",
+              "dataType": "sc:Text",
+              "description": "Column 'NGS' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/NGS/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "NGS"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "Antigen.protein",
+              "@id": "mcpas-tcr-2/McPAS-TCR/Antigen.protein",
+              "dataType": "sc:Text",
+              "description": "Column 'Antigen.protein' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/Antigen.protein/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "Antigen.protein"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "Protein.ID",
+              "@id": "mcpas-tcr-2/McPAS-TCR/Protein.ID",
+              "dataType": "sc:Text",
+              "description": "Column 'Protein.ID' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/Protein.ID/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "Protein.ID"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "Epitope.peptide",
+              "@id": "mcpas-tcr-2/McPAS-TCR/Epitope.peptide",
+              "dataType": "sc:Text",
+              "description": "Column 'Epitope.peptide' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/Epitope.peptide/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "Epitope.peptide"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "Epitope.ID",
+              "@id": "mcpas-tcr-2/McPAS-TCR/Epitope.ID",
+              "dataType": "sc:Text",
+              "description": "Column 'Epitope.ID' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/Epitope.ID/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "Epitope.ID"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "MHC",
+              "@id": "mcpas-tcr-2/McPAS-TCR/MHC",
+              "dataType": "sc:Text",
+              "description": "Column 'MHC' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/MHC/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "MHC"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "Tissue",
+              "@id": "mcpas-tcr-2/McPAS-TCR/Tissue",
+              "dataType": "sc:Text",
+              "description": "Column 'Tissue' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/Tissue/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "Tissue"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "T.Cell.Type",
+              "@id": "mcpas-tcr-2/McPAS-TCR/T.Cell.Type",
+              "dataType": "sc:Text",
+              "description": "Column 'T.Cell.Type' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/T.Cell.Type/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "T.Cell.Type"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "T.cell.characteristics",
+              "@id": "mcpas-tcr-2/McPAS-TCR/T.cell.characteristics",
+              "dataType": "sc:Text",
+              "description": "Column 'T.cell.characteristics' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/T.cell.characteristics/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "T.cell.characteristics"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "CDR3.alpha.nt",
+              "@id": "mcpas-tcr-2/McPAS-TCR/CDR3.alpha.nt",
+              "dataType": "sc:Text",
+              "description": "Column 'CDR3.alpha.nt' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/CDR3.alpha.nt/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "CDR3.alpha.nt"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "TRAV",
+              "@id": "mcpas-tcr-2/McPAS-TCR/TRAV",
+              "dataType": "sc:Text",
+              "description": "Column 'TRAV' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/TRAV/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "TRAV"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "TRAJ",
+              "@id": "mcpas-tcr-2/McPAS-TCR/TRAJ",
+              "dataType": "sc:Text",
+              "description": "Column 'TRAJ' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/TRAJ/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "TRAJ"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "TRBV",
+              "@id": "mcpas-tcr-2/McPAS-TCR/TRBV",
+              "dataType": "sc:Text",
+              "description": "Column 'TRBV' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/TRBV/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "TRBV"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "TRBD",
+              "@id": "mcpas-tcr-2/McPAS-TCR/TRBD",
+              "dataType": "sc:Text",
+              "description": "Column 'TRBD' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/TRBD/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "TRBD"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "TRBJ",
+              "@id": "mcpas-tcr-2/McPAS-TCR/TRBJ",
+              "dataType": "sc:Text",
+              "description": "Column 'TRBJ' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/TRBJ/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "TRBJ"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "Reconstructed.J.annotation",
+              "@id": "mcpas-tcr-2/McPAS-TCR/Reconstructed.J.annotation",
+              "dataType": "sc:Text",
+              "description": "Column 'Reconstructed.J.annotation' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/Reconstructed.J.annotation/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "Reconstructed.J.annotation"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "CDR3.beta.nt",
+              "@id": "mcpas-tcr-2/McPAS-TCR/CDR3.beta.nt",
+              "dataType": "sc:Text",
+              "description": "Column 'CDR3.beta.nt' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/CDR3.beta.nt/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "CDR3.beta.nt"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "Mouse.strain",
+              "@id": "mcpas-tcr-2/McPAS-TCR/Mouse.strain",
+              "dataType": "sc:Text",
+              "description": "Column 'Mouse.strain' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/Mouse.strain/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "Mouse.strain"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "PubMed.ID",
+              "@id": "mcpas-tcr-2/McPAS-TCR/PubMed.ID",
+              "dataType": "cr:Int64",
+              "description": "Column 'PubMed.ID' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/PubMed.ID/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "PubMed.ID"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "Remarks",
+              "@id": "mcpas-tcr-2/McPAS-TCR/Remarks",
+              "dataType": "sc:Text",
+              "description": "Column 'Remarks' from McPAS-TCR.csv",
+              "source": {
+                "@id": "mcpas-tcr-2/McPAS-TCR/Remarks/source",
+                "fileObject": {
+                  "@id": "mcpas-tcr-2/file_0"
+                },
+                "extract": {
+                  "column": "Remarks"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "sc:Dataset",
+      "name": "TRAIT T-cell Receptor–Antigen Interaction Dataset",
+      "description": "A comprehensive dataset of T-cell receptor–antigen interactions integrating receptor and antigen sequences, structures, binding affinities, single-cell evidence, mutations, and therapeutic information.",
+      "conformsTo": "http://mlcommons.org/croissant/1.0",
+      "citeAs": "Wei M, Wu J, Bai S, et al. TRAIT: A Comprehensive Database for T-cell Receptor–antigen Interactions. Genomics, Proteomics & Bioinformatics. 2025;23(3):qzaf033. https://doi.org/10.1093/gpbjnl/qzaf033",
+      "creator": [
+        {
+          "@type": "sc:Person",
+          "name": "Mengmeng Wei, Jingcheng Wu, Shengzuo Bai, Yuxuan Zhou, Yichang Chen, Xue Zhang, Wenyi Zhao, Ying Chi"
+        }
+      ],
+      "datePublished": "2025-03-12T00:00:00Z",
+      "license": "UNKNOWN",
+      "url": "https://pgx.zju.edu.cn/traitdb/",
+      "version": "2025-03-12",
+      "distribution": [
+        {
+          "@type": "cr:FileObject",
+          "@id": "trait-t-cell-receptor–antigen-interaction-dataset-3/file_0",
+          "name": "TRAIT-2025-03-12.zip",
+          "contentSize": "4992228",
+          "contentUrl": "TRAIT-2025-03-12.zip",
+          "encodingFormat": "application/zip",
+          "sha256": "c27c46d4c0edd6acebaecd461f82cad54582c8f1015c4a98d8a9d1a1b492ac0b"
+        }
+      ]
+    },
+    {
+      "@type": "sc:Dataset",
+      "name": "IEDB Receptor Dataset",
+      "description": "Version 3 export of curated T-cell and B-cell receptor data from the Immune Epitope Database, including receptor sequences, epitopes, assays, organisms, and literature references.",
+      "conformsTo": "http://mlcommons.org/croissant/1.0",
+      "citeAs": "Vita R, Blazeska N, Marrama D, et al. The Immune Epitope Database (IEDB): 2024 update. Nucleic Acids Research. 2025;53(D1):D436–D443. https://doi.org/10.1093/nar/gkae1092",
+      "creator": [
+        {
+          "@type": "sc:Person",
+          "name": "Immune Epitope Database (IEDB)"
+        }
+      ],
+      "datePublished": "2026-11-08T00:00:00Z",
+      "license": "CC-BY-4.0",
+      "url": "https://www.iedb.org/",
+      "version": "v3",
+      "distribution": [
+        {
+          "@type": "cr:FileObject",
+          "@id": "iedb-receptor-dataset-4/file_0",
+          "name": "IEDB-receptor-v3.zip",
+          "contentSize": "10674543",
+          "contentUrl": "IEDB-receptor-v3.zip",
+          "encodingFormat": "application/zip",
+          "sha256": "821e496b7ac1e6c2659176ff176bf8eda1223c01b0fcc9c8f7fe952f03e33748"
+        }
+      ]
+    },
+    {
+      "@type": "sc:Dataset",
+      "name": "TCR3d TCR Complex Dataset",
+      "description": "Curated structural data for T-cell receptor complexes, including epitope binding, germline genes, docking angles, and related structural information.",
+      "conformsTo": "http://mlcommons.org/croissant/1.0",
+      "citeAs": "Lin V, Cheung M, Gowthaman R, Eisenberg M, Baker BM, Pierce BG. TCR3d 2.0: expanding the T cell receptor structure database with new structures, tools and interactions. Nucleic Acids Research. 2025;53",
+      "creator": [
+        {
+          "@type": "sc:Person",
+          "name": "Valerie Lin, Melyssa Cheung, Ragul Gowthaman, Maya Eisenberg, Brian M. Baker, Brian G. Pierce"
+        }
+      ],
+      "datePublished": "2026-11-11T00:00:00Z",
+      "license": "UNKNOWN",
+      "url": "https://tcr3d.ibbr.umd.edu/",
+      "version": "2026-11-11",
+      "distribution": [
+        {
+          "@type": "cr:FileObject",
+          "@id": "tcr3d-tcr-complex-dataset-5/file_0",
+          "name": "tcr_complexes_data.tsv",
+          "contentSize": "79967",
+          "contentUrl": "tcr_complexes_data.tsv",
+          "encodingFormat": "text/tab-separated-values",
+          "sha256": "c161b3bbe070d08bd4cf97884699884b711964fe6aa7050b9fccf809afca8b64"
+        }
+      ],
+      "recordSet": [
+        {
+          "@type": "cr:RecordSet",
+          "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data",
+          "name": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data",
+          "description": "Records from tcr_complexes_data.tsv",
+          "field": [
+            {
+              "@type": "cr:Field",
+              "name": "PDB_ID",
+              "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/PDB_ID",
+              "dataType": "sc:Text",
+              "description": "Column 'PDB_ID' from tcr_complexes_data.tsv",
+              "source": {
+                "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/PDB_ID/source",
+                "fileObject": {
+                  "@id": "tcr3d-tcr-complex-dataset-5/file_0"
+                },
+                "extract": {
+                  "column": "PDB_ID"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "TCR_complex",
+              "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/TCR_complex",
+              "dataType": "sc:Text",
+              "description": "Column 'TCR_complex' from tcr_complexes_data.tsv",
+              "source": {
+                "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/TCR_complex/source",
+                "fileObject": {
+                  "@id": "tcr3d-tcr-complex-dataset-5/file_0"
+                },
+                "extract": {
+                  "column": "TCR_complex"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "TCR_name",
+              "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/TCR_name",
+              "dataType": "sc:Text",
+              "description": "Column 'TCR_name' from tcr_complexes_data.tsv",
+              "source": {
+                "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/TCR_name/source",
+                "fileObject": {
+                  "@id": "tcr3d-tcr-complex-dataset-5/file_0"
+                },
+                "extract": {
+                  "column": "TCR_name"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "TCR_organism",
+              "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/TCR_organism",
+              "dataType": "sc:Text",
+              "description": "Column 'TCR_organism' from tcr_complexes_data.tsv",
+              "source": {
+                "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/TCR_organism/source",
+                "fileObject": {
+                  "@id": "tcr3d-tcr-complex-dataset-5/file_0"
+                },
+                "extract": {
+                  "column": "TCR_organism"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "Epitope",
+              "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/Epitope",
+              "dataType": "sc:Text",
+              "description": "Column 'Epitope' from tcr_complexes_data.tsv",
+              "source": {
+                "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/Epitope/source",
+                "fileObject": {
+                  "@id": "tcr3d-tcr-complex-dataset-5/file_0"
+                },
+                "extract": {
+                  "column": "Epitope"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "MHC_allele",
+              "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/MHC_allele",
+              "dataType": "sc:Text",
+              "description": "Column 'MHC_allele' from tcr_complexes_data.tsv",
+              "source": {
+                "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/MHC_allele/source",
+                "fileObject": {
+                  "@id": "tcr3d-tcr-complex-dataset-5/file_0"
+                },
+                "extract": {
+                  "column": "MHC_allele"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "TRAV_gene",
+              "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/TRAV_gene",
+              "dataType": "sc:Text",
+              "description": "Column 'TRAV_gene' from tcr_complexes_data.tsv",
+              "source": {
+                "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/TRAV_gene/source",
+                "fileObject": {
+                  "@id": "tcr3d-tcr-complex-dataset-5/file_0"
+                },
+                "extract": {
+                  "column": "TRAV_gene"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "TRBV_gene",
+              "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/TRBV_gene",
+              "dataType": "sc:Text",
+              "description": "Column 'TRBV_gene' from tcr_complexes_data.tsv",
+              "source": {
+                "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/TRBV_gene/source",
+                "fileObject": {
+                  "@id": "tcr3d-tcr-complex-dataset-5/file_0"
+                },
+                "extract": {
+                  "column": "TRBV_gene"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "TRAJ_gene",
+              "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/TRAJ_gene",
+              "dataType": "sc:Text",
+              "description": "Column 'TRAJ_gene' from tcr_complexes_data.tsv",
+              "source": {
+                "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/TRAJ_gene/source",
+                "fileObject": {
+                  "@id": "tcr3d-tcr-complex-dataset-5/file_0"
+                },
+                "extract": {
+                  "column": "TRAJ_gene"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "TRBJ_gene",
+              "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/TRBJ_gene",
+              "dataType": "sc:Text",
+              "description": "Column 'TRBJ_gene' from tcr_complexes_data.tsv",
+              "source": {
+                "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/TRBJ_gene/source",
+                "fileObject": {
+                  "@id": "tcr3d-tcr-complex-dataset-5/file_0"
+                },
+                "extract": {
+                  "column": "TRBJ_gene"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "CDR1_alpha",
+              "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/CDR1_alpha",
+              "dataType": "sc:Text",
+              "description": "Column 'CDR1_alpha' from tcr_complexes_data.tsv",
+              "source": {
+                "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/CDR1_alpha/source",
+                "fileObject": {
+                  "@id": "tcr3d-tcr-complex-dataset-5/file_0"
+                },
+                "extract": {
+                  "column": "CDR1_alpha"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "CDR2_alpha",
+              "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/CDR2_alpha",
+              "dataType": "sc:Text",
+              "description": "Column 'CDR2_alpha' from tcr_complexes_data.tsv",
+              "source": {
+                "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/CDR2_alpha/source",
+                "fileObject": {
+                  "@id": "tcr3d-tcr-complex-dataset-5/file_0"
+                },
+                "extract": {
+                  "column": "CDR2_alpha"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "CDR3_alpha",
+              "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/CDR3_alpha",
+              "dataType": "sc:Text",
+              "description": "Column 'CDR3_alpha' from tcr_complexes_data.tsv",
+              "source": {
+                "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/CDR3_alpha/source",
+                "fileObject": {
+                  "@id": "tcr3d-tcr-complex-dataset-5/file_0"
+                },
+                "extract": {
+                  "column": "CDR3_alpha"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "CDR1_beta",
+              "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/CDR1_beta",
+              "dataType": "sc:Text",
+              "description": "Column 'CDR1_beta' from tcr_complexes_data.tsv",
+              "source": {
+                "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/CDR1_beta/source",
+                "fileObject": {
+                  "@id": "tcr3d-tcr-complex-dataset-5/file_0"
+                },
+                "extract": {
+                  "column": "CDR1_beta"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "CDR2_beta",
+              "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/CDR2_beta",
+              "dataType": "sc:Text",
+              "description": "Column 'CDR2_beta' from tcr_complexes_data.tsv",
+              "source": {
+                "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/CDR2_beta/source",
+                "fileObject": {
+                  "@id": "tcr3d-tcr-complex-dataset-5/file_0"
+                },
+                "extract": {
+                  "column": "CDR2_beta"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "CDR3_beta",
+              "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/CDR3_beta",
+              "dataType": "sc:Text",
+              "description": "Column 'CDR3_beta' from tcr_complexes_data.tsv",
+              "source": {
+                "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/CDR3_beta/source",
+                "fileObject": {
+                  "@id": "tcr3d-tcr-complex-dataset-5/file_0"
+                },
+                "extract": {
+                  "column": "CDR3_beta"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "Docking_angle",
+              "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/Docking_angle",
+              "dataType": "sc:Float",
+              "description": "Column 'Docking_angle' from tcr_complexes_data.tsv",
+              "source": {
+                "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/Docking_angle/source",
+                "fileObject": {
+                  "@id": "tcr3d-tcr-complex-dataset-5/file_0"
+                },
+                "extract": {
+                  "column": "Docking_angle"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "Incident_angle",
+              "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/Incident_angle",
+              "dataType": "sc:Float",
+              "description": "Column 'Incident_angle' from tcr_complexes_data.tsv",
+              "source": {
+                "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/Incident_angle/source",
+                "fileObject": {
+                  "@id": "tcr3d-tcr-complex-dataset-5/file_0"
+                },
+                "extract": {
+                  "column": "Incident_angle"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "Buried_surface_area",
+              "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/Buried_surface_area",
+              "dataType": "sc:Float",
+              "description": "Column 'Buried_surface_area' from tcr_complexes_data.tsv",
+              "source": {
+                "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/Buried_surface_area/source",
+                "fileObject": {
+                  "@id": "tcr3d-tcr-complex-dataset-5/file_0"
+                },
+                "extract": {
+                  "column": "Buried_surface_area"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "Shape_complementarity",
+              "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/Shape_complementarity",
+              "dataType": "sc:Float",
+              "description": "Column 'Shape_complementarity' from tcr_complexes_data.tsv",
+              "source": {
+                "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/Shape_complementarity/source",
+                "fileObject": {
+                  "@id": "tcr3d-tcr-complex-dataset-5/file_0"
+                },
+                "extract": {
+                  "column": "Shape_complementarity"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "Release_date",
+              "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/Release_date",
+              "dataType": "sc:Text",
+              "description": "Column 'Release_date' from tcr_complexes_data.tsv",
+              "source": {
+                "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/Release_date/source",
+                "fileObject": {
+                  "@id": "tcr3d-tcr-complex-dataset-5/file_0"
+                },
+                "extract": {
+                  "column": "Release_date"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "Resolution",
+              "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/Resolution",
+              "dataType": "sc:Float",
+              "description": "Column 'Resolution' from tcr_complexes_data.tsv",
+              "source": {
+                "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/Resolution/source",
+                "fileObject": {
+                  "@id": "tcr3d-tcr-complex-dataset-5/file_0"
+                },
+                "extract": {
+                  "column": "Resolution"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "Pubmed",
+              "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/Pubmed",
+              "dataType": "sc:Text",
+              "description": "Column 'Pubmed' from tcr_complexes_data.tsv",
+              "source": {
+                "@id": "tcr3d-tcr-complex-dataset-5/tcr_complexes_data/Pubmed/source",
+                "fileObject": {
+                  "@id": "tcr3d-tcr-complex-dataset-5/file_0"
+                },
+                "extract": {
+                  "column": "Pubmed"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "sc:Dataset",
+      "name": "ITRAP-filtered TCR–pMHC Benchmark Dataset",
+      "description": "T-cell receptor–peptide-MHC interaction records produced by applying the ITRAP data-driven filtering method to single-cell immune profiling data.",
+      "conformsTo": "http://mlcommons.org/croissant/1.0",
+      "citeAs": "Montemurro A, Povlsen HR, Jessen LE, Nielsen M. Benchmarking data-driven filtering for denoising of TCRpMHC single-cell data. Scientific Reports. 2023;13:16147. https://doi.org/10.1038/s41598-023-4304",
+      "creator": [
+        {
+          "@type": "sc:Person",
+          "name": "Alessandro Montemurro, Helle Rus Povlsen, Leon Eyrich Jessen, Morten Nielsen"
+        }
+      ],
+      "datePublished": "2023-03-07T00:00:00Z",
+      "license": "In repository as file/Custom",
+      "url": "https://github.com/mnielLab/ITRAP_benchmark",
+      "version": "2023-03-07",
+      "distribution": [
+        {
+          "@type": "cr:FileObject",
+          "@id": "itrap-filtered-tcr–pmhc-benchmark-dataset-6/file_0",
+          "name": "ITRAP.csv",
+          "contentSize": "445521",
+          "contentUrl": "ITRAP.csv",
+          "encodingFormat": "text/csv",
+          "sha256": "9667ff01c823ea2423981d6295ee4bbade72de086da9c928ff56bb52e4de8acc"
+        }
+      ],
+      "recordSet": [
+        {
+          "@type": "cr:RecordSet",
+          "@id": "itrap-filtered-tcr–pmhc-benchmark-dataset-6/ITRAP",
+          "name": "itrap-filtered-tcr–pmhc-benchmark-dataset-6/ITRAP",
+          "description": "Records from ITRAP.csv",
+          "field": [
+            {
+              "@type": "cr:Field",
+              "name": "peptide_HLA",
+              "@id": "itrap-filtered-tcr–pmhc-benchmark-dataset-6/ITRAP/peptide_HLA",
+              "dataType": "sc:Text",
+              "description": "Column 'peptide_HLA' from ITRAP.csv",
+              "source": {
+                "@id": "itrap-filtered-tcr–pmhc-benchmark-dataset-6/ITRAP/peptide_HLA/source",
+                "fileObject": {
+                  "@id": "itrap-filtered-tcr–pmhc-benchmark-dataset-6/file_0"
+                },
+                "extract": {
+                  "column": "peptide_HLA"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "cdr3_TRA",
+              "@id": "itrap-filtered-tcr–pmhc-benchmark-dataset-6/ITRAP/cdr3_TRA",
+              "dataType": "sc:Text",
+              "description": "Column 'cdr3_TRA' from ITRAP.csv",
+              "source": {
+                "@id": "itrap-filtered-tcr–pmhc-benchmark-dataset-6/ITRAP/cdr3_TRA/source",
+                "fileObject": {
+                  "@id": "itrap-filtered-tcr–pmhc-benchmark-dataset-6/file_0"
+                },
+                "extract": {
+                  "column": "cdr3_TRA"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "cdr3_TRB",
+              "@id": "itrap-filtered-tcr–pmhc-benchmark-dataset-6/ITRAP/cdr3_TRB",
+              "dataType": "sc:Text",
+              "description": "Column 'cdr3_TRB' from ITRAP.csv",
+              "source": {
+                "@id": "itrap-filtered-tcr–pmhc-benchmark-dataset-6/ITRAP/cdr3_TRB/source",
+                "fileObject": {
+                  "@id": "itrap-filtered-tcr–pmhc-benchmark-dataset-6/file_0"
+                },
+                "extract": {
+                  "column": "cdr3_TRB"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "v_gene_TRA",
+              "@id": "itrap-filtered-tcr–pmhc-benchmark-dataset-6/ITRAP/v_gene_TRA",
+              "dataType": "sc:Text",
+              "description": "Column 'v_gene_TRA' from ITRAP.csv",
+              "source": {
+                "@id": "itrap-filtered-tcr–pmhc-benchmark-dataset-6/ITRAP/v_gene_TRA/source",
+                "fileObject": {
+                  "@id": "itrap-filtered-tcr–pmhc-benchmark-dataset-6/file_0"
+                },
+                "extract": {
+                  "column": "v_gene_TRA"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "j_gene_TRA",
+              "@id": "itrap-filtered-tcr–pmhc-benchmark-dataset-6/ITRAP/j_gene_TRA",
+              "dataType": "sc:Text",
+              "description": "Column 'j_gene_TRA' from ITRAP.csv",
+              "source": {
+                "@id": "itrap-filtered-tcr–pmhc-benchmark-dataset-6/ITRAP/j_gene_TRA/source",
+                "fileObject": {
+                  "@id": "itrap-filtered-tcr–pmhc-benchmark-dataset-6/file_0"
+                },
+                "extract": {
+                  "column": "j_gene_TRA"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "v_gene_TRB",
+              "@id": "itrap-filtered-tcr–pmhc-benchmark-dataset-6/ITRAP/v_gene_TRB",
+              "dataType": "sc:Text",
+              "description": "Column 'v_gene_TRB' from ITRAP.csv",
+              "source": {
+                "@id": "itrap-filtered-tcr–pmhc-benchmark-dataset-6/ITRAP/v_gene_TRB/source",
+                "fileObject": {
+                  "@id": "itrap-filtered-tcr–pmhc-benchmark-dataset-6/file_0"
+                },
+                "extract": {
+                  "column": "v_gene_TRB"
+                }
+              }
+            },
+            {
+              "@type": "cr:Field",
+              "name": "j_gene_TRB",
+              "@id": "itrap-filtered-tcr–pmhc-benchmark-dataset-6/ITRAP/j_gene_TRB",
+              "dataType": "sc:Text",
+              "description": "Column 'j_gene_TRB' from ITRAP.csv",
+              "source": {
+                "@id": "itrap-filtered-tcr–pmhc-benchmark-dataset-6/ITRAP/j_gene_TRB/source",
+                "fileObject": {
+                  "@id": "itrap-filtered-tcr–pmhc-benchmark-dataset-6/file_0"
+                },
+                "extract": {
+                  "column": "j_gene_TRB"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "sc:Dataset",
+      "name": "NeoTCR Neoantigen-specific TCR Dataset",
+      "description": "Experimentally supported neoantigen-specific T-cell receptor sequences with associated neoepitopes, somatic mutations, HLA context, cancer type, and supporting publications.",
+      "conformsTo": "http://mlcommons.org/croissant/1.0",
+      "citeAs": "Zhou W, Xiang W, Yu J, Ruan Z, Pan Y, Wang K, Liu J. NeoTCR: An Immunoinformatic Database of Experimentally-supported Functional Neoantigen-specific TCR Sequences. Genomics, Proteomics & Bioinformatic",
+      "creator": [
+        {
+          "@type": "sc:Person",
+          "name": "Weijun Zhou, Wenting Xiang, Jinyi Yu, Zhihan Ruan, Yichen Pan, Kankan Wang, Jian Liu"
+        }
+      ],
+      "datePublished": "2022-12-20T00:00:00Z",
+      "license": "UNKNOWN",
+      "url": "https://github.com/lyotvincent/NeoTCR",
+      "version": "2022-12-20",
+      "distribution": [
+        {
+          "@type": "cr:FileObject",
+          "@id": "neotcr-neoantigen-specific-tcr-dataset-7/file_0",
+          "name": "NeoTCR-data-20221220.xlsx",
+          "contentSize": "106595",
+          "contentUrl": "NeoTCR-data-20221220.xlsx",
+          "encodingFormat": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "sha256": "648b330f0018f189932aa5c3ee38980c88a7e3d166cd69dcef77c55f3e3c2b5a"
+        }
+      ]
+    },
+    {
+      "@type": "sc:Dataset",
+      "name": "CEDAR Receptor Dataset",
+      "description": "Version 3 export of curated T-cell and B-cell receptor data associated with cancer epitopes, including receptor sequences, recognized epitopes, assays, organisms, and supporting literature.",
+      "conformsTo": "http://mlcommons.org/croissant/1.0",
+      "citeAs": "Koşaloğlu-Yalçın Z, Carri I, Marrama D, et al. The Cancer Epitope Database and Analysis Resource (CEDAR): current capabilities and future directions. Frontiers in Oncology. 2026;16:1898826. https://do",
+      "creator": [
+        {
+          "@type": "sc:Person",
+          "name": "Cancer Epitope Database and Analysis Resource (CEDAR)"
+        }
+      ],
+      "datePublished": "2026-11-17T00:00:00Z",
+      "license": "In repository as file/Custom",
+      "url": "https://cedar.iedb.org/",
+      "version": "v3",
+      "distribution": [
+        {
+          "@type": "cr:FileObject",
+          "@id": "cedar-receptor-dataset-8/file_0",
+          "name": "CEDAR-receptor-v3.zip",
+          "contentSize": "3632580",
+          "contentUrl": "CEDAR-receptor-v3.zip",
+          "encodingFormat": "application/zip",
+          "sha256": "37903f7cda8f5790cfb46c49d748ddf6babbc411593cae217b06733b3a1a6af2"
+        }
+      ]
+    },
+    {
+      "@type": "sc:Dataset",
+      "name": "BATCAVE MHC Class I Mutational Scan Dataset",
+      "description": "Experimentally validated positive and negative MHC class I-restricted TCR–peptide interactions from peptide mutational scans and TCR–pMHC binding-affinity assays in the BATCAVE database.",
+      "conformsTo": "http://mlcommons.org/croissant/1.0",
+      "citeAs": "Banerjee A, Pattinson DJ, Wincek CL, Bunk P, Axhemi A, Chapin SR, Navlakha S, Meyer HV. T cell receptor cross-reactivity prediction improved by a comprehensive mutational scan database. Cell Systems.",
+      "creator": [
+        {
+          "@type": "sc:Person",
+          "name": "Amitava Banerjee, David J. Pattinson, Cornelia L. Wincek, Paul Bunk, Armend Axhemi, Sarah R. Chapin,"
+        }
+      ],
+      "datePublished": "2026-01-02T00:00:00Z",
+      "license": "No license",
+      "url": "https://github.com/meyer-lab-cshl/BATMAN-paper/tree/main/results_batman/tcr_epitope_datasets",
+      "version": "2026-01-02",
+      "distribution": [
+        {
+          "@type": "cr:FileObject",
+          "@id": "batcave-mhc-class-i-mutational-scan-dataset-9/file_0",
+          "name": "BATCAVE-MHCI.xlsx",
+          "contentSize": "1356746",
+          "contentUrl": "BATCAVE-MHCI.xlsx",
+          "encodingFormat": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "sha256": "9b1292a95b287b94ccf94a4f6888349fd26f02cb55112c43ed5760f1a32cde91"
+        }
+      ]
+    },
+    {
+      "@type": "sc:Dataset",
+      "name": "BATCAVE MHC Class II Mutational Scan Dataset",
+      "description": "Experimentally validated positive and negative MHC class II-restricted TCR–peptide interactions from peptide mutational scans and TCR–pMHC binding-affinity assays in the BATCAVE database.",
+      "conformsTo": "http://mlcommons.org/croissant/1.0",
+      "creator": [
+        {
+          "@type": "sc:Person",
+          "name": "Amitava Banerjee, David J. Pattinson, Cornelia L. Wincek, Paul Bunk, Armend Axhemi, Sarah R. Chapin,"
+        }
+      ],
+      "datePublished": "2026-01-02T00:00:00Z",
+      "license": "No license",
+      "url": "https://github.com/meyer-lab-cshl/BATMAN-paper/tree/main/results_batman/tcr_epitope_datasets",
+      "version": "2026-01-02",
+      "distribution": [
+        {
+          "@type": "cr:FileObject",
+          "@id": "batcave-mhc-class-ii-mutational-scan-dataset-10/file_0",
+          "name": "BATCAVE-MHCII.xlsx",
+          "contentSize": "330155",
+          "contentUrl": "BATCAVE-MHCII.xlsx",
+          "encodingFormat": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "sha256": "9edc0e8ceb82afa5b4402a573282d3a5f3e5d3f38e794039ed5857e6feef86fc"
+        }
+      ]
+    }
+  ]
+}
